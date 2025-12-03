@@ -1,0 +1,81 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Pattern Background -->
+  <g opacity="0.1">
+    <circle cx="100" cy="100" r="50" fill="white"/>
+    <circle cx="1100" cy="500" r="80" fill="white"/>
+    <circle cx="200" cy="500" r="40" fill="white"/>
+    <circle cx="1000" cy="150" r="60" fill="white"/>
+  </g>
+  
+  <!-- Logo/Icon -->
+  <g transform="translate(200, 315)" filter="url(#shadow)">
+    <!-- Medical Cross with Heart -->
+    <circle cx="0" cy="0" r="100" fill="white" opacity="0.95"/>
+    <path d="M0,-40 C-15,-55 -35,-55 -50,-40 C-65,-25 -65,-5 -50,10 L0,60 L50,10 C65,-5 65,-25 50,-40 C35,-55 15,-55 0,-40 Z" 
+          fill="#10b981"/>
+    <rect x="-10" y="-70" width="20" height="140" fill="#10b981" rx="5"/>
+    <rect x="-70" y="-10" width="140" height="20" fill="#10b981" rx="5"/>
+  </g>
+  
+  <!-- Text Content -->
+  <g transform="translate(400, 250)">
+    <!-- Title -->
+    <text x="0" y="0" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="800" fill="white">
+      LifeLine Pro
+    </text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="60" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="400" fill="white" opacity="0.95">
+      Your Health, Our Priority
+    </text>
+    
+    <!-- Description -->
+    <text x="0" y="110" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="300" fill="white" opacity="0.9">
+      Comprehensive HMO &amp; Health Insurance Platform
+    </text>
+  </g>
+  
+  <!-- Features -->
+  <g transform="translate(400, 430)">
+    <g transform="translate(0, 0)">
+      <circle cx="0" cy="0" r="6" fill="white"/>
+      <text x="20" y="6" font-family="Inter, Arial, sans-serif" font-size="20" fill="white" opacity="0.9">
+        Patient Care
+      </text>
+    </g>
+    <g transform="translate(200, 0)">
+      <circle cx="0" cy="0" r="6" fill="white"/>
+      <text x="20" y="6" font-family="Inter, Arial, sans-serif" font-size="20" fill="white" opacity="0.9">
+        Doctor Consultations
+      </text>
+    </g>
+    <g transform="translate(480, 0)">
+      <circle cx="0" cy="0" r="6" fill="white"/>
+      <text x="20" y="6" font-family="Inter, Arial, sans-serif" font-size="20" fill="white" opacity="0.9">
+        Pharmacy Services
+      </text>
+    </g>
+  </g>
+  
+  <!-- Badge -->
+  <g transform="translate(900, 500)">
+    <rect x="0" y="0" width="240" height="60" rx="30" fill="white" opacity="0.2"/>
+    <text x="120" y="40" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="600" 
+          fill="white" text-anchor="middle">
+      📱 Download App
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeLine Pro - You're Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #ffffff;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 500px;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .icon {
+      font-size: 120px;
+      margin-bottom: 30px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      font-size: 18px;
+      line-height: 1.6;
+      opacity: 0.95;
+      margin-bottom: 30px;
+    }
+
+    .features {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 40px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .features h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .feature-list {
+      list-style: none;
+      text-align: left;
+    }
+
+    .feature-list li {
+      padding: 10px 0;
+      font-size: 16px;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .feature-list li:before {
+      content: "✓";
+      font-weight: bold;
+      font-size: 20px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .retry-button {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 14px 32px;
+      background: #ffffff;
+      color: #10b981;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .retry-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .pulse {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: #ffffff;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .icon {
+        font-size: 80px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      p {
+        font-size: 16px;
+      }
+
+      .features {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>
+      It looks like you've lost your internet connection. Don't worry! 
+      Many features of LifeLine Pro are still available offline.
+    </p>
+
+    <div class="features">
+      <h2>Available Offline:</h2>
+      <ul class="feature-list">
+        <li>View your medical history</li>
+        <li>Access saved prescriptions</li>
+        <li>Review appointment details</li>
+        <li>Check your profile information</li>
+      </ul>
+    </div>
+
+    <a href="/" class="retry-button" onclick="window.location.reload(); return false;">
+      Try Again
+    </a>
+
+    <div class="status">
+      <span class="pulse"></span>
+      <span id="status-text">Checking connection...</span>
+    </div>
+  </div>
+
+  <script>
+    // Check connection status
+    function updateConnectionStatus() {
+      const statusText = document.getElementById('status-text');
+      if (navigator.onLine) {
+        statusText.textContent = 'Connection restored! Redirecting...';
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } else {
+        statusText.textContent = 'Still offline...';
+      }
+    }
+
+    // Listen for online/offline events
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Check every 5 seconds
+    setInterval(updateConnectionStatus, 5000);
+    
+    // Initial check
+    updateConnectionStatus();
+  </script>
+</body>
+</html>
