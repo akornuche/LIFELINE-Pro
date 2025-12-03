@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#10b981"/>
+  
+  <!-- Medical Cross with Heart -->
+  <g transform="translate(256, 256)">
+    <!-- Heart Shape -->
+    <path d="M0,-60 C-20,-80 -50,-80 -70,-60 C-90,-40 -90,-10 -70,10 L0,80 L70,10 C90,-10 90,-40 70,-60 C50,-80 20,-80 0,-60 Z" 
+          fill="white" opacity="0.95"/>
+    
+    <!-- Cross -->
+    <rect x="-15" y="-100" width="30" height="200" fill="white" rx="8"/>
+    <rect x="-100" y="-15" width="200" height="30" fill="white" rx="8"/>
+    
+    <!-- Pulse Line -->
+    <path d="M-120,-140 L-80,-140 L-60,-120 L-40,-160 L-20,-140 L0,-140" 
+          stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.8"/>
+    <path d="M20,-140 L40,-140 L60,-120 L80,-160 L100,-140 L120,-140" 
+          stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.8"/>
+  </g>
+  
+  <!-- Shield Border (Protection) -->
+  <path d="M256 50 L400 120 L400 280 C400 360 340 420 256 460 C172 420 112 360 112 280 L112 120 Z" 
+        stroke="white" stroke-width="8" fill="none" opacity="0.6"/>
+</svg>

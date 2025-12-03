@@ -1,0 +1,355 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "LifeLine Pro API",
+    "version": "1.0.0",
+    "description": "Comprehensive HMO & Health Insurance Management Platform API",
+    "contact": {
+      "name": "LifeLine Pro Support",
+      "email": "support@lifelinepro.com",
+      "url": "https://lifelinepro.com"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://lifelinepro.com/license"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.lifelinepro.com/api",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization"
+    },
+    {
+      "name": "Patients",
+      "description": "Patient management operations"
+    },
+    {
+      "name": "Doctors",
+      "description": "Doctor management operations"
+    },
+    {
+      "name": "Pharmacies",
+      "description": "Pharmacy management operations"
+    },
+    {
+      "name": "Hospitals",
+      "description": "Hospital management operations"
+    },
+    {
+      "name": "Dependents",
+      "description": "Dependent coverage management"
+    },
+    {
+      "name": "Payments",
+      "description": "Payment and billing operations"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User login",
+        "description": "Authenticate user and receive JWT token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "admin@lifelinepro.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "Admin@123!"
+                  },
+                  "rememberMe": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "token": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/patients": {
+      "get": {
+        "tags": ["Patients"],
+        "summary": "Get all patients",
+        "description": "Retrieve list of all patients (Admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "packageType",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["BASIC", "MEDIUM", "ADVANCED"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of patients retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin access required"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Patients"],
+        "summary": "Create new patient",
+        "description": "Register a new patient (Admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePatient" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Patient created successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "409": {
+            "description": "Email already exists"
+          }
+        }
+      }
+    },
+    "/patients/{id}": {
+      "get": {
+        "tags": ["Patients"],
+        "summary": "Get patient by ID",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patient details retrieved"
+          },
+          "404": {
+            "description": "Patient not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Patients"],
+        "summary": "Update patient",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdatePatient" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Patient updated successfully"
+          },
+          "404": {
+            "description": "Patient not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Patients"],
+        "summary": "Delete patient",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patient deleted successfully"
+          },
+          "404": {
+            "description": "Patient not found"
+          }
+        }
+      }
+    },
+    "/dependents": {
+      "get": {
+        "tags": ["Dependents"],
+        "summary": "Get all dependents",
+        "description": "Get all dependents for authenticated patient",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of dependents retrieved"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Dependents"],
+        "summary": "Add dependent",
+        "description": "Add a new dependent (max 4 per patient)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDependent" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dependent added successfully"
+          },
+          "400": {
+            "description": "Maximum dependents limit reached (4)"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "lifelineId": { "type": "string", "example": "LLPAT-00001" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "role": { "type": "string", "enum": ["patient", "doctor", "pharmacy", "hospital", "admin"] },
+          "isVerified": { "type": "boolean" },
+          "isActive": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreatePatient": {
+        "type": "object",
+        "required": ["email", "password", "firstName", "lastName", "dateOfBirth", "packageType"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 },
+          "phone": { "type": "string" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "dateOfBirth": { "type": "string", "format": "date" },
+          "gender": { "type": "string", "enum": ["male", "female", "other"] },
+          "packageType": { "type": "string", "enum": ["BASIC", "MEDIUM", "ADVANCED"] },
+          "address": { "type": "string" },
+          "city": { "type": "string" },
+          "state": { "type": "string" }
+        }
+      },
+      "UpdatePatient": {
+        "type": "object",
+        "properties": {
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "phone": { "type": "string" },
+          "address": { "type": "string" },
+          "bloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+          "genotype": { "type": "string", "enum": ["AA", "AS", "SS", "AC", "SC"] },
+          "allergies": { "type": "string" }
+        }
+      },
+      "CreateDependent": {
+        "type": "object",
+        "required": ["firstName", "lastName", "dateOfBirth", "gender", "relationship"],
+        "properties": {
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "dateOfBirth": { "type": "string", "format": "date" },
+          "gender": { "type": "string", "enum": ["male", "female", "other"] },
+          "relationship": { "type": "string", "enum": ["spouse", "child", "parent", "sibling", "other"] },
+          "bloodGroup": { "type": "string" },
+          "genotype": { "type": "string" },
+          "allergies": { "type": "string" },
+          "chronicConditions": { "type": "string" }
+        }
+      }
+    }
+  }
+}

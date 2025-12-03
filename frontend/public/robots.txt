@@ -1,0 +1,16 @@
+# Allow all robots
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://lifelinepro.com/sitemap.xml
+
+# Disallow admin routes
+Disallow: /admin/
+Disallow: /api/
+
+# Disallow authentication routes from indexing
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
