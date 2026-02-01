@@ -39,6 +39,22 @@ export const updateProfile = async (req, res, next) => {
 };
 
 /**
+ * Get subscriptions
+ * GET /api/patients/subscriptions
+ */
+export const getSubscriptions = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    const subscriptions = await patientService.getSubscriptions(userId);
+
+    return successResponse(res, subscriptions, 'Subscriptions retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Create subscription
  * POST /api/patients/subscriptions
  */

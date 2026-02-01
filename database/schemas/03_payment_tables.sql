@@ -9,7 +9,7 @@
 -- 1. PRICING TABLE (Admin-controlled service costs)
 -- ===================================
 CREATE TABLE pricing_table (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Service Definition
     service_type VARCHAR(50) NOT NULL, -- consultation, drug_dispensing, minor_surgery, etc.
@@ -43,15 +43,15 @@ CREATE INDEX idx_pricing_is_active ON pricing_table(is_active);
 -- 2. PAYMENT RECORDS TABLE (Provider Compensation Tracking)
 -- ===================================
 CREATE TABLE payment_records (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Provider Information
-    provider_id UUID NOT NULL, -- References users(id) - can be doctor, pharmacy, or hospital
+    provider_id TEXT NOT NULL, -- References users(id) - can be doctor, pharmacy, or hospital
     provider_type VARCHAR(20) NOT NULL CHECK (provider_type IN ('doctor', 'pharmacy', 'hospital')),
     
     -- Patient Information
-    patient_id UUID NOT NULL REFERENCES patients(id),
-    dependent_id UUID REFERENCES dependents(id),
+    patient_id TEXT NOT NULL REFERENCES patients(id),
+    dependent_id TEXT REFERENCES dependents(id),
     
     -- Service Information
     service_type VARCHAR(50) NOT NULL, -- consultation, drugs, minor_surgery, major_surgery, lab_test
@@ -95,10 +95,10 @@ CREATE INDEX idx_payment_records_created_at ON payment_records(created_at DESC);
 -- 3. MONTHLY STATEMENTS TABLE (Provider Monthly Compensation)
 -- ===================================
 CREATE TABLE monthly_statements (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Provider Information
-    provider_id UUID NOT NULL,
+    provider_id TEXT NOT NULL,
     provider_type VARCHAR(20) NOT NULL CHECK (provider_type IN ('doctor', 'pharmacy', 'hospital')),
     
     -- Statement Period
@@ -147,10 +147,10 @@ CREATE INDEX idx_monthly_statements_date_generated ON monthly_statements(date_ge
 -- 4. PATIENT PAYMENTS TABLE (Patient Subscriptions)
 -- ===================================
 CREATE TABLE patient_payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Patient Information
-    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     
     -- Payment Details
     payment_type VARCHAR(20) NOT NULL CHECK (payment_type IN ('subscription', 'upgrade', 'renewal', 'penalty')),
@@ -201,7 +201,7 @@ CREATE INDEX idx_patient_payments_subscription_period ON patient_payments(subscr
 -- 5. PAYMENT WEBHOOKS TABLE (Track webhook events from payment gateways)
 -- ===================================
 CREATE TABLE payment_webhooks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Webhook Details
     gateway VARCHAR(50) NOT NULL, -- paystack, flutterwave

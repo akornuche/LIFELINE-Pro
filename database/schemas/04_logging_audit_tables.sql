@@ -9,7 +9,7 @@
 -- 1. ERROR LOGS TABLE
 -- ===================================
 CREATE TABLE error_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Error Classification
     severity VARCHAR(20) NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
@@ -21,7 +21,7 @@ CREATE TABLE error_logs (
     error_stack TEXT,
     
     -- Context
-    user_id UUID, -- May be NULL if error occurs before authentication
+    user_id TEXT, -- May be NULL if error occurs before authentication
     user_role VARCHAR(20),
     endpoint VARCHAR(255), -- API endpoint where error occurred
     http_method VARCHAR(10), -- GET, POST, PUT, DELETE
@@ -63,10 +63,10 @@ CREATE INDEX idx_error_logs_severity_created ON error_logs(severity, created_at 
 -- 2. AUDIT LOGS TABLE (Track sensitive actions)
 -- ===================================
 CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- User Context
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
     user_role VARCHAR(20) NOT NULL,
     user_email VARCHAR(255),
     
@@ -112,7 +112,7 @@ CREATE INDEX idx_audit_logs_user_action_created ON audit_logs(user_id, action, c
 -- 3. SYSTEM LOGS TABLE (General application logs)
 -- ===================================
 CREATE TABLE system_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Log Level
     level VARCHAR(20) NOT NULL CHECK (level IN ('debug', 'info', 'warn', 'error', 'fatal')),
@@ -146,10 +146,10 @@ CREATE INDEX idx_system_logs_level_created ON system_logs(level, created_at DESC
 -- 4. SESSION LOGS TABLE (Track user sessions)
 -- ===================================
 CREATE TABLE session_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- User
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
     user_role VARCHAR(20) NOT NULL,
     
     -- Session Details
@@ -190,14 +190,14 @@ CREATE INDEX idx_session_logs_last_activity ON session_logs(last_activity DESC);
 -- 5. API REQUEST LOGS TABLE (Monitor API usage)
 -- ===================================
 CREATE TABLE api_request_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Request Info
     endpoint VARCHAR(255) NOT NULL,
     http_method VARCHAR(10) NOT NULL,
     
     -- User Context
-    user_id UUID,
+    user_id TEXT,
     user_role VARCHAR(20),
     
     -- Request Details
@@ -232,10 +232,10 @@ CREATE INDEX idx_api_request_logs_response_time ON api_request_logs(response_tim
 -- 6. NOTIFICATION LOGS TABLE (Track all notifications sent)
 -- ===================================
 CREATE TABLE notification_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Recipient
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
     
     -- Notification Details
     notification_type VARCHAR(50) NOT NULL, -- email, sms, push, socket

@@ -5,14 +5,13 @@
 -- Version: 1.0.0
 -- Date: 2025-11-22
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Note: Modified for SQLite compatibility
 
 -- ===================================
 -- 1. USERS TABLE (Base table for all user types)
 -- ===================================
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     lifeline_id VARCHAR(20) UNIQUE NOT NULL, -- LLPAT-XXXXX, LLDOC-XXXXX, etc.
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE NOT NULL,
@@ -36,8 +35,8 @@ CREATE INDEX idx_users_is_active ON users(is_active);
 -- 2. PATIENTS TABLE
 -- ===================================
 CREATE TABLE patients (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
@@ -86,8 +85,8 @@ CREATE INDEX idx_patients_full_name ON patients(first_name, last_name);
 -- 3. DOCTORS TABLE
 -- ===================================
 CREATE TABLE doctors (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
@@ -136,8 +135,8 @@ CREATE INDEX idx_doctors_is_accepting ON doctors(is_accepting_patients);
 -- 4. PHARMACIES TABLE
 -- ===================================
 CREATE TABLE pharmacies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     -- Business Information
     pharmacy_name VARCHAR(255) NOT NULL,
@@ -187,8 +186,8 @@ CREATE INDEX idx_pharmacies_location ON pharmacies(latitude, longitude);
 -- 5. HOSPITALS TABLE
 -- ===================================
 CREATE TABLE hospitals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    user_id TEXT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     -- Business Information
     hospital_name VARCHAR(255) NOT NULL,

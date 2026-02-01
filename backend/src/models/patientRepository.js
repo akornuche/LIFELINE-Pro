@@ -2,6 +2,7 @@ import database from '../database/connection.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, ConflictError, BusinessLogicError } from '../middleware/errorHandler.js';
 import { PACKAGE_TYPES, PACKAGE_ENTITLEMENTS } from '../constants/packages.js';
+import { randomUUID } from 'crypto';
 
 /**
  * Patient Repository
@@ -12,6 +13,7 @@ import { PACKAGE_TYPES, PACKAGE_ENTITLEMENTS } from '../constants/packages.js';
  * Create patient record
  */
 export const createPatient = async (userId, patientData) => {
+  const id = randomUUID();
   const {
     dateOfBirth,
     gender,
@@ -28,13 +30,14 @@ export const createPatient = async (userId, patientData) => {
   try {
     const result = await database.query(
       `INSERT INTO patients (
-        user_id, date_of_birth, gender, address,
+        id, user_id, date_of_birth, gender, address,
         blood_group, genotype, allergies, chronic_conditions,
         emergency_contact_name, emergency_contact_phone, 
         emergency_contact_relationship
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *`,
       [
+        id,
         userId,
         dateOfBirth,
         gender,
@@ -92,6 +95,26 @@ export const findByUserId = async (userId) => {
     logger.error('Error finding patient by user ID', {
       error: error.message,
       userId,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Get patient subscriptions
+ */
+export const getSubscriptions = async (patientId) => {
+  try {
+    const result = await database.query(
+      `SELECT * FROM patient_payments WHERE patient_id = $1 ORDER BY created_at DESC`,
+      [patientId]
+    );
+
+    return result.rows || result;
+  } catch (error) {
+    logger.error('Error getting subscriptions', {
+      error: error.message,
+      patientId,
     });
     throw error;
   }
@@ -684,6 +707,7 @@ export default {
   findByUserId,
   findById,
   updateProfile,
+  getSubscriptions,
   updateSubscription,
   getActiveSubscription,
   hasActiveSubscription,
