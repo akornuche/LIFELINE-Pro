@@ -33,9 +33,7 @@ export const createUser = async (userData) => {
         lifeline_id, email, password_hash, role,
         first_name, last_name, phone,
         status, email_verified
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, lifeline_id, email, role, first_name, last_name, 
-                phone, status, email_verified, created_at`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         lifelineId,
         email.toLowerCase(),
@@ -49,13 +47,22 @@ export const createUser = async (userData) => {
       ]
     );
 
+    // For SQLite, get the inserted user data
+    const userResult = await database.query(
+      `SELECT id, lifeline_id, email, role, first_name, last_name, 
+              phone, status, email_verified, created_at
+       FROM users 
+       WHERE id = $1`,
+      [result.lastID]
+    );
+
     logger.info('User created', {
-      userId: result.rows[0].id,
+      userId: userResult.rows[0].id,
       email,
       role,
     });
 
-    return result.rows[0];
+    return userResult.rows[0];
   } catch (error) {
     if (error.code === '23505') {
       // Unique constraint violation
@@ -555,11 +562,11 @@ export const searchUsers = async (searchTerm, options = {}) => {
 export const emailExists = async (email) => {
   try {
     const result = await database.query(
-      `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) as exists`,
+      `SELECT COUNT(*) as count FROM users WHERE email = $1`,
       [email.toLowerCase()]
     );
 
-    return result.rows[0].exists;
+    return result.rows[0].count > 0;
   } catch (error) {
     logger.error('Error checking email existence', {
       error: error.message,
@@ -575,11 +582,11 @@ export const emailExists = async (email) => {
 export const lifelineIdExists = async (lifelineId) => {
   try {
     const result = await database.query(
-      `SELECT EXISTS(SELECT 1 FROM users WHERE lifeline_id = $1) as exists`,
+      `SELECT COUNT(*) as count FROM users WHERE lifeline_id = $1`,
       [lifelineId]
     );
 
-    return result.rows[0].exists;
+    return result.rows[0].count > 0;
   } catch (error) {
     logger.error('Error checking LifeLine ID existence', {
       error: error.message,

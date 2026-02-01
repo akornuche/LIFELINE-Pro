@@ -72,6 +72,11 @@ class DatabaseInitializer {
       // Import database dynamically to avoid circular dependency
       const { default: database } = await import('./connection.js');
 
+      // Ensure database is connected
+      if (!database.isConnected()) {
+        await database.connect();
+      }
+
       for (const file of schemaFiles) {
         const filePath = path.join(schemaDir, file);
         try {
@@ -80,10 +85,21 @@ class DatabaseInitializer {
 
           if (this.dbType === 'sqlite') {
             // For SQLite, split multiple statements and execute them one by one
-            const statements = sql.split(';').filter(stmt => stmt.trim().length > 0);
+            // Remove comments and empty lines first
+            const cleanedSql = sql
+              .split('\n')
+              .filter(line => !line.trim().startsWith('--'))
+              .join('\n');
+            
+            const statements = cleanedSql.split(';').filter(stmt => {
+              const trimmed = stmt.trim();
+              return trimmed.length > 0 && !trimmed.startsWith('--');
+            });
+            
             for (const statement of statements) {
-              if (statement.trim()) {
-                await database.query(statement.trim() + ';');
+              const trimmed = statement.trim();
+              if (trimmed) {
+                await database.query(trimmed + ';');
               }
             }
           } else {
@@ -119,6 +135,11 @@ class DatabaseInitializer {
 
       // Import database dynamically to avoid circular dependency
       const { default: database } = await import('./connection.js');
+
+      // Ensure database is connected
+      if (!database.isConnected()) {
+        await database.connect();
+      }
 
       let indexes = [];
 
@@ -263,6 +284,9 @@ class DatabaseInitializer {
       // Import database dynamically to avoid circular dependency
       const { default: database } = await import('./connection.js');
 
+      // Connect first
+      await database.connect();
+
       if (this.dbType === 'sqlite') {
         const result = await database.query('SELECT datetime(\'now\') as current_time');
         logger.info('SQLite database connection test successful');
@@ -335,7 +359,11 @@ class DatabaseInitializer {
 }
 
 // Run initialization if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     import.meta.url === `file:///${process.argv[1]?.replace(/\\/g, '/')}` ||
+                     process.argv[1]?.endsWith('init.js');
+
+if (isMainModule) {
   const initializer = new DatabaseInitializer();
   initializer
     .initialize()

@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import db from './index.js';
+import db from './connection.js';
 import logger from '../utils/logger.js';
-import { generateLifeLineId } from '../utils/lifeLineId.js';
+import { generateLifelineId } from '../utils/idGenerator.js';
 
 dotenv.config();
 
@@ -36,7 +36,7 @@ class AdminSeeder {
       await client.query('BEGIN');
 
       // Generate unique LifeLine ID
-      const lifeLineId = generateLifeLineId();
+      const lifeLineId = generateLifelineId('admin');
 
       // Hash password
       const hashedPassword = await bcrypt.hash(this.adminPassword, 10);
@@ -133,7 +133,7 @@ class AdminSeeder {
           continue;
         }
 
-        const lifeLineId = generateLifeLineId();
+        const lifeLineId = generateLifelineId('admin');
         const hashedPassword = await bcrypt.hash('Admin@123!ChangeThis', 10);
 
         const userQuery = `

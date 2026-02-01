@@ -105,7 +105,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//, /^\/admin\//]
       },
       devOptions: {
-        enabled: true,
+        enabled: false, // Disable PWA in development to avoid caching conflicts
         type: 'module',
         navigateFallback: 'index.html'
       }
@@ -120,7 +120,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5000',
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false
       }

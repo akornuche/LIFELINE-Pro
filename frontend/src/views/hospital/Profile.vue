@@ -26,7 +26,6 @@ import { BaseCard, BaseInput, BaseButton, LoadingSpinner } from '@/components';
 import { CheckCircleIcon, XCircleIcon, BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 
 const hospitalStore = useHospitalStore();
-const { success, error: showError, info } = useToast();
 const authStore = useAuthStore();
 const { success, error: showError, info } = useToast();
 const loading = ref(true);

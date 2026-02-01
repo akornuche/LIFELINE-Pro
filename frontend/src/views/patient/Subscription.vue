@@ -205,7 +205,12 @@ const packagePrices = {
 };
 
 const formatDate = (date) => {
-  return format(new Date(date), 'MMM dd, yyyy');
+  if (!date) return 'N/A';
+  try {
+    return format(new Date(date), 'MMM dd, yyyy');
+  } catch {
+    return 'Invalid date';
+  }
 };
 
 const selectPlan = async (packageType) => {

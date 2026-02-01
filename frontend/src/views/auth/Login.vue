@@ -41,7 +41,7 @@
                   required
                   autocomplete="current-password"
                   :class="['input pr-10', { 'input-error': errors.password }]"
-                  placeholder="••••••••"
+                  placeholder="Patient@123"
                   :disabled="loading"
                 />
                 <button

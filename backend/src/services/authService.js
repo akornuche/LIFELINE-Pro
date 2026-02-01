@@ -15,7 +15,7 @@ import { BusinessLogicError, UnauthorizedError, NotFoundError } from '../middlew
  * Register new user
  */
 export const register = async (userData) => {
-  const { email, password, firstName, lastName, phone, role = 'patient', dateOfBirth = null } = userData;
+  const { email, password, firstName, lastName, phone, userType = 'patient', dateOfBirth = null } = userData;
 
   try {
     // Check if email already exists
@@ -25,10 +25,12 @@ export const register = async (userData) => {
     }
 
     // Generate LifeLine ID
-    const lifelineId = generateLifelineId(role);
+    const lifelineId = generateLifelineId(userType);
+    logger.info('Generated lifelineId', { lifelineId, userType });
 
     // Check if LifeLine ID exists (extremely rare collision)
     const lifelineIdExists = await userRepository.lifelineIdExists(lifelineId);
+    logger.info('Checked lifelineId existence', { lifelineId, exists: lifelineIdExists });
     if (lifelineIdExists) {
       throw new BusinessLogicError('ID generation conflict. Please try again.');
     }
@@ -44,12 +46,12 @@ export const register = async (userData) => {
       firstName,
       lastName,
       phone,
-      role,
+      role: userType,
       dateOfBirth,
     });
 
     // If patient role, create patient record
-    if (role === 'patient') {
+    if (userType === 'patient') {
       await patientRepository.createPatient({
         userId: user.id,
       });
