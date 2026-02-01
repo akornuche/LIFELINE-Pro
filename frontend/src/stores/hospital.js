@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { hospitalService } from '@/services/api';
+import { hospitalService } from '@/services';
 
 export const useHospitalStore = defineStore('hospital', {
   state: () => ({

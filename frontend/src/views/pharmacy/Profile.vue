@@ -196,7 +196,6 @@ import { BaseCard, BaseInput, BaseButton, LoadingSpinner } from '@/components';
 import { CheckCircleIcon, XCircleIcon, BuildingStorefrontIcon } from '@heroicons/vue/24/outline';
 
 const pharmacyStore = usePharmacyStore();
-const { success, error: showError, info } = useToast();
 const authStore = useAuthStore();
 const { success, error: showError, info } = useToast();
 

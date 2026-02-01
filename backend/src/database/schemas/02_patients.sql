@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS patients (
     insurance_provider VARCHAR(200),
     insurance_policy_number VARCHAR(100),
     insurance_expiry_date DATE,
+    current_package VARCHAR(50),
+    subscription_status VARCHAR(20) DEFAULT 'inactive',
+    subscription_start_date DATE,
+    subscription_end_date DATE,
+    auto_renew BOOLEAN DEFAULT false,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_patients_user ON patients(user_id);
+CREATE INDEX IF NOT EXISTS idx_patients_lifeline ON patients(lifeline_id);
+CREATE INDEX IF NOT EXISTS idx_patients_subscription ON patients(subscription_status);

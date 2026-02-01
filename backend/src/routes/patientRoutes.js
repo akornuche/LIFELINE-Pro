@@ -1,7 +1,7 @@
 import express from 'express';
 import * as patientController from '../controllers/patientController.js';
 import { authenticate } from '../middleware/auth.js';
-import { checkRole } from '../middleware/rbac.js';
+import { isPatient, isAdmin, checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
 import {
   updatePatientProfileSchema,
@@ -19,7 +19,7 @@ const router = express.Router();
  * @desc    Get patient profile
  * @access  Private (Patient)
  */
-router.get('/profile', authenticate, checkRole(['patient']), patientController.getProfile);
+router.get('/profile', authenticate, isPatient, patientController.getProfile);
 
 /**
  * @route   PUT /api/patients/profile
@@ -29,7 +29,7 @@ router.get('/profile', authenticate, checkRole(['patient']), patientController.g
 router.put(
   '/profile',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   validate(updatePatientProfileSchema),
   patientController.updateProfile
 );
@@ -42,7 +42,7 @@ router.put(
 router.post(
   '/subscriptions',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   validate(createSubscriptionSchema),
   patientController.createSubscription
 );
@@ -52,7 +52,7 @@ router.post(
  * @desc    Get subscription details
  * @access  Private (Patient)
  */
-router.get('/subscriptions', authenticate, checkRole(['patient']), patientController.getSubscription);
+router.get('/subscriptions', authenticate, isPatient, patientController.getSubscription);
 
 /**
  * @route   PUT /api/patients/subscriptions
@@ -62,7 +62,7 @@ router.get('/subscriptions', authenticate, checkRole(['patient']), patientContro
 router.put(
   '/subscriptions',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   validate(updateSubscriptionSchema),
   patientController.updateSubscription
 );
@@ -75,7 +75,7 @@ router.put(
 router.delete(
   '/subscriptions',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   validate(cancelSubscriptionSchema),
   patientController.cancelSubscription
 );
@@ -88,7 +88,7 @@ router.delete(
 router.get(
   '/subscription-status',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   patientController.checkSubscriptionStatus
 );
 
@@ -100,7 +100,7 @@ router.get(
 router.post(
   '/dependents',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   validate(addDependentSchema),
   patientController.addDependent
 );
@@ -110,7 +110,7 @@ router.post(
  * @desc    Get dependents
  * @access  Private (Patient)
  */
-router.get('/dependents', authenticate, checkRole(['patient']), patientController.getDependents);
+router.get('/dependents', authenticate, isPatient, patientController.getDependents);
 
 /**
  * @route   PUT /api/patients/dependents/:dependentId
@@ -120,7 +120,7 @@ router.get('/dependents', authenticate, checkRole(['patient']), patientControlle
 router.put(
   '/dependents/:dependentId',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   validate(updateDependentSchema),
   patientController.updateDependent
 );
@@ -133,7 +133,7 @@ router.put(
 router.delete(
   '/dependents/:dependentId',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   patientController.removeDependent
 );
 
@@ -145,7 +145,7 @@ router.delete(
 router.get(
   '/medical-history',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   patientController.getMedicalHistory
 );
 
@@ -157,7 +157,7 @@ router.get(
 router.get(
   '/usage-statistics',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   patientController.getUsageStatistics
 );
 
@@ -166,7 +166,7 @@ router.get(
  * @desc    Search patients
  * @access  Private (Admin)
  */
-router.get('/search', authenticate, checkRole(['admin']), patientController.searchPatients);
+router.get('/search', authenticate, isAdmin, patientController.searchPatients);
 
 /**
  * @route   GET /api/patients/:patientId
@@ -176,7 +176,7 @@ router.get('/search', authenticate, checkRole(['admin']), patientController.sear
 router.get(
   '/:patientId',
   authenticate,
-  checkRole(['admin', 'doctor', 'pharmacy', 'hospital']),
+  checkRole('admin', 'doctor', 'pharmacy', 'hospital'),
   patientController.getPatientById
 );
 

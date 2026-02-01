@@ -150,7 +150,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDoctorStore } from '@/stores/doctor';
 import { useToast } from '@/composables/useToast';
-import { patientService } from '@/services/api';
+import { patientService } from '@/services';
 import { BaseCard, BaseInput, BaseButton } from '@/components';
 import { ArrowLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 

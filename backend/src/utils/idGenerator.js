@@ -65,7 +65,7 @@ class IDGenerator {
       switch (prefix) {
         case 'LLPAT':
           tableName = 'users';
-          query = `SELECT lifeline_id FROM users WHERE role = 'patient' ORDER BY lifeline_id DESC LIMIT 1`;
+          query = `SELECT lifeline_id FROM users WHERE role = 'patient' AND lifeline_id LIKE 'LLPAT-%' ORDER BY CAST(SUBSTR(lifeline_id, 7) AS INTEGER) DESC LIMIT 1`;
           break;
         case 'LLDEP':
           tableName = 'dependents';

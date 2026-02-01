@@ -212,11 +212,18 @@ export const getSubscriptionDetails = async (userId) => {
       return null;
     }
 
-    // Get package entitlements
-    const entitlements = patientRepository.getPackageEntitlements(subscription.package_type);
+    // Get package entitlements directly from constants
+    const entitlements = PACKAGE_ENTITLEMENTS[subscription.current_package] || null;
 
+    // Map database field names to frontend expected names
     return {
-      ...subscription,
+      id: subscription.id,
+      package_type: subscription.current_package,
+      start_date: subscription.subscription_start_date,
+      end_date: subscription.subscription_end_date,
+      status: subscription.subscription_status,
+      auto_renew: subscription.auto_renew,
+      isExpired: subscription.isExpired,
       entitlements,
     };
   } catch (error) {

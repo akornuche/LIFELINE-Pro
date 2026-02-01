@@ -11,6 +11,135 @@
     <meta name="keywords" content="health insurance, HMO, medical platform, healthcare, doctor appointments, prescriptions, medical records">
     <meta name="author" content="LifeLine Pro">
     
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://lifelinepro.com/">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://lifelinepro.com/#organization",
+          "name": "LifeLine Pro",
+          "url": "https://lifelinepro.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://lifelinepro.com/icons/icon-512x512.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "Comprehensive HMO & Health Insurance Management Platform",
+          "foundingDate": "2025",
+          "contactPoint": [
+            {
+              "@type": "ContactPoint",
+              "telephone": "+234-800-LIFELINE",
+              "contactType": "customer service",
+              "availableLanguage": ["English"],
+              "areaServed": "NG"
+            },
+            {
+              "@type": "ContactPoint",
+              "telephone": "+234-800-LIFELINE",
+              "contactType": "technical support",
+              "availableLanguage": ["English"],
+              "areaServed": "NG"
+            }
+          ],
+          "sameAs": [
+            "https://twitter.com/lifelinepro",
+            "https://facebook.com/lifelinepro",
+            "https://linkedin.com/company/lifelinepro"
+          ]
+        },
+        {
+          "@type": "MedicalBusiness",
+          "@id": "https://lifelinepro.com/#medicalbusiness",
+          "name": "LifeLine Pro Health Services",
+          "url": "https://lifelinepro.com",
+          "image": "https://lifelinepro.com/og-image.png",
+          "description": "Digital health insurance and HMO management platform providing comprehensive healthcare services including doctor consultations, pharmacy services, hospital care, and medical records management.",
+          "priceRange": "₦1,500 - ₦15,000/month",
+          "medicalSpecialty": [
+            "General Practice",
+            "Family Medicine",
+            "Internal Medicine",
+            "Pediatrics",
+            "Obstetrics and Gynecology"
+          ],
+          "healthPlanNetworkId": "LifeLinePro-HMO",
+          "isAcceptingNewPatients": true,
+          "availableService": [
+            {
+              "@type": "MedicalProcedure",
+              "name": "Doctor Consultations",
+              "description": "Access to verified healthcare providers for medical consultations"
+            },
+            {
+              "@type": "MedicalProcedure",
+              "name": "Prescription Management",
+              "description": "Digital prescription services with pharmacy network integration"
+            },
+            {
+              "@type": "MedicalProcedure",
+              "name": "Laboratory Tests",
+              "description": "Access to diagnostic laboratory services"
+            },
+            {
+              "@type": "MedicalProcedure",
+              "name": "Hospital Services",
+              "description": "Inpatient and outpatient hospital care coverage"
+            }
+          ],
+          "areaServed": {
+            "@type": "Country",
+            "name": "Nigeria"
+          },
+          "parentOrganization": {
+            "@id": "https://lifelinepro.com/#organization"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://lifelinepro.com/#website",
+          "url": "https://lifelinepro.com",
+          "name": "LifeLine Pro",
+          "description": "Your Health, Our Priority - Comprehensive HMO & Health Insurance Platform",
+          "publisher": {
+            "@id": "https://lifelinepro.com/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://lifelinepro.com/search?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://lifelinepro.com/#webpage",
+          "url": "https://lifelinepro.com",
+          "name": "LifeLine Pro - Health Insurance Platform",
+          "description": "Comprehensive HMO & Health Insurance Platform for managing healthcare, appointments, prescriptions, and medical records",
+          "isPartOf": {
+            "@id": "https://lifelinepro.com/#website"
+          },
+          "about": {
+            "@id": "https://lifelinepro.com/#medicalbusiness"
+          },
+          "primaryImageOfPage": {
+            "@type": "ImageObject",
+            "url": "https://lifelinepro.com/og-image.png"
+          }
+        }
+      ]
+    }
+    </script>
+    
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#10b981">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -69,7 +198,7 @@
     <meta property="twitter:image" content="/og-image.png">
     
     <!-- Preconnect to API -->
-    <link rel="preconnect" href="http://localhost:5000">
+    <link rel="preconnect" href="http://localhost:5001">
     
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -13,8 +13,9 @@ CREATE TABLE IF NOT EXISTS doctors (
     availability_schedule TEXT,
     verification_status VARCHAR(50) DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
     verification_documents TEXT,
-    rating DECIMAL(3,2) DEFAULT 0.00,
+    average_rating DECIMAL(3,2) DEFAULT 0.00,
     total_reviews INTEGER DEFAULT 0,
+    total_consultations INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
