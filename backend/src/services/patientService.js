@@ -16,10 +16,17 @@ import { PACKAGE_ENTITLEMENTS } from '../config/constants.js';
  */
 export const getPatientProfile = async (userId) => {
   try {
-    const patient = await patientRepository.findByUserId(userId);
+    let patient = await patientRepository.findByUserId(userId);
 
     if (!patient) {
-      throw new NotFoundError('Patient profile');
+      // Create default patient record if it doesn't exist
+      logger.info('Patient record not found, creating default record', { userId });
+      await patientRepository.createPatient(userId, {
+        dateOfBirth: null,
+        gender: null,
+        address: 'Not provided',
+      });
+      patient = await patientRepository.findByUserId(userId);
     }
 
     // Get user details
@@ -77,6 +84,29 @@ export const updatePatientProfile = async (userId, updateData) => {
     return updatedPatient;
   } catch (error) {
     logger.error('Update patient profile error', {
+      error: error.message,
+      userId,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Get subscriptions
+ */
+export const getSubscriptions = async (userId) => {
+  try {
+    const patient = await patientRepository.findByUserId(userId);
+
+    if (!patient) {
+      throw new NotFoundError('Patient');
+    }
+
+    const subscriptions = await patientRepository.getSubscriptions(patient.id);
+
+    return subscriptions;
+  } catch (error) {
+    logger.error('Get subscriptions error', {
       error: error.message,
       userId,
     });

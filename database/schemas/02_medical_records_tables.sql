@@ -9,8 +9,8 @@
 -- 1. DEPENDENTS TABLE
 -- ===================================
 CREATE TABLE dependents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     lifeline_id VARCHAR(20) UNIQUE NOT NULL, -- LLDEP-XXXXX
     
     -- Personal Information
@@ -45,11 +45,11 @@ CREATE INDEX idx_dependents_is_active ON dependents(is_active);
 -- 2. MEDICAL RECORDS TABLE (Master record)
 -- ===================================
 CREATE TABLE medical_records (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     
     -- Patient Information
-    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-    dependent_id UUID REFERENCES dependents(id) ON DELETE CASCADE,
+    patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    dependent_id TEXT REFERENCES dependents(id) ON DELETE CASCADE,
     
     -- Service Information
     service_type VARCHAR(50) NOT NULL, -- consultation, surgery, lab_test, imaging, admission
@@ -91,13 +91,13 @@ CREATE INDEX idx_medical_records_status ON medical_records(status);
 -- 3. CONSULTATIONS TABLE
 -- ===================================
 CREATE TABLE consultations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    medical_record_id UUID UNIQUE NOT NULL REFERENCES medical_records(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    medical_record_id TEXT UNIQUE NOT NULL REFERENCES medical_records(id) ON DELETE CASCADE,
     
     -- Patient & Provider
-    patient_id UUID NOT NULL REFERENCES patients(id),
-    dependent_id UUID REFERENCES dependents(id),
-    doctor_id UUID NOT NULL REFERENCES doctors(id),
+    patient_id TEXT NOT NULL REFERENCES patients(id),
+    dependent_id TEXT REFERENCES dependents(id),
+    doctor_id TEXT NOT NULL REFERENCES doctors(id),
     
     -- Consultation Details
     consultation_type VARCHAR(50), -- In-person, Telemedicine
@@ -142,9 +142,9 @@ CREATE INDEX idx_consultations_status ON consultations(status);
 -- 4. PRESCRIPTIONS TABLE
 -- ===================================
 CREATE TABLE prescriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    medical_record_id UUID REFERENCES medical_records(id) ON DELETE SET NULL,
-    consultation_id UUID REFERENCES consultations(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    medical_record_id TEXT REFERENCES medical_records(id) ON DELETE SET NULL,
+    consultation_id TEXT REFERENCES consultations(id) ON DELETE CASCADE,
     
     -- Patient & Provider
     patient_id UUID NOT NULL REFERENCES patients(id),
@@ -190,7 +190,7 @@ CREATE INDEX idx_prescriptions_prescription_date ON prescriptions(prescription_d
 -- 5. SURGERIES TABLE
 -- ===================================
 CREATE TABLE surgeries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY,
     medical_record_id UUID UNIQUE NOT NULL REFERENCES medical_records(id) ON DELETE CASCADE,
     
     -- Patient & Providers
@@ -256,15 +256,15 @@ CREATE INDEX idx_surgeries_surgery_type ON surgeries(surgery_type);
 -- 6. LAB TESTS TABLE
 -- ===================================
 CREATE TABLE lab_tests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    medical_record_id UUID REFERENCES medical_records(id) ON DELETE SET NULL,
-    consultation_id UUID REFERENCES consultations(id) ON DELETE SET NULL,
+    id TEXT PRIMARY KEY,
+    medical_record_id TEXT REFERENCES medical_records(id) ON DELETE SET NULL,
+    consultation_id TEXT REFERENCES consultations(id) ON DELETE SET NULL,
     
     -- Patient & Provider
-    patient_id UUID NOT NULL REFERENCES patients(id),
-    dependent_id UUID REFERENCES dependents(id),
-    ordered_by UUID NOT NULL REFERENCES doctors(id),
-    hospital_id UUID REFERENCES hospitals(id), -- Lab location
+    patient_id TEXT NOT NULL REFERENCES patients(id),
+    dependent_id TEXT REFERENCES dependents(id),
+    ordered_by TEXT NOT NULL REFERENCES doctors(id),
+    hospital_id TEXT REFERENCES hospitals(id), -- Lab location
     
     -- Test Details
     test_category VARCHAR(50), -- basic, advanced, imaging

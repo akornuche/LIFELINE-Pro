@@ -35,6 +35,13 @@ router.put(
 );
 
 /**
+ * @route   GET /api/patients/subscriptions
+ * @desc    Get patient subscriptions
+ * @access  Private (Patient)
+ */
+router.get('/subscriptions', authenticate, isPatient, patientController.getSubscriptions);
+
+/**
  * @route   POST /api/patients/subscriptions
  * @desc    Create subscription
  * @access  Private (Patient)
