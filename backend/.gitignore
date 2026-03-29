@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Test files with credentials (DO NOT COMMIT)
+test-api.js
+test-login.js
+test_api.js
+test-registration.js
+test-registration-direct.js
+test-returning.js
+test-exists.js
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+coverage/
+
+# Build outputs
+dist/
+build/
+dev-dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

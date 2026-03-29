@@ -71,12 +71,12 @@
                   "email": {
                     "type": "string",
                     "format": "email",
-                    "example": "admin@lifelinepro.com"
+                    "example": "user@example.com"
                   },
                   "password": {
                     "type": "string",
                     "format": "password",
-                    "example": "Admin@123!"
+                    "example": "SecurePassword@123"
                   },
                   "rememberMe": {
                     "type": "boolean",

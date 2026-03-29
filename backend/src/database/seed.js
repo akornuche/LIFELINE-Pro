@@ -80,22 +80,29 @@ class Seeder {
   }
 
   /**
-   * Seed admin user
+   * Seed admin user - use environment variables for credentials
    */
   async seedAdmin() {
     logger.info('Seeding admin user...');
 
-    const adminPassword = await this.hashPassword('Admin@123!');
+    const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+    if (!adminPassword) {
+      logger.warn('DEFAULT_ADMIN_PASSWORD not set in environment - skipping admin seed');
+      return;
+    }
+
+    const hashedPassword = await this.hashPassword(adminPassword);
     const adminId = uuidv4();
+    const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@lifelinepro.com';
 
     await database.query(
       `INSERT INTO users (id, lifeline_id, email, phone, password_hash, role, email_verified, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (email) DO NOTHING`,
-      [adminId, 'LLADM-00001', 'admin@lifelinepro.com', '+2348000000000', adminPassword, 'admin', 1, 'active']
+      [adminId, 'LLADM-00001', adminEmail, '+2348000000000', hashedPassword, 'admin', 1, 'active']
     );
 
-    logger.info('Admin user created: admin@lifelinepro.com / Admin@123!');
+    logger.info(`Admin user created: ${adminEmail}`);
   }
 
   /**

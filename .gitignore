@@ -36,6 +36,11 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Test files (may contain credentials)
+**/test-*.js
+**/test_*.js
+!**/tests/
+
 # Temporary files
 tmp/
 temp/

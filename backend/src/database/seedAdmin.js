@@ -14,7 +14,10 @@ dotenv.config();
 class AdminSeeder {
   constructor() {
     this.adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@lifelinepro.com';
-    this.adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'Admin@123!ChangeThis';
+    this.adminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
+    if (!this.adminPassword) {
+      throw new Error('FATAL: DEFAULT_ADMIN_PASSWORD must be set in environment variables for security');
+    }
     this.adminFirstName = 'System';
     this.adminLastName = 'Administrator';
   }
