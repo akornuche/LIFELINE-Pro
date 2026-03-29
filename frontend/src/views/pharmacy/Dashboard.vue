@@ -158,7 +158,12 @@ onMounted(async () => {
 const loadStats = async () => {
   try {
     const data = await pharmacyStore.getStatistics();
-    stats.value = data;
+    stats.value = {
+      totalPrescriptions: data?.totalPrescriptions || 0,
+      pendingPrescriptions: data?.pendingPrescriptions || 0,
+      dispensedToday: data?.dispensedToday || 0,
+      monthlyRevenue: data?.monthlyEarnings ?? data?.monthlyRevenue ?? data?.totalEarnings ?? 0,
+    };
   } catch (error) {
     console.error('Error loading stats:', error);
   }
@@ -178,7 +183,7 @@ const viewPrescription = (id) => {
 };
 
 const formatMoney = (amount) => {
-  return new Intl.NumberFormat('en-NG').format(amount);
+  return new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 };
 
 const formatDate = (dateString) => {

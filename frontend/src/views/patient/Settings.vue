@@ -231,8 +231,14 @@ const confirmDelete = async () => {
   });
   
   if (confirmed) {
-    // TODO: Implement account deletion
-    showError('Account deletion is not implemented yet');
+    try {
+      await authStore.deleteAccount();
+      success('Account deleted successfully');
+      router.push('/');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      showError('Failed to delete account');
+    }
   }
 };
 </script>

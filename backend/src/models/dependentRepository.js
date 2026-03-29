@@ -2,6 +2,7 @@ import database from '../database/connection.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, BusinessLogicError } from '../middleware/errorHandler.js';
 import { PACKAGE_ENTITLEMENTS } from '../config/constants.js';
+import { randomUUID } from 'crypto';
 
 /**
  * Dependent Repository
@@ -14,38 +15,50 @@ import { PACKAGE_ENTITLEMENTS } from '../config/constants.js';
 export const createDependent = async (dependentData) => {
   const {
     patientId,
-    firstName,
-    lastName,
-    dateOfBirth,
+    first_name,
+    last_name,
+    date_of_birth,
     gender,
     relationship,
+    blood_group = null,
     bloodGroup = null,
     allergies = null,
+    medical_conditions = null,
+    chronic_conditions = null,
     chronicConditions = null,
+    emergency_contact = null,
     emergencyContact = null,
   } = dependentData;
 
+  const firstName = first_name || dependentData.firstName;
+  const lastName = last_name || dependentData.lastName;
+  const dob = date_of_birth || dependentData.dateOfBirth;
+  const medConditions = medical_conditions || chronic_conditions || chronicConditions;
+
   try {
-    const result = await database.query(
+    const dependentId = randomUUID();
+    await database.query(
       `INSERT INTO dependents (
-        patient_id, first_name, last_name, date_of_birth, gender,
+        id, patient_id, first_name, last_name, date_of_birth, gender,
         relationship, blood_group, allergies, chronic_conditions,
         emergency_contact, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
-      RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)`,
       [
+        dependentId,
         patientId,
         firstName,
         lastName,
-        dateOfBirth,
+        dob,
         gender,
         relationship,
-        bloodGroup,
+        bloodGroup || blood_group,
         allergies ? JSON.stringify(allergies) : null,
-        chronicConditions ? JSON.stringify(chronicConditions) : null,
-        emergencyContact ? JSON.stringify(emergencyContact) : null,
+        medConditions ? JSON.stringify(medConditions) : null,
+        emergencyContact || emergency_contact ? JSON.stringify(emergencyContact || emergency_contact) : null,
       ]
     );
+
+    const result = await database.query('SELECT * FROM dependents WHERE id = $1', [dependentId]);
 
     logger.info('Dependent created', {
       dependentId: result.rows[0].id,
@@ -111,16 +124,23 @@ export const findDependentById = async (dependentId) => {
  */
 export const updateDependentProfile = async (dependentId, updateData) => {
   const {
-    firstName,
-    lastName,
-    dateOfBirth,
+    first_name, firstName,
+    last_name, lastName,
+    date_of_birth, dateOfBirth,
     gender,
     relationship,
-    bloodGroup,
+    blood_group, bloodGroup,
     allergies,
-    chronicConditions,
-    emergencyContact,
+    medical_conditions, chronic_conditions, chronicConditions,
+    emergency_contact, emergencyContact,
   } = updateData;
+
+  const fname = first_name || firstName;
+  const lname = last_name || lastName;
+  const dob = date_of_birth || dateOfBirth;
+  const bg = blood_group || bloodGroup;
+  const mc = medical_conditions || chronic_conditions || chronicConditions;
+  const ec = emergency_contact || emergencyContact;
 
   try {
     const result = await database.query(
@@ -134,19 +154,19 @@ export const updateDependentProfile = async (dependentId, updateData) => {
            allergies = COALESCE($7, allergies),
            chronic_conditions = COALESCE($8, chronic_conditions),
            emergency_contact = COALESCE($9, emergency_contact),
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $10
        RETURNING *`,
       [
-        firstName,
-        lastName,
-        dateOfBirth,
+        fname,
+        lname,
+        dob,
         gender,
         relationship,
-        bloodGroup,
+        bg,
         allergies ? JSON.stringify(allergies) : null,
-        chronicConditions ? JSON.stringify(chronicConditions) : null,
-        emergencyContact ? JSON.stringify(emergencyContact) : null,
+        mc ? JSON.stringify(mc) : null,
+        ec ? JSON.stringify(ec) : null,
         dependentId,
       ]
     );
@@ -234,20 +254,26 @@ export const canAddDependent = async (patientId) => {
   try {
     // Get patient subscription package
     const patientResult = await database.query(
-      `SELECT ps.package_type
-       FROM patients p
-       JOIN patient_subscriptions ps ON p.id = ps.patient_id
-       WHERE p.id = $1 AND ps.is_active = true
-       ORDER BY ps.start_date DESC
-       LIMIT 1`,
+      `SELECT current_package, subscription_status, subscription_end_date
+       FROM patients
+       WHERE id = $1`,
       [patientId]
     );
 
     if (patientResult.rows.length === 0) {
-      throw new BusinessLogicError('No active subscription found');
+      throw new BusinessLogicError('Patient profile not found');
     }
 
-    const packageType = patientResult.rows[0].package_type;
+    const { current_package, subscription_status, subscription_end_date } = patientResult.rows[0];
+    
+    const isActive = subscription_status === 'active' && 
+                    (!subscription_end_date || new Date(subscription_end_date) > new Date());
+    
+    if (!isActive) {
+      throw new BusinessLogicError('No active subscription found. Please subscribe first.');
+    }
+
+    const packageType = current_package?.toUpperCase();
     const entitlements = PACKAGE_ENTITLEMENTS[packageType];
 
     if (!entitlements) {
@@ -258,9 +284,9 @@ export const canAddDependent = async (patientId) => {
     const currentCount = await countActiveDependents(patientId);
 
     return {
-      canAdd: currentCount < entitlements.max_dependents,
+      canAdd: currentCount < entitlements.maxDependents,
       currentCount,
-      maxAllowed: entitlements.max_dependents,
+      maxAllowed: entitlements.maxDependents,
       packageType,
     };
   } catch (error) {
@@ -295,7 +321,7 @@ export const deactivateDependent = async (dependentId, reason = null) => {
     const result = await database.query(
       `UPDATE dependents
        SET is_active = false,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING *`,
       [dependentId]
@@ -335,7 +361,7 @@ export const reactivateDependent = async (dependentId) => {
     const result = await database.query(
       `UPDATE dependents
        SET is_active = true,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING *`,
       [dependentId]
@@ -564,7 +590,7 @@ export const bulkUpdateDependentStatus = async (patientId, isActive) => {
     const result = await database.query(
       `UPDATE dependents
        SET is_active = $1,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE patient_id = $2
        RETURNING id`,
       [isActive, patientId]

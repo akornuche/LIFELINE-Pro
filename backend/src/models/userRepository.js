@@ -2,6 +2,7 @@ import database from '../database/connection.js';
 import passwordManager from '../utils/password.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, ConflictError } from '../middleware/errorHandler.js';
+import { randomUUID } from 'crypto';
 
 /**
  * User Repository
@@ -15,26 +16,27 @@ export const createUser = async (userData) => {
   const {
     lifelineId,
     email,
-    password,
+    password: hashedPassword,
     role,
     firstName,
     lastName,
     phone,
     isActive = true,
-    isEmailVerified = false,
+    isEmailVerified = true,
   } = userData;
 
   try {
-    // Hash password
-    const hashedPassword = await passwordManager.hash(password);
+    // Generate UUID for id
+    const id = randomUUID();
 
     const result = await database.query(
       `INSERT INTO users (
-        lifeline_id, email, password_hash, role,
+        id, lifeline_id, email, password_hash, role,
         first_name, last_name, phone,
         status, email_verified
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
+        id,
         lifelineId,
         email.toLowerCase(),
         hashedPassword,
@@ -48,13 +50,22 @@ export const createUser = async (userData) => {
     );
 
     // For SQLite, get the inserted user data
+    logger.info('INSERT result', { lastID: result.lastID, changes: result.changes });
+    
     const userResult = await database.query(
       `SELECT id, lifeline_id, email, role, first_name, last_name, 
               phone, status, email_verified, created_at
        FROM users 
        WHERE id = $1`,
-      [result.lastID]
+      [id]
     );
+
+    logger.info('SELECT result', { rowCount: userResult.rows.length, id });
+
+    if (userResult.rows.length === 0) {
+      logger.error('User not found after INSERT', { id, email });
+      throw new Error('User creation failed - user not found after insert');
+    }
 
     logger.info('User created', {
       userId: userResult.rows[0].id,
@@ -88,8 +99,10 @@ export const findById = async (userId) => {
   try {
     const result = await database.query(
       `SELECT id, lifeline_id, email, password_hash, role,
-              first_name, last_name, phone, profile_image_url,
-              status, email_verified, last_login_at, created_at, updated_at
+              first_name, last_name, phone, profile_image_url as profile_picture,
+              status, (status = 'active') as is_active, 
+              email_verified, (email_verified = 1) as is_email_verified,
+              last_login_at, created_at, updated_at
        FROM users
        WHERE id = $1`,
       [userId]
@@ -117,8 +130,10 @@ export const findByEmail = async (email) => {
   try {
     const result = await database.query(
       `SELECT id, lifeline_id, email, password_hash, role,
-              first_name, last_name, phone, profile_image_url,
-              status, email_verified, last_login_at, created_at, updated_at
+              first_name, last_name, phone, profile_image_url as profile_picture,
+              status, (status = 'active') as is_active, 
+              email_verified, (email_verified = 1) as is_email_verified,
+              last_login_at, created_at, updated_at
        FROM users
        WHERE email = $1`,
       [email.toLowerCase()]
@@ -141,8 +156,10 @@ export const findByLifelineId = async (lifelineId) => {
   try {
     const result = await database.query(
       `SELECT id, lifeline_id, email, password_hash, role,
-              first_name, last_name, phone, profile_image_url,
-              status, email_verified, last_login_at, created_at, updated_at
+              first_name, last_name, phone, profile_image_url as profile_picture,
+              status, (status = 'active') as is_active, 
+              email_verified, (email_verified = 1) as is_email_verified,
+              last_login_at, created_at, updated_at
        FROM users
        WHERE lifeline_id = $1`,
       [lifelineId]
@@ -166,45 +183,62 @@ export const updateProfile = async (userId, updates) => {
     'first_name',
     'last_name',
     'phone',
-    'profile_picture',
+    'date_of_birth',
+    'address',
+    'profile_image_url',
   ];
+
+  const mappedUpdates = {};
+  const fieldMapping = {
+    firstName: 'first_name',
+    lastName: 'last_name',
+    dateOfBirth: 'date_of_birth',
+    profile_picture: 'profile_image_url',
+    profilePicture: 'profile_image_url',
+  };
+
+  Object.keys(updates).forEach((key) => {
+    const dbKey = fieldMapping[key] || key;
+    if (allowedFields.includes(dbKey) && updates[key] !== undefined) {
+      mappedUpdates[dbKey] = updates[key];
+    }
+  });
 
   const fields = [];
   const values = [];
   let paramCount = 1;
 
-  Object.keys(updates).forEach((key) => {
-    if (allowedFields.includes(key) && updates[key] !== undefined) {
-      fields.push(`${key} = $${paramCount}`);
-      values.push(updates[key]);
-      paramCount++;
-    }
+  Object.keys(mappedUpdates).forEach((key) => {
+    fields.push(`${key} = $${paramCount}`);
+    values.push(mappedUpdates[key]);
+    paramCount++;
   });
 
   if (fields.length === 0) {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push(`updated_at = datetime('now')`);
   values.push(userId);
 
   try {
     const result = await database.query(
       `UPDATE users
        SET ${fields.join(', ')}
-       WHERE id = $${paramCount}
-       RETURNING id, lifeline_id, email, role, first_name, last_name, 
-                 phone, profile_picture, is_active, is_email_verified, updated_at`,
+       WHERE id = $${paramCount}`,
       values
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       throw new NotFoundError('User');
     }
 
+    // Since SQLite RETURNING might be inconsistent, fetch the updated user manually
+    const updatedUser = await findById(userId);
+
     logger.info('User profile updated', { userId });
 
-    return result.rows[0];
+    return updatedUser;
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
     logger.error('Error updating user profile', {
@@ -222,9 +256,9 @@ export const updateEmail = async (userId, newEmail) => {
   try {
     const result = await database.query(
       `UPDATE users
-       SET email = $1, is_email_verified = false, updated_at = NOW()
+       SET email = $1, email_verified = 0, updated_at = datetime('now')
        WHERE id = $2
-       RETURNING id, email, is_email_verified`,
+       RETURNING id, email, email_verified as is_email_verified`,
       [newEmail.toLowerCase(), userId]
     );
 
@@ -251,25 +285,23 @@ export const updateEmail = async (userId, newEmail) => {
 /**
  * Update user password
  */
-export const updatePassword = async (userId, newPassword) => {
+export const updatePassword = async (userId, hashedPassword) => {
   try {
-    const hashedPassword = await passwordManager.hash(newPassword);
-
+    // NOTE: password is expected to be already hashed by the calling service
     const result = await database.query(
       `UPDATE users
-       SET password_hash = $1, password_changed_at = NOW(), updated_at = NOW()
-       WHERE id = $2
-       RETURNING id`,
+       SET password_hash = $1, updated_at = datetime('now')
+       WHERE id = $2`,
       [hashedPassword, userId]
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       throw new NotFoundError('User');
     }
 
     logger.info('User password updated', { userId });
 
-    return result.rows[0];
+    return { id: userId };
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
     logger.error('Error updating user password', {
@@ -313,9 +345,9 @@ export const verifyEmail = async (userId) => {
   try {
     const result = await database.query(
       `UPDATE users
-       SET is_email_verified = true, email_verified_at = NOW(), updated_at = NOW()
+       SET email_verified = 1, updated_at = datetime('now')
        WHERE id = $1
-       RETURNING id, is_email_verified, email_verified_at`,
+       RETURNING id, email_verified as is_email_verified`,
       [userId]
     );
 
@@ -365,9 +397,9 @@ export const activateAccount = async (userId) => {
   try {
     const result = await database.query(
       `UPDATE users
-       SET is_active = true, updated_at = NOW()
+       SET status = 'active', updated_at = datetime('now')
        WHERE id = $1
-       RETURNING id, is_active`,
+       RETURNING id, status as is_active`,
       [userId]
     );
 
@@ -395,9 +427,9 @@ export const deactivateAccount = async (userId) => {
   try {
     const result = await database.query(
       `UPDATE users
-       SET is_active = false, updated_at = NOW()
+       SET status = 'inactive', updated_at = datetime('now')
        WHERE id = $1
-       RETURNING id, is_active`,
+       RETURNING id, status as is_active`,
       [userId]
     );
 
@@ -424,24 +456,23 @@ export const deactivateAccount = async (userId) => {
 export const deleteAccount = async (userId) => {
   try {
     // Soft delete by deactivating and marking email as unique
-    const timestamp = Date.now();
+    const suffix = Date.now();
     const result = await database.query(
       `UPDATE users
-       SET is_active = false,
+       SET status = 'deleted',
            email = email || '.deleted.' || $2,
-           updated_at = NOW()
-       WHERE id = $1
-       RETURNING id`,
-      [userId, timestamp]
+           updated_at = datetime('now')
+       WHERE id = $1`,
+      [userId, suffix]
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       throw new NotFoundError('User');
     }
 
     logger.warn('User account deleted', { userId });
 
-    return result.rows[0];
+    return { userId };
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
     logger.error('Error deleting account', {
@@ -461,7 +492,7 @@ export const findByRole = async (role, options = {}) => {
   try {
     let query = `
       SELECT id, lifeline_id, email, role, first_name, last_name, 
-             phone, profile_picture, is_active, is_email_verified, created_at
+             phone, profile_image_url as profile_picture, status as is_active, email_verified as is_email_verified, created_at
       FROM users
       WHERE role = $1
     `;
@@ -470,8 +501,8 @@ export const findByRole = async (role, options = {}) => {
 
     if (isActive !== null) {
       paramCount++;
-      query += ` AND is_active = $${paramCount}`;
-      params.push(isActive);
+      query += ` AND status = $${paramCount}`;
+      params.push(isActive ? 'active' : 'inactive');
     }
 
     query += ` ORDER BY created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
@@ -498,8 +529,8 @@ export const countByRole = async (role, isActive = null) => {
     const params = [role];
 
     if (isActive !== null) {
-      query += ' AND is_active = $2';
-      params.push(isActive);
+      query += " AND status = $2";
+      params.push(isActive ? 'active' : 'inactive');
     }
 
     const result = await database.query(query, params);
@@ -523,7 +554,7 @@ export const searchUsers = async (searchTerm, options = {}) => {
   try {
     let query = `
       SELECT id, lifeline_id, email, role, first_name, last_name, 
-             phone, is_active, is_email_verified, created_at
+             phone, status as is_active, email_verified as is_email_verified, created_at
       FROM users
       WHERE (
         LOWER(first_name) LIKE LOWER($1) OR

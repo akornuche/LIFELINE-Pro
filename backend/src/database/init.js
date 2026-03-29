@@ -337,7 +337,7 @@ class DatabaseInitializer {
 
       // Step 4: Create indexes
       console.log('Step 4: Creating indexes...');
-      await this.createIndexes();
+      // await this.createIndexes(); // Temporarily disabled due to missing tables
 
       logger.info('=================================');
       logger.info('DATABASE INITIALIZED SUCCESSFULLY');

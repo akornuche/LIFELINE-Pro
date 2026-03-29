@@ -39,7 +39,7 @@ router.put(
  * @desc    Get patient subscriptions
  * @access  Private (Patient)
  */
-router.get('/subscriptions', authenticate, isPatient, patientController.getSubscriptions);
+router.get('/subscriptions', authenticate, isPatient, patientController.getSubscription);
 
 /**
  * @route   POST /api/patients/subscriptions
@@ -53,13 +53,6 @@ router.post(
   validate(createSubscriptionSchema),
   patientController.createSubscription
 );
-
-/**
- * @route   GET /api/patients/subscriptions
- * @desc    Get subscription details
- * @access  Private (Patient)
- */
-router.get('/subscriptions', authenticate, isPatient, patientController.getSubscription);
 
 /**
  * @route   PUT /api/patients/subscriptions

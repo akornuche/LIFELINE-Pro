@@ -3,7 +3,7 @@ import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
 import logger from '../utils/logger.js';
-import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js';
+import { BusinessLogicError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
 
 /**
  * Hospital Service
@@ -13,13 +13,37 @@ import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js
 /**
  * Get hospital profile
  */
-export const getHospitalProfile = async (userId) => {
+const ensureHospitalProfile = async (userId) => {
   try {
     const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
+    if (!hospital) throw new NotFoundError('Hospital profile');
+    return hospital;
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      // Auto-create profile if missing for an existing user (fail-safe)
+      const user = await userRepository.findById(userId);
+      try {
+        return await hospitalRepository.createHospital(userId, {
+          hospitalName: `${user.first_name || 'Hospital'} ${user.last_name || ''}`.trim(),
+          address: user.address || 'Pending Address',
+          hospitalType: 'General',
+          licenseNumber: `HOSP-AUTO-${user.lifeline_id || Math.random().toString(36).substring(7).toUpperCase()}`,
+          numberOfBeds: 0,
+        });
+      } catch (createErr) {
+        if (createErr instanceof ConflictError || (createErr.message && createErr.message.includes('UNIQUE'))) {
+          return await hospitalRepository.findByUserId(userId);
+        }
+        throw createErr;
+      }
     }
+    throw err;
+  }
+};
+
+export const getHospitalProfile = async (userId) => {
+  try {
+    const hospital = await ensureHospitalProfile(userId);
 
     // Get user details
     const user = await userRepository.findById(userId);
@@ -58,10 +82,25 @@ export const updateHospitalProfile = async (userId, updateData) => {
   } = updateData;
 
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
+    const hospital = await ensureHospitalProfile(userId);
 
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
+    // Sync to user record if identity fields are present
+    const identityUpdates = {};
+    if (updateData.name || updateData.hospitalName || updateData.hospital_name) {
+      const name = updateData.name || updateData.hospitalName || updateData.hospital_name;
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        identityUpdates.firstName = parts[0];
+        identityUpdates.lastName = parts.slice(1).join(' ');
+      } else {
+        identityUpdates.firstName = parts[0];
+      }
+    }
+    if (updateData.email) identityUpdates.email = updateData.email;
+    if (updateData.phone) identityUpdates.phone = updateData.phone;
+
+    if (Object.keys(identityUpdates).length > 0) {
+      await userRepository.updateProfile(userId, identityUpdates);
     }
 
     // Validate bed numbers
@@ -81,6 +120,8 @@ export const updateHospitalProfile = async (userId, updateData) => {
       hasIcu,
       departments,
       description,
+      email: updateData.email,
+      phone: updateData.phone,
     });
 
     logger.info('Hospital profile updated', {
@@ -105,11 +146,7 @@ export const updateBedAvailability = async (userId, bedData) => {
   const { totalBeds, availableBeds } = bedData;
 
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
-    }
+    const hospital = await ensureHospitalProfile(userId);
 
     // Validate bed numbers
     if (availableBeds > totalBeds) {
@@ -149,11 +186,7 @@ export const updateLicense = async (userId, licenseData) => {
   const { licenseNumber, licenseExpiry, licenseDocument } = licenseData;
 
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
-    }
+    const hospital = await ensureHospitalProfile(userId);
 
     const updatedHospital = await hospitalRepository.updateLicense(hospital.id, {
       licenseNumber,
@@ -181,11 +214,7 @@ export const updateLicense = async (userId, licenseData) => {
  */
 export const getSurgeries = async (userId, options = {}) => {
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
-    }
+    const hospital = await ensureHospitalProfile(userId);
 
     const surgeries = await medicalRecordsRepository.getHospitalSurgeries(hospital.id, options);
 
@@ -215,11 +244,7 @@ export const scheduleSurgery = async (userId, surgeryData) => {
   } = surgeryData;
 
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
-    }
+    const hospital = await ensureHospitalProfile(userId);
 
     // Verify patient exists
     const patient = await patientRepository.findById(patientId);
@@ -282,11 +307,7 @@ export const scheduleSurgery = async (userId, surgeryData) => {
  */
 export const updateSurgery = async (userId, surgeryId, updateData) => {
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
-    }
+    const hospital = await ensureHospitalProfile(userId);
 
     // Verify surgery belongs to hospital
     const surgery = await medicalRecordsRepository.findSurgeryById(surgeryId);
@@ -329,11 +350,7 @@ export const completeSurgery = async (userId, surgeryId, completionData) => {
   const { postOpNotes, complications = null, outcome } = completionData;
 
   try {
-    const hospital = await hospitalRepository.findByUserId(userId);
-
-    if (!hospital) {
-      throw new NotFoundError('Hospital profile');
-    }
+    const hospital = await ensureHospitalProfile(userId);
 
     // Verify surgery belongs to hospital
     const surgery = await medicalRecordsRepository.findSurgeryById(surgeryId);

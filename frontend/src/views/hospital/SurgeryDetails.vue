@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <div class="flex items-center justify-between mb-8"><div class="flex items-center"><button @click="$router.back()" aria-label="Go back" class="mr-4 text-gray-600 hover:text-gray-900"><ArrowLeftIcon class="h-6 w-6" /></button><h1 class="text-3xl font-bold text-gray-900 animate-fade-in">Surgery Details</h1></div><span :class="getStatusBadge(surgery.status)" v-if="surgery.status">{{ surgery.status }}</span></div>
     <LoadingSpinner v-if="loading" />
@@ -78,6 +78,6 @@ const cancelSurgery = async () => {
 };
 
 const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy h:mm a');
-const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(amount);
+const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 const getStatusBadge = (status) => ({ scheduled: 'badge badge-info', in_progress: 'badge badge-warning', completed: 'badge badge-success', cancelled: 'badge badge-error' }[status] || 'badge');
 </script>

@@ -196,7 +196,7 @@ class JWTManager {
       }
 
       logger.info('Token blacklisted', {
-        tokenPrefix: token.substring(0, 20) + '...',
+        tokenPrefix: token ? (token.substring(0, 20) + '...') : 'undefined',
       });
     } catch (error) {
       logger.error('Failed to blacklist token', {

@@ -23,7 +23,7 @@ const emailRule = Joi.string()
 const passwordRule = Joi.string()
   .min(8)
   .max(128)
-  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/)
+  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/)
   .required()
   .messages({
     'string.min': 'Password must be at least 8 characters long',
@@ -298,14 +298,10 @@ export const disable2FASchema = Joi.object({
  * Account deactivation schema
  */
 export const deactivateAccountSchema = Joi.object({
-  password: Joi.string().required().messages({
-    'string.empty': 'Password is required to deactivate account',
-  }),
-  reason: Joi.string().trim().max(500),
-  confirmation: Joi.string().valid('DEACTIVATE').required().messages({
-    'any.only': 'Please type DEACTIVATE to confirm account deactivation',
-  }),
+  password: Joi.string().allow('', null).optional(),
+  reason: Joi.string().trim().max(500).allow('', null).optional(),
 });
+
 
 /**
  * Generic registration schema (for all user types)
@@ -394,6 +390,7 @@ export const registerSchema = Joi.object({
   accreditation: Joi.string().trim().max(200).optional(),
 });
 
+
 /**
  * Forgot password schema
  */
@@ -405,22 +402,20 @@ export const forgotPasswordSchema = Joi.object({
  * Update profile schema
  */
 export const updateProfileSchema = Joi.object({
-  firstName: Joi.string().trim().min(2).max(100).messages({
-    'string.min': 'First name must be at least 2 characters',
-    'string.max': 'First name cannot exceed 100 characters',
+  firstName: Joi.string().trim().min(2).max(100),
+  first_name: Joi.string().trim().min(2).max(100),
+  lastName: Joi.string().trim().min(2).max(100),
+  last_name: Joi.string().trim().min(2).max(100),
+  phone: Joi.string().pattern(/^(\+234|0)[78901]\d{9}$/).messages({
+    'string.pattern.base': 'Please provide a valid Nigerian phone number',
   }),
-  lastName: Joi.string().trim().min(2).max(100).messages({
-    'string.min': 'Last name must be at least 2 characters',
-    'string.max': 'Last name cannot exceed 100 characters',
-  }),
-  phone: phoneRule,
-  dateOfBirth: Joi.date().max('now').messages({
-    'date.max': 'Date of birth cannot be in the future',
-  }),
-  address: Joi.string().trim().min(10).max(500).messages({
-    'string.min': 'Address must be at least 10 characters',
-    'string.max': 'Address cannot exceed 500 characters',
-  }),
+  phone_number: Joi.string().pattern(/^(\+234|0)[78901]\d{9}$/),
+  dateOfBirth: Joi.date().max('now').allow('', null),
+  date_of_birth: Joi.date().max('now').allow('', null),
+  gender: Joi.string().valid('male', 'female', 'other', '').allow('', null),
+  address: Joi.string().trim().min(5).max(500).allow('', null),
+  profile_picture: Joi.string().allow('', null).max(10000000),
+  email: Joi.string().email().lowercase().trim() // included to prevent 422 if sent
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update',
 });

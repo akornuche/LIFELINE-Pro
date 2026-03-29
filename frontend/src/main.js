@@ -7,6 +7,13 @@ import router from './router';
 
 import './assets/styles/main.css';
 import 'vue3-toastify/dist/index.css';
+// Self-hosted Inter font — no Google Fonts CDN needed
+import '@fontsource/inter/300.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@fontsource/inter/800.css';
 
 // Create Vue app
 const app = createApp(App);
@@ -21,7 +28,7 @@ app.use(router);
 app.use(Vue3Toastify, {
   autoClose: 3000,
   position: 'top-right',
-  theme: 'colored',
+  theme: 'light',
   hideProgressBar: false,
   closeOnClick: true,
   pauseOnHover: true,

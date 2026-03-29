@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <h1 class="text-3xl font-bold text-gray-900 mb-8 animate-fade-in">Hospital Dashboard</h1>
     <LoadingSpinner v-if="loading" />
@@ -52,14 +52,19 @@ const bedOccupancy = ref([]);
 const surgeryColumns = [{ key: 'patient_name', label: 'Patient' }, { key: 'surgery_date', label: 'Date' }, { key: 'status', label: 'Status' }];
 
 onMounted(async () => {
-  const [statsData, surgeriesData] = await Promise.all([hospitalStore.getStatistics(), hospitalStore.getSurgeries({ limit: 5 })]);
-  stats.value = statsData;
-  recentSurgeries.value = surgeriesData.surgeries || [];
-  bedOccupancy.value = statsData.bedOccupancy || [];
-  loading.value = false;
+  try {
+    const [statsData, surgeriesData] = await Promise.all([hospitalStore.getStatistics(), hospitalStore.getSurgeries({ limit: 5 })]);
+    if (statsData) stats.value = statsData;
+    recentSurgeries.value = surgeriesData?.surgeries || (Array.isArray(surgeriesData) ? surgeriesData : []);
+    bedOccupancy.value = statsData?.bedOccupancy || [];
+  } catch (error) {
+    console.error('Failed to load hospital dashboard:', error);
+  } finally {
+    loading.value = false;
+  }
 });
 
-const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(amount);
+const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy');
 const getStatusBadge = (status) => ({ scheduled: 'badge badge-info', in_progress: 'badge badge-warning', completed: 'badge badge-success', cancelled: 'badge badge-error' }[status] || 'badge');
 </script>

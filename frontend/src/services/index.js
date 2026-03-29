@@ -62,6 +62,11 @@ export const authService = {
   // Deactivate account
   deactivateAccount() {
     return apiClient.post('/auth/deactivate');
+  },
+
+  // Delete account permanently
+  deleteAccount() {
+    return apiClient.delete('/auth/account');
   }
 };
 
@@ -149,6 +154,14 @@ export const doctorService = {
     return apiClient.put('/doctors/license', data);
   },
 
+  uploadProfilePhoto(formData) {
+    return apiClient.post('/doctors/profile/photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
   // Consultations
   getConsultations(params) {
     return apiClient.get('/doctors/consultations', { params });
@@ -162,9 +175,43 @@ export const doctorService = {
     return apiClient.put(`/doctors/consultations/${id}`, data);
   },
 
+  startConsultation(id) {
+    return apiClient.put(`/doctors/consultations/${id}`, { status: 'in-progress' });
+  },
+
+  completeConsultation(id, data) {
+    return apiClient.put(`/doctors/consultations/${id}`, { ...data, status: 'completed' });
+  },
+
+  cancelConsultation(id, data) {
+    return apiClient.put(`/doctors/consultations/${id}`, { status: 'cancelled', notes: data.reason });
+  },
+
   // Prescriptions
+  getPrescriptions(params) {
+    return apiClient.get('/doctors/prescriptions', { params });
+  },
+
   createPrescription(data) {
     return apiClient.post('/doctors/prescriptions', data);
+  },
+
+  downloadPrescription(id) {
+    return apiClient.get(`/doctors/prescriptions/${id}/download`, { responseType: 'blob' });
+  },
+
+  // Payments
+  getPayments(params) {
+    return apiClient.get('/payments/provider', { params });
+  },
+
+  downloadPaymentStatement(params) {
+    return apiClient.post('/payments/statements/generate', params, { responseType: 'blob' });
+  },
+
+  // Settings
+  updateSettings(data) {
+    return apiClient.put('/doctors/profile', data);
   },
 
   // Statistics
@@ -268,6 +315,22 @@ export const pharmacyService = {
   // Rating (patient)
   ratePharmacy(id, data) {
     return apiClient.post(`/pharmacies/${id}/rating`, data);
+  },
+
+  // Logo upload
+  uploadLogo(formData) {
+    return apiClient.post('/pharmacies/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  // Payments
+  getPayments(params) {
+    return apiClient.get('/payments/provider', { params });
+  },
+
+  downloadPaymentStatement(params) {
+    return apiClient.post('/payments/statements/generate', params, { responseType: 'blob' });
   }
 };
 
@@ -347,6 +410,15 @@ export const hospitalService = {
   // Rating (patient)
   rateHospital(id, data) {
     return apiClient.post(`/hospitals/${id}/rating`, data);
+  },
+
+  // Payments
+  getPayments(params) {
+    return apiClient.get('/payments/provider', { params });
+  },
+
+  downloadPaymentStatement(params) {
+    return apiClient.post('/payments/statements/generate', params, { responseType: 'blob' });
   }
 };
 

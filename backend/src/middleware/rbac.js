@@ -244,7 +244,7 @@ export const isVerifiedProvider = async (req, res, next) => {
 
     const verificationStatus = result.rows[0].verification_status;
 
-    if (verificationStatus !== 'approved') {
+    if (verificationStatus !== 'verified') {
       return responseFormatter.forbidden(
         res,
         `Your account is ${verificationStatus}. Please wait for admin approval.`

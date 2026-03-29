@@ -3,7 +3,7 @@ import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
 import logger from '../utils/logger.js';
-import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js';
+import { BusinessLogicError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
 
 /**
  * Pharmacy Service
@@ -13,13 +13,35 @@ import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js
 /**
  * Get pharmacy profile
  */
-export const getPharmacyProfile = async (userId) => {
+const ensurePharmacyProfile = async (userId) => {
   try {
     const pharmacy = await pharmacyRepository.findByUserId(userId);
-
-    if (!pharmacy) {
-      throw new NotFoundError('Pharmacy profile');
+    if (!pharmacy) throw new NotFoundError('Pharmacy profile');
+    return pharmacy;
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      // Auto-create profile if missing for an existing user (fail-safe)
+      const user = await userRepository.findById(userId);
+      try {
+        return await pharmacyRepository.createPharmacy(userId, {
+          pharmacyName: `${user.first_name || 'Pharmacy'} ${user.last_name || ''}`.trim(),
+          address: user.address || 'Pending Address',
+          licenseNumber: `PHARM-AUTO-${user.lifeline_id || Math.random().toString(36).substring(7).toUpperCase()}`,
+        });
+      } catch (createErr) {
+        if (createErr instanceof ConflictError || (createErr.message && createErr.message.includes('UNIQUE'))) {
+          return await pharmacyRepository.findByUserId(userId);
+        }
+        throw createErr;
+      }
     }
+    throw err;
+  }
+};
+
+export const getPharmacyProfile = async (userId) => {
+  try {
+    const pharmacy = await ensurePharmacyProfile(userId);
 
     // Get user details
     const user = await userRepository.findById(userId);
@@ -45,32 +67,29 @@ export const getPharmacyProfile = async (userId) => {
  * Update pharmacy profile
  */
 export const updatePharmacyProfile = async (userId, updateData) => {
-  const {
-    pharmacyName,
-    address,
-    operatingHours,
-    hasDelivery,
-    deliveryRadius,
-    emergencyService,
-    description,
-  } = updateData;
-
   try {
-    const pharmacy = await pharmacyRepository.findByUserId(userId);
+    const pharmacy = await ensurePharmacyProfile(userId);
 
-    if (!pharmacy) {
-      throw new NotFoundError('Pharmacy profile');
+    // Sync to user record if identity fields are present
+    const identityUpdates = {};
+    if (updateData.name || updateData.pharmacy_name) {
+      const name = updateData.name || updateData.pharmacy_name;
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        identityUpdates.firstName = parts[0];
+        identityUpdates.lastName = parts.slice(1).join(' ');
+      } else {
+        identityUpdates.firstName = parts[0];
+      }
+    }
+    if (updateData.email) identityUpdates.email = updateData.email;
+    if (updateData.phone) identityUpdates.phone = updateData.phone;
+
+    if (Object.keys(identityUpdates).length > 0) {
+      await userRepository.updateProfile(userId, identityUpdates);
     }
 
-    const updatedPharmacy = await pharmacyRepository.updateProfile(pharmacy.id, {
-      pharmacyName,
-      address,
-      operatingHours,
-      hasDelivery,
-      deliveryRadius,
-      emergencyService,
-      description,
-    });
+    const updatedPharmacy = await pharmacyRepository.updateProfile(pharmacy.id, updateData);
 
     logger.info('Pharmacy profile updated', {
       userId,
@@ -88,17 +107,36 @@ export const updatePharmacyProfile = async (userId, updateData) => {
 };
 
 /**
+ * Upload pharmacy logo
+ */
+export const uploadPharmacyLogo = async (userId, file) => {
+  try {
+    const apiUrl = process.env.API_URL || 'http://localhost:5002';
+    const logoUrl = `/uploads/${file.filename}`;
+    const absoluteLogoUrl = `${apiUrl}${logoUrl}`;
+
+    await userRepository.updateProfile(userId, {
+      profilePicture: logoUrl,
+    });
+
+    return absoluteLogoUrl;
+  } catch (error) {
+    logger.error('Upload pharmacy logo error', {
+      error: error.message,
+      userId,
+    });
+    throw error;
+  }
+};
+
+/**
  * Update license information
  */
 export const updateLicense = async (userId, licenseData) => {
   const { licenseNumber, licenseExpiry, licenseDocument } = licenseData;
 
   try {
-    const pharmacy = await pharmacyRepository.findByUserId(userId);
-
-    if (!pharmacy) {
-      throw new NotFoundError('Pharmacy profile');
-    }
+    const pharmacy = await ensurePharmacyProfile(userId);
 
     const updatedPharmacy = await pharmacyRepository.updateLicense(pharmacy.id, {
       licenseNumber,
@@ -126,11 +164,7 @@ export const updateLicense = async (userId, licenseData) => {
  */
 export const getPrescriptions = async (userId, options = {}) => {
   try {
-    const pharmacy = await pharmacyRepository.findByUserId(userId);
-
-    if (!pharmacy) {
-      throw new NotFoundError('Pharmacy profile');
-    }
+    const pharmacy = await ensurePharmacyProfile(userId);
 
     const prescriptions = await medicalRecordsRepository.getPharmacyPrescriptions(
       pharmacy.id,
@@ -154,11 +188,7 @@ export const dispensePrescription = async (userId, prescriptionId, dispensingDat
   const { notes = null } = dispensingData;
 
   try {
-    const pharmacy = await pharmacyRepository.findByUserId(userId);
-
-    if (!pharmacy) {
-      throw new NotFoundError('Pharmacy profile');
-    }
+    const pharmacy = await ensurePharmacyProfile(userId);
 
     // Get prescription
     const prescription = await medicalRecordsRepository.findPrescriptionById(prescriptionId);

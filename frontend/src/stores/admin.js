@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import apiClient from '@/services/api';
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
@@ -33,8 +31,8 @@ export const useAdminStore = defineStore('admin', {
       this.loading = true;
       this.error = null;
       try {
-        const { data } = await axios.get(`${API_URL}/admin/users`, { params });
-        return data;
+        const response = await apiClient.get('/admin/users', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -45,8 +43,8 @@ export const useAdminStore = defineStore('admin', {
 
     async getUser(id) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/users/${id}`);
-        return data;
+        const response = await apiClient.get(`/admin/users/${id}`);
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -55,8 +53,8 @@ export const useAdminStore = defineStore('admin', {
 
     async updateUser(id, userData) {
       try {
-        const { data } = await axios.put(`${API_URL}/admin/users/${id}`, userData);
-        return data;
+        const response = await apiClient.put(`/admin/users/${id}`, userData);
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -65,8 +63,18 @@ export const useAdminStore = defineStore('admin', {
 
     async deactivateUser(id) {
       try {
-        const { data } = await axios.post(`${API_URL}/admin/users/${id}/deactivate`);
-        return data;
+        const response = await apiClient.post(`/admin/users/${id}/deactivate`);
+        return response.data;
+      } catch (error) {
+        this.error = error.response?.data?.message || error.message;
+        throw error;
+      }
+    },
+
+    async activateUser(id) {
+      try {
+        const response = await apiClient.post(`/admin/users/${id}/activate`);
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -76,8 +84,8 @@ export const useAdminStore = defineStore('admin', {
     // Patients
     async getPatients(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/patients`, { params });
-        return data;
+        const response = await apiClient.get('/admin/patients', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -87,8 +95,8 @@ export const useAdminStore = defineStore('admin', {
     // Doctors
     async getDoctors(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/doctors`, { params });
-        return data;
+        const response = await apiClient.get('/admin/doctors', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -98,8 +106,8 @@ export const useAdminStore = defineStore('admin', {
     // Pharmacies
     async getPharmacies(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/pharmacies`, { params });
-        return data;
+        const response = await apiClient.get('/admin/pharmacies', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -109,8 +117,8 @@ export const useAdminStore = defineStore('admin', {
     // Hospitals
     async getHospitals(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/hospitals`, { params });
-        return data;
+        const response = await apiClient.get('/admin/hospitals', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -120,8 +128,8 @@ export const useAdminStore = defineStore('admin', {
     // Verifications
     async getVerifications(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/verifications`, { params });
-        return data;
+        const response = await apiClient.get('/admin/verifications', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -130,8 +138,8 @@ export const useAdminStore = defineStore('admin', {
 
     async verifyProvider(id, verificationData) {
       try {
-        const { data } = await axios.post(`${API_URL}/admin/verifications/${id}/verify`, verificationData);
-        return data;
+        const response = await apiClient.post(`/admin/verifications/${id}/verify`, verificationData);
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -140,8 +148,8 @@ export const useAdminStore = defineStore('admin', {
 
     async rejectVerification(id, reason) {
       try {
-        const { data } = await axios.post(`${API_URL}/admin/verifications/${id}/reject`, { reason });
-        return data;
+        const response = await apiClient.post(`/admin/verifications/${id}/reject`, { reason });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -151,8 +159,8 @@ export const useAdminStore = defineStore('admin', {
     // Payments
     async getPayments(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/payments`, { params });
-        return data;
+        const response = await apiClient.get('/admin/payments', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -161,8 +169,8 @@ export const useAdminStore = defineStore('admin', {
 
     async getPayment(id) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/payments/${id}`);
-        return data;
+        const response = await apiClient.get(`/admin/payments/${id}`);
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -172,8 +180,8 @@ export const useAdminStore = defineStore('admin', {
     // Statements
     async getStatements(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/statements`, { params });
-        return data;
+        const response = await apiClient.get('/admin/statements', { params });
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -182,10 +190,10 @@ export const useAdminStore = defineStore('admin', {
 
     async downloadStatement(id) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/statements/${id}/download`, {
+        const response = await apiClient.get(`/admin/statements/${id}/download`, {
           responseType: 'blob',
         });
-        const url = window.URL.createObjectURL(new Blob([data]));
+        const url = window.URL.createObjectURL(new Blob([response]));
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', `statement-${id}.pdf`);
@@ -201,9 +209,9 @@ export const useAdminStore = defineStore('admin', {
     // Statistics
     async getStatistics(params = {}) {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/statistics`, { params });
-        this.statistics = data;
-        return data;
+        const response = await apiClient.get('/admin/statistics', { params });
+        this.statistics = response.data || response;
+        return this.statistics;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -213,8 +221,8 @@ export const useAdminStore = defineStore('admin', {
     // Settings
     async getSettings() {
       try {
-        const { data } = await axios.get(`${API_URL}/admin/settings`);
-        return data;
+        const response = await apiClient.get('/admin/settings');
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;
@@ -223,8 +231,8 @@ export const useAdminStore = defineStore('admin', {
 
     async updateSettings(settings) {
       try {
-        const { data } = await axios.put(`${API_URL}/admin/settings`, settings);
-        return data;
+        const response = await apiClient.put('/admin/settings', settings);
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
         throw error;

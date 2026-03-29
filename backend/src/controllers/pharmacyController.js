@@ -7,6 +7,26 @@ import { successResponse } from '../utils/response.js';
  */
 
 /**
+ * Upload pharmacy logo
+ * POST /api/pharmacies/logo
+ */
+export const uploadLogo = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const logoUrl = await pharmacyService.uploadPharmacyLogo(userId, req.file);
+
+    return successResponse(res, { logo_url: logoUrl }, 'Logo uploaded successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get pharmacy profile
  * GET /api/pharmacies/profile
  */

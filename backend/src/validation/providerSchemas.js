@@ -13,18 +13,23 @@ import Joi from 'joi';
 export const updateDoctorProfileSchema = Joi.object({
   firstName: Joi.string().trim().min(2).max(100),
   lastName: Joi.string().trim().min(2).max(100),
-  phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/),
+  phone: Joi.string().allow('', null).pattern(/^\+?[0-9][\d\s-]{4,18}$/).messages({
+    'string.pattern.base': 'Phone number must be a valid format.'
+  }),
   specialization: Joi.string().trim().min(2).max(100),
-  yearsOfExperience: Joi.number().integer().min(0).max(70),
+  yearsOfExperience: Joi.number().integer().min(0).max(70).allow(null),
+  years_of_experience: Joi.number().integer().min(0).max(70).allow(null),
   qualifications: Joi.array().items(Joi.string().trim().max(200)),
   hospitalAffiliations: Joi.array().items(Joi.string().trim().max(200)),
-  consultationFee: Joi.number().positive().precision(2),
-  bio: Joi.string().trim().max(1000),
+  consultationFee: Joi.number().min(0).precision(2).allow(null),
+  bio: Joi.string().trim().max(1000).allow('', null),
   languages: Joi.array().items(Joi.string().trim().max(50)),
+  availableHours: Joi.any(),
+  schedule: Joi.any(),
   consultationTypes: Joi.array().items(
     Joi.string().valid('in_person', 'telemedicine', 'both')
   ),
-}).min(1);
+}).min(1).unknown(true);
 
 // Set doctor availability
 export const setDoctorAvailabilitySchema = Joi.object({

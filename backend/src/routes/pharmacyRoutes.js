@@ -3,6 +3,7 @@ import * as pharmacyController from '../controllers/pharmacyController.js';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
+import upload from '../middleware/upload.js';
 import {
   updatePharmacyProfileSchema,
   updateLicenseSchema,
@@ -14,11 +15,24 @@ import {
 const router = express.Router();
 
 /**
+ * @route   POST /api/pharmacies/logo
+ * @desc    Upload pharmacy logo
+ * @access  Private (Pharmacy)
+ */
+router.post(
+  '/logo',
+  authenticate,
+  checkRole('pharmacy'),
+  upload.single('logo'),
+  pharmacyController.uploadLogo
+);
+
+/**
  * @route   GET /api/pharmacies/profile
  * @desc    Get pharmacy profile
  * @access  Private (Pharmacy)
  */
-router.get('/profile', authenticate, checkRole(['pharmacy']), pharmacyController.getProfile);
+router.get('/profile', authenticate, checkRole('pharmacy'), pharmacyController.getProfile);
 
 /**
  * @route   PUT /api/pharmacies/profile
@@ -28,8 +42,7 @@ router.get('/profile', authenticate, checkRole(['pharmacy']), pharmacyController
 router.put(
   '/profile',
   authenticate,
-  checkRole(['pharmacy']),
-  validate(updatePharmacyProfileSchema),
+  checkRole('pharmacy'),
   pharmacyController.updateProfile
 );
 
@@ -41,7 +54,7 @@ router.put(
 router.put(
   '/license',
   authenticate,
-  checkRole(['pharmacy']),
+  checkRole('pharmacy'),
   validate(updateLicenseSchema),
   pharmacyController.updateLicense
 );
@@ -54,7 +67,7 @@ router.put(
 router.get(
   '/prescriptions',
   authenticate,
-  checkRole(['pharmacy']),
+  checkRole('pharmacy'),
   pharmacyController.getPrescriptions
 );
 
@@ -66,7 +79,7 @@ router.get(
 router.post(
   '/prescriptions/:prescriptionId/dispense',
   authenticate,
-  checkRole(['pharmacy']),
+  checkRole('pharmacy'),
   validate(dispensePrescriptionSchema),
   pharmacyController.dispensePrescription
 );
@@ -79,7 +92,7 @@ router.post(
 router.get(
   '/prescriptions/:prescriptionId/verify',
   authenticate,
-  checkRole(['pharmacy']),
+  checkRole('pharmacy'),
   pharmacyController.verifyPrescription
 );
 
@@ -91,7 +104,7 @@ router.get(
 router.get(
   '/prescriptions/:prescriptionId/eligibility',
   authenticate,
-  checkRole(['pharmacy']),
+  checkRole('pharmacy'),
   pharmacyController.checkPrescriptionEligibility
 );
 
@@ -100,7 +113,7 @@ router.get(
  * @desc    Get statistics
  * @access  Private (Pharmacy)
  */
-router.get('/statistics', authenticate, checkRole(['pharmacy']), pharmacyController.getStatistics);
+router.get('/statistics', authenticate, checkRole('pharmacy'), pharmacyController.getStatistics);
 
 /**
  * @route   GET /api/pharmacies/search
@@ -138,7 +151,7 @@ router.get('/top-rated', pharmacyController.getTopRatedPharmacies);
 router.get(
   '/admin/pending-verifications',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   pharmacyController.getPendingVerifications
 );
 
@@ -150,7 +163,7 @@ router.get(
 router.get(
   '/admin/expiring-licenses',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   pharmacyController.getExpiringLicenses
 );
 
@@ -162,7 +175,7 @@ router.get(
 router.put(
   '/:pharmacyId/verification',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   validate(updateVerificationStatusSchema),
   pharmacyController.updateVerificationStatus
 );
@@ -175,7 +188,7 @@ router.put(
 router.post(
   '/:pharmacyId/rating',
   authenticate,
-  checkRole(['patient']),
+  checkRole('patient'),
   validate(updateRatingSchema),
   pharmacyController.updateRating
 );

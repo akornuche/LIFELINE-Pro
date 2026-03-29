@@ -16,10 +16,12 @@ import doctorRoutes from './routes/doctorRoutes.js';
 import pharmacyRoutes from './routes/pharmacyRoutes.js';
 import hospitalRoutes from './routes/hospitalRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 // Import utilities
 import logger from './utils/logger.js';
 import database from './database/connection.js';
+import DatabaseInitializer from './database/init.js';
 import { initializeSocketIO } from './services/socketService.js';
 import paymentReminderService from './services/paymentReminderService.js';
 
@@ -39,11 +41,13 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:", "http://localhost:5002"],
+      connectSrc: ["'self'", "http://localhost:5002"],
       frameAncestors: ["'self'"],
     },
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false,
   xssFilter: false, // Remove X-XSS-Protection header (deprecated)
   frameguard: false, // Disable X-Frame-Options (using CSP instead)
 }));
@@ -52,7 +56,7 @@ app.use(helmet({
 app.use((req, res, next) => {
   // Remove Expires header if set
   res.removeHeader('Expires');
-  
+
   // Set appropriate Cache-Control based on content type
   if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
     // Static assets - cache for 1 year
@@ -64,7 +68,7 @@ app.use((req, res, next) => {
     // HTML pages - cache for 1 hour with revalidation
     res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
   }
-  
+
   next();
 });
 
@@ -98,6 +102,9 @@ app.use(globalLimiter);
 // Audit logging
 // app.use(auditLog); // Temporarily disabled - audit_logs table doesn't exist yet
 
+// Static files
+app.use('/uploads', express.static('uploads'));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -115,6 +122,7 @@ app.use('/api/doctors', doctorRoutes);
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -188,6 +196,10 @@ let server;
 
 const startServer = async () => {
   try {
+    // Initialize database
+    const init = new DatabaseInitializer();
+    await init.initialize();
+
     // Test database connection
     const dbConnected = await testDatabaseConnection();
 
@@ -268,3 +280,4 @@ const startServer = async () => {
 startServer();
 
 export default app;
+ 

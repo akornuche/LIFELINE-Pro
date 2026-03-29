@@ -2,7 +2,7 @@
   <div class="page-container">
     <h1 class="text-3xl font-bold text-gray-900 mb-8 animate-fade-in">Doctors</h1>
     <BaseCard class="mb-6"><div class="grid grid-cols-1 md:grid-cols-4 gap-4"><BaseInput v-model="filters.search" placeholder="Search doctors..." @input="handleSearch" /><BaseInput v-model="filters.specialization" placeholder="Specialization..." @input="handleSearch" /><select v-model="filters.verified" class="input" @change="loadDoctors"><option value="">All Verification</option><option value="true">Verified</option><option value="false">Unverified</option></select><BaseButton variant="outline" @click="resetFilters" fullWidth>Reset</BaseButton></div></BaseCard>
-    <BaseCard><BaseTable :columns="columns" :data="doctors" :loading="loading" emptyText="No doctors found"><template #cell-name="{ row }"><div class="flex items-center gap-3"><div class="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center text-white font-semibold">{{ row.name.charAt(0) }}</div><div><p class="font-medium">{{ row.name }}</p><p class="text-xs text-gray-500">{{ row.specialization }}</p></div></div></template><template #cell-license="{ value }"><span class="font-mono text-sm">{{ value }}</span></template><template #cell-verified="{ value }"><span :class="value ? 'badge badge-success' : 'badge badge-warning'">{{ value ? 'Verified' : 'Pending' }}</span></template><template #cell-joined_date="{ value }">{{ formatDate(value) }}</template><template #actions="{ row }"><button v-if="!row.verified" @click="verifyDoctor(row.id)" class="text-green-600 hover:text-green-700 text-sm font-medium">Verify</button></template></BaseTable><div v-if="pagination.totalPages > 1" class="mt-6"><BasePagination :current-page="pagination.currentPage" :total-pages="pagination.totalPages" :total="pagination.total" :per-page="pagination.perPage" @page-change="handlePageChange" /></div></BaseCard>
+    <BaseCard><BaseTable :columns="columns" :data="doctors" :loading="loading" emptyText="No doctors found"><template #cell-name="{ row }"><div class="flex items-center gap-3"><div class="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center text-white font-semibold">{{ row.name ? String(row.name).charAt(0) : (row.first_name ? String(row.first_name).charAt(0) : (row.last_name ? String(row.last_name).charAt(0) : '?')) }}</div><div><p class="font-medium">{{ row.name || ((row.first_name || '') + ' ' + (row.last_name || '')).trim() || 'Unnamed' }}</p><p class="text-xs text-gray-500">{{ row.specialization }}</p></div></div></template><template #cell-license="{ value }"><span class="font-mono text-sm">{{ value }}</span></template><template #cell-verified="{ value }"><span :class="value ? 'badge badge-success' : 'badge badge-warning'">{{ value ? 'Verified' : 'Pending' }}</span></template><template #cell-created_at="{ value }">{{ formatDate(value) }}</template><template #actions="{ row }"><button v-if="!row.verified" @click="verifyDoctor(row.id)" class="text-green-600 hover:text-green-700 text-sm font-medium">Verify</button></template></BaseTable><div v-if="pagination.totalPages > 1" class="mt-6"><BasePagination :current-page="pagination.currentPage" :total-pages="pagination.totalPages" :total="pagination.total" :per-page="pagination.perPage" @page-change="handlePageChange" /></div></BaseCard>
   </div>
 </template>
 
@@ -19,7 +19,7 @@ const loading = ref(false);
 const doctors = ref([]);
 const filters = ref({ search: '', specialization: '', verified: '' });
 const pagination = ref({ currentPage: 1, totalPages: 1, total: 0, perPage: 10 });
-const columns = [{ key: 'name', label: 'Doctor' }, { key: 'license', label: 'License' }, { key: 'verified', label: 'Status' }, { key: 'joined_date', label: 'Joined' }];
+const columns = [{ key: 'name', label: 'Doctor' }, { key: 'license', label: 'License' }, { key: 'verified', label: 'Status' }, { key: 'created_at', label: 'Joined' }];
 
 onMounted(() => loadDoctors());
 
@@ -27,10 +27,13 @@ const loadDoctors = async () => {
   loading.value = true;
   try {
     const data = await adminStore.getDoctors({ ...filters.value, page: pagination.value.currentPage, limit: pagination.value.perPage });
-    doctors.value = data.doctors || [];
-    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: data.total || 0, perPage: data.perPage || 10 };
+    doctors.value = Array.isArray(data) ? data : (data.doctors || []);
+    const totalCount = Array.isArray(data) ? data.length : (data.total || 0);
+    const perPage = data.limit || 10;
+    const totalPages = Math.ceil(totalCount / perPage);
+    pagination.value = { currentPage: data.page || 1, totalPages, total: totalCount, perPage };
   } catch (error) {
-    showError('Failed to load doctors');
+    // Error handled by interceptor
   } finally {
     loading.value = false;
   }
@@ -48,5 +51,5 @@ const verifyDoctor = async (id) => {
     showError('Failed to verify doctor');
   }
 };
-const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy');
+const formatDate = (dateString) => dateString ? format(new Date(dateString), 'MMM d, yyyy') : 'N/A';
 </script>

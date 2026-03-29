@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <h1 class="text-3xl font-bold text-gray-900 mb-8 animate-fade-in">Payments</h1>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"><div class="stat-card"><CurrencyDollarIcon class="h-8 w-8 text-green-600 mb-2" /><p class="text-2xl font-bold text-gray-900">₦{{ formatMoney(stats.totalRevenue) }}</p><p class="text-sm text-gray-500">Total Revenue</p></div><div class="stat-card"><DocumentTextIcon class="h-8 w-8 text-blue-600 mb-2" /><p class="text-2xl font-bold text-gray-900">{{ stats.totalTransactions }}</p><p class="text-sm text-gray-500">Transactions</p></div><div class="stat-card"><CheckCircleIcon class="h-8 w-8 text-green-600 mb-2" /><p class="text-2xl font-bold text-gray-900">{{ stats.successRate }}%</p><p class="text-sm text-gray-500">Success Rate</p></div><div class="stat-card"><ClockIcon class="h-8 w-8 text-orange-600 mb-2" /><p class="text-2xl font-bold text-gray-900">{{ stats.pendingPayments }}</p><p class="text-sm text-gray-500">Pending</p></div></div>
@@ -44,7 +44,7 @@ const handleSearch = () => { pagination.value.currentPage = 1; loadPayments(); }
 const handlePageChange = (page) => { pagination.value.currentPage = page; loadPayments(); };
 const resetFilters = () => { filters.value = { search: '', type: '', status: '' }; pagination.value.currentPage = 1; loadPayments(); };
 const viewPaymentDetails = (id) => info('Payment details view coming soon');
-const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(amount);
+const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy h:mm a');
 const getStatusBadge = (status) => ({ completed: 'badge badge-success', pending: 'badge badge-warning', failed: 'badge badge-error' }[status] || 'badge');
 </script>

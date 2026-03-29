@@ -111,6 +111,7 @@ const config = {
 
   // Frontend
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  apiUrl: process.env.API_URL || "http://localhost:5002",
 
   // Cron Jobs
   cron: {

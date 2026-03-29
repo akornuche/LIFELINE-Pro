@@ -7,6 +7,26 @@ import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js
 import { PACKAGE_ENTITLEMENTS } from '../config/constants.js';
 
 /**
+ * Map subscription data to frontend format
+ */
+const mapSubscription = (subscription) => {
+  if (!subscription) return null;
+
+  const entitlements = PACKAGE_ENTITLEMENTS[subscription.current_package || subscription.package_type] || null;
+
+  return {
+    id: subscription.id,
+    package_type: subscription.current_package || subscription.package_type,
+    start_date: subscription.subscription_start_date || subscription.start_date,
+    end_date: subscription.subscription_end_date || subscription.end_date,
+    status: subscription.subscription_status || subscription.status,
+    auto_renew: subscription.auto_renew,
+    isExpired: subscription.isExpired || false,
+    entitlements,
+  };
+};
+
+/**
  * Patient Service
  * Business logic for patient operations
  */
@@ -21,8 +41,14 @@ export const getPatientProfile = async (userId) => {
     if (!patient) {
       // Create default patient record if it doesn't exist
       logger.info('Patient record not found, creating default record', { userId });
+      
+      // Get user data to populate patient record
+      const user = await userRepository.findById(userId);
+      
       await patientRepository.createPatient(userId, {
-        dateOfBirth: null,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        dateOfBirth: user.date_of_birth || null,
         gender: null,
         address: 'Not provided',
       });
@@ -69,6 +95,21 @@ export const updatePatientProfile = async (userId, updateData) => {
       throw new NotFoundError('Patient profile');
     }
 
+    // Sync to user record if identity/base fields are present
+    const identityUpdates = {};
+    if (updateData.first_name) identityUpdates.firstName = updateData.first_name;
+    if (updateData.last_name) identityUpdates.lastName = updateData.last_name;
+    if (updateData.email) identityUpdates.email = updateData.email;
+    if (updateData.phone) identityUpdates.phone = updateData.phone;
+    if (updateData.date_of_birth) identityUpdates.dateOfBirth = updateData.date_of_birth;
+    if (updateData.gender) identityUpdates.gender = updateData.gender;
+    if (updateData.address) identityUpdates.address = updateData.address;
+    if (updateData.profile_picture) identityUpdates.profilePicture = updateData.profile_picture;
+
+    if (Object.keys(identityUpdates).length > 0) {
+      await userRepository.updateProfile(userId, identityUpdates);
+    }
+
     const updatedPatient = await patientRepository.updateProfile(patient.id, {
       bloodGroup,
       allergies,
@@ -76,12 +117,15 @@ export const updatePatientProfile = async (userId, updateData) => {
       emergencyContact,
     });
 
+    // Fetch full profile to return consistent data
+    const fullProfile = await getPatientProfile(userId);
+
     logger.info('Patient profile updated', {
       userId,
       patientId: patient.id,
     });
 
-    return updatedPatient;
+    return fullProfile;
   } catch (error) {
     logger.error('Update patient profile error', {
       error: error.message,
@@ -104,7 +148,7 @@ export const getSubscriptions = async (userId) => {
 
     const subscriptions = await patientRepository.getSubscriptions(patient.id);
 
-    return subscriptions;
+    return subscriptions.map(s => mapSubscription(s));
   } catch (error) {
     logger.error('Get subscriptions error', {
       error: error.message,
@@ -118,7 +162,7 @@ export const getSubscriptions = async (userId) => {
  * Create subscription
  */
 export const createSubscription = async (userId, subscriptionData) => {
-  const { packageType, startDate, endDate, price } = subscriptionData;
+  const { packageType, autoRenew } = subscriptionData;
 
   try {
     const patient = await patientRepository.findByUserId(userId);
@@ -127,32 +171,34 @@ export const createSubscription = async (userId, subscriptionData) => {
       throw new NotFoundError('Patient profile');
     }
 
-    // Check if there's an active subscription
-    const hasActive = await patientRepository.hasActiveSubscription(patient.id);
-
-    if (hasActive) {
-      throw new BusinessLogicError('Patient already has an active subscription');
-    }
+    // Normalize package type to uppercase
+    const normalizedPackageType = packageType.toUpperCase();
 
     // Validate package type
-    if (!PACKAGE_ENTITLEMENTS[packageType]) {
+    if (!PACKAGE_ENTITLEMENTS[normalizedPackageType]) {
       throw new BusinessLogicError(`Invalid package type: ${packageType}`);
     }
 
-    const subscription = await patientRepository.createSubscription(patient.id, {
-      packageType,
-      startDate,
-      endDate,
-      price,
+    // Calculate subscription dates (365 days from now)
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 365);
+
+    const subscription = await patientRepository.updateSubscription(patient.id, {
+      packageType: normalizedPackageType,
+      subscriptionStartDate: startDate,
+      subscriptionEndDate: endDate,
+      subscriptionStatus: 'active',
+      autoRenew: autoRenew !== undefined ? autoRenew : true,
     });
 
     logger.info('Subscription created', {
       userId,
       patientId: patient.id,
-      packageType,
+      packageType: normalizedPackageType,
     });
 
-    return subscription;
+    return mapSubscription(subscription);
   } catch (error) {
     logger.error('Create subscription error', {
       error: error.message,
@@ -166,7 +212,7 @@ export const createSubscription = async (userId, subscriptionData) => {
  * Update subscription
  */
 export const updateSubscription = async (userId, subscriptionData) => {
-  const { packageType, endDate } = subscriptionData;
+  const { packageType, autoRenew, subscriptionStatus } = subscriptionData;
 
   try {
     const patient = await patientRepository.findByUserId(userId);
@@ -175,18 +221,34 @@ export const updateSubscription = async (userId, subscriptionData) => {
       throw new NotFoundError('Patient profile');
     }
 
+    // Normalize package type to uppercase
+    const normalizedPackageType = packageType ? packageType.toUpperCase() : undefined;
+
+    // Validate package type if provided
+    if (normalizedPackageType && !PACKAGE_ENTITLEMENTS[normalizedPackageType]) {
+      throw new BusinessLogicError(`Invalid package type: ${packageType}`);
+    }
+
+    // Calculate new subscription dates (365 days from now for simplicity)
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 365);
+
     const subscription = await patientRepository.updateSubscription(patient.id, {
-      packageType,
-      endDate,
+      packageType: normalizedPackageType,
+      subscriptionStartDate: startDate,
+      subscriptionEndDate: endDate,
+      subscriptionStatus: subscriptionStatus || 'active',
+      autoRenew: autoRenew !== undefined ? autoRenew : true,
     });
 
     logger.info('Subscription updated', {
       userId,
       patientId: patient.id,
-      packageType,
+      packageType: normalizedPackageType,
     });
 
-    return subscription;
+    return mapSubscription(subscription);
   } catch (error) {
     logger.error('Update subscription error', {
       error: error.message,
@@ -215,7 +277,7 @@ export const cancelSubscription = async (userId, reason = null) => {
       reason,
     });
 
-    return subscription;
+    return mapSubscription(subscription);
   } catch (error) {
     logger.error('Cancel subscription error', {
       error: error.message,
@@ -246,16 +308,8 @@ export const getSubscriptionDetails = async (userId) => {
     const entitlements = PACKAGE_ENTITLEMENTS[subscription.current_package] || null;
 
     // Map database field names to frontend expected names
-    return {
-      id: subscription.id,
-      package_type: subscription.current_package,
-      start_date: subscription.subscription_start_date,
-      end_date: subscription.subscription_end_date,
-      status: subscription.subscription_status,
-      auto_renew: subscription.auto_renew,
-      isExpired: subscription.isExpired,
-      entitlements,
-    };
+    return mapSubscription(subscription);
+
   } catch (error) {
     logger.error('Get subscription details error', {
       error: error.message,
@@ -312,7 +366,7 @@ export const getDependents = async (userId) => {
     }
 
     const dependents = await dependentRepository.getPatientDependents(patient.id, {
-      activeOnly: false,
+      activeOnly: true,
     });
 
     // Get package limits
@@ -320,8 +374,8 @@ export const getDependents = async (userId) => {
     let maxDependents = 0;
 
     if (subscription) {
-      const entitlements = PACKAGE_ENTITLEMENTS[subscription.package_type];
-      maxDependents = entitlements?.max_dependents || 0;
+      const entitlements = PACKAGE_ENTITLEMENTS[subscription.package_type?.toUpperCase()];
+      maxDependents = entitlements?.maxDependents || 0;
     }
 
     return {

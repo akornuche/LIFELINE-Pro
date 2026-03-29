@@ -140,8 +140,7 @@ export default defineConfig({
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
           'ui-vendor': ['@headlessui/vue', '@heroicons/vue'],
-          'chart-vendor': ['chart.js', 'vue-chartjs'],
-          'map-vendor': ['leaflet', 'vue-leaflet']
+          'chart-vendor': ['chart.js', 'vue-chartjs']
         }
       }
     },

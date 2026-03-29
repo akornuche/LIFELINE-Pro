@@ -2,8 +2,28 @@ import * as paymentRepository from '../models/paymentRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
 import * as pricingRepository from '../models/pricingRepository.js';
 import * as userRepository from '../models/userRepository.js';
+import * as doctorRepository from '../models/doctorRepository.js';
+import * as pharmacyRepository from '../models/pharmacyRepository.js';
+import * as hospitalRepository from '../models/hospitalRepository.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js';
+
+const getProviderIdByUserId = async (userId) => {
+  const user = await userRepository.findById(userId);
+  if (!user) throw new NotFoundError('User');
+
+  if (user.role === 'doctor') {
+    const doc = await doctorRepository.findByUserId(userId);
+    return doc.id;
+  } else if (user.role === 'pharmacy') {
+    const pharm = await pharmacyRepository.findByUserId(userId);
+    return pharm.id;
+  } else if (user.role === 'hospital') {
+    const hosp = await hospitalRepository.findByUserId(userId);
+    return hosp.id;
+  }
+  throw new BusinessLogicError('User is not a valid provider');
+};
 
 /**
  * Payment Service
@@ -254,13 +274,8 @@ export const getPaymentHistory = async (userId, options = {}) => {
  */
 export const getProviderPayments = async (userId, options = {}) => {
   try {
-    const user = await userRepository.findById(userId);
-
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-
-    const payments = await paymentRepository.getProviderPayments(userId, options);
+    const providerId = await getProviderIdByUserId(userId);
+    const payments = await paymentRepository.getProviderPayments(providerId, options);
 
     return payments;
   } catch (error) {
@@ -275,8 +290,10 @@ export const getProviderPayments = async (userId, options = {}) => {
 /**
  * Generate monthly statement
  */
-export const generateMonthlyStatement = async (providerId, providerType, month, year) => {
+export const generateMonthlyStatement = async (userId, providerType, month, year) => {
   try {
+    const providerId = await getProviderIdByUserId(userId);
+
     // Check if statement already exists
     const existingStatements = await paymentRepository.getProviderStatements(providerId, {
       limit: 1,
@@ -322,7 +339,8 @@ export const generateMonthlyStatement = async (providerId, providerType, month, 
  */
 export const getProviderStatements = async (userId, options = {}) => {
   try {
-    const statements = await paymentRepository.getProviderStatements(userId, options);
+    const providerId = await getProviderIdByUserId(userId);
+    const statements = await paymentRepository.getProviderStatements(providerId, options);
 
     return statements;
   } catch (error) {

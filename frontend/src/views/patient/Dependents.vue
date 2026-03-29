@@ -97,8 +97,13 @@
       </div>
     </div>
 
-    <!-- Add/Edit Dependent Modal (placeholder) -->
-    <!-- In production, implement proper modal component -->
+    <!-- Add/Edit Dependent Modal -->
+    <DependentModal
+      :isOpen="showAddModal"
+      :dependent="selectedDependent"
+      @close="closeModal"
+      @submit="handleDependentSubmit"
+    />
   </div>
 </template>
 
@@ -108,6 +113,7 @@ import { usePatientStore } from '@/stores/patient';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import SkeletonLoader from '@/components/SkeletonLoader.vue';
+import DependentModal from '@/components/DependentModal.vue';
 import { UsersIcon, CalendarIcon, UserIcon } from '@heroicons/vue/24/outline';
 import { format } from 'date-fns';
 
@@ -117,6 +123,7 @@ const { confirm } = useConfirm();
 
 const loading = ref(true);
 const showAddModal = ref(false);
+const selectedDependent = ref(null);
 
 onMounted(async () => {
   try {
@@ -134,9 +141,33 @@ const formatDate = (date) => {
 };
 
 const editDependent = (dependent) => {
-  // TODO: Implement edit modal
-  console.log('Edit dependent:', dependent);
-  showError('Edit feature coming soon!');
+  selectedDependent.value = dependent;
+  showAddModal.value = true;
+};
+
+const closeModal = () => {
+  showAddModal.value = false;
+  selectedDependent.value = null;
+};
+
+const handleDependentSubmit = async (formData) => {
+  try {
+    if (selectedDependent.value) {
+      // Update existing dependent
+      await patientStore.updateDependent(selectedDependent.value.id, formData);
+      success('Dependent updated successfully!');
+    } else {
+      // Add new dependent
+      await patientStore.addDependent(formData);
+      success('Dependent added successfully!');
+    }
+    closeModal();
+    await patientStore.fetchDependents();
+  } catch (error) {
+    console.error('Failed to save dependent:', error);
+    showError(error.response?.data?.message || 'Failed to save dependent. Please try again.');
+    throw error; // Re-throw to keep modal open
+  }
 };
 
 const confirmRemove = async (dependent) => {

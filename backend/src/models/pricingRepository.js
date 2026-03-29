@@ -162,7 +162,7 @@ export const updatePricing = async (pricingId, updateData) => {
            provider_share = COALESCE($2, provider_share),
            platform_fee = COALESCE($3, platform_fee),
            description = COALESCE($4, description),
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $5
        RETURNING *`,
       [patientPrice, providerShare, platformFee, description, pricingId]
@@ -469,7 +469,7 @@ export const bulkUpdateServicePricing = async (serviceType, updateData) => {
        SET patient_price = patient_price * $1,
            provider_share = provider_share * $2,
            platform_fee = platform_fee * $3,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE service_type = $4
        RETURNING id`,
       [patientPriceMultiplier, providerShareMultiplier, platformFeeMultiplier, serviceType]

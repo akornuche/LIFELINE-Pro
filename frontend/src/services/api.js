@@ -39,36 +39,43 @@ apiClient.interceptors.response.use(
     const authStore = useAuthStore();
     const originalRequest = error.config;
 
-    // Handle network errors
+    // Standard human-friendly messages for common status codes
+    const errorMap = {
+      400: 'Invalid request. Please check your data.',
+      401: 'Session expired. Please login again.',
+      403: 'You do not have permission to perform this action.',
+      404: 'Requested resource was not found.',
+      405: 'This action is not allowed.',
+      408: 'Request timeout. Please try again.',
+      422: 'Information provided is invalid. Please check your inputs.',
+      429: 'Too many requests. Please slow down.',
+      500: 'Systems are currently experiencing issues. Our team is on it.',
+      503: 'Service temporarily unavailable. Maintenance in progress.'
+    };
+
+    // Handle network/timeout errors
     if (!error.response) {
-      toast.error('Network error. Please check your connection.');
+      if (error.code === 'ECONNABORTED') toast.error('Request timed out. Please try again.');
+      else toast.error('Network error. Please check your internet connection.');
       return Promise.reject(error);
     }
 
     const { status, data } = error.response;
+    const errorMessage = data.message || errorMap[status] || 'An unexpected error occurred.';
 
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized (Token Refresh logic)
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
       try {
-        // Try to refresh token
         const refreshToken = authStore.refreshToken;
         if (refreshToken) {
-          const response = await axios.post(
-            `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
-            { refreshToken }
-          );
-
+          const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, { refreshToken });
           const { accessToken } = response.data.data;
           authStore.setToken(accessToken);
-
-          // Retry original request
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed, logout user
         authStore.logout();
         router.push('/login');
         toast.error('Session expired. Please login again.');
@@ -76,32 +83,23 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden
-    if (status === 403) {
-      toast.error('You do not have permission to perform this action.');
-      router.push('/403');
+    // Role-specific redirect for patients with no subscription
+    if (status === 403 && data.code === 'SUBSCRIPTION_REQUIRED') {
+      toast.error(errorMessage);
+      router.push('/patient/subscription');
+      return Promise.reject(error);
     }
 
-    // Handle 404 Not Found
-    if (status === 404) {
-      toast.error(data.message || 'Resource not found.');
-    }
-
-    // Handle 422 Validation Error
-    if (status === 422) {
-      const errors = data.errors || {};
-      const firstError = Object.values(errors)[0];
-      toast.error(firstError || 'Validation error occurred.');
-    }
-
-    // Handle 429 Too Many Requests
-    if (status === 429) {
-      toast.error('Too many requests. Please try again later.');
-    }
-
-    // Handle 500 Server Error
-    if (status >= 500) {
-      toast.error('Server error. Please try again later.');
+    // Handle 422 Validation Errors specifically (show the first one if available)
+    if (status === 422 && data.errors) {
+      const firstField = Object.keys(data.errors)[0];
+      const detail = Array.isArray(data.errors[firstField]) ? data.errors[firstField][0] : data.errors[firstField];
+      toast.error(detail || errorMessage);
+    } else {
+      // Don't show toast for 401 as it's handled above/silently during refresh
+      if (status !== 401) {
+        toast.error(errorMessage);
+      }
     }
 
     return Promise.reject(error);

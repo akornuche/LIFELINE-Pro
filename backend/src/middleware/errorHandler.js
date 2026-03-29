@@ -113,6 +113,7 @@ export class UnauthorizedError extends Error {
  * Error handler for development environment
  */
 const developmentErrorHandler = (err, req, res) => {
+  console.error('[FATAL ERROR] Captured in Development Error Handler:', err);
   const errorResponse = {
     success: false,
     message: err.message,
@@ -178,6 +179,7 @@ const productionErrorHandler = (err, req, res) => {
  * Main error handler middleware
  */
 export const errorHandler = (err, req, res, next) => {
+  console.error('[GLOBAL ERROR] Handling error:', err.name, err.message);
   // Handle specific error types
   switch (err.name) {
     case ErrorTypes.VALIDATION_ERROR:

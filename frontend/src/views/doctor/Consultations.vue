@@ -199,7 +199,7 @@ const formatDate = (dateString) => {
 };
 
 const formatMoney = (amount) => {
-  return new Intl.NumberFormat('en-NG').format(amount);
+  return new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 };
 
 const getStatusBadge = (status) => {

@@ -270,6 +270,11 @@ const router = createRouter({
           component: () => import('@/views/admin/Users.vue')
         },
         {
+          path: 'users/:id',
+          name: 'admin-user-detail',
+          component: () => import('@/views/admin/UserDetail.vue')
+        },
+        {
           path: 'patients',
           name: 'admin-patients',
           component: () => import('@/views/admin/Patients.vue')
@@ -362,7 +367,6 @@ router.beforeEach(async (to, from, next) => {
     try {
       await authStore.getCurrentUser();
     } catch (error) {
-      // If getCurrentUser fails, clear auth and redirect to login
       authStore.clearAuth();
       next({ name: 'login', query: { redirect: to.fullPath } });
       return;
@@ -386,6 +390,28 @@ router.beforeEach(async (to, from, next) => {
   if (requiredRole && authStore.user?.role !== requiredRole) {
     next({ name: 'forbidden' });
     return;
+  }
+
+  // Subscription Enforcement for Patients
+  if (authStore.isAuthenticated && authStore.user?.role === 'patient') {
+    const patientStore = (await import('@/stores/patient')).usePatientStore();
+    
+    // Fetch subscription if not already loaded
+    if (patientStore.subscription === null && !patientStore.loading) {
+      try {
+        await patientStore.fetchSubscription();
+      } catch (e) {
+        console.error('Failed to check subscription status');
+      }
+    }
+
+    const hasNoActiveSub = !patientStore.hasActiveSubscription;
+    const isNotOnSubPage = to.name !== 'patient-subscription';
+
+    if (hasNoActiveSub && isNotOnSubPage) {
+      next({ name: 'patient-subscription' });
+      return;
+    }
   }
 
   next();

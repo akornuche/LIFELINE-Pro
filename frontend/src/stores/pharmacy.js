@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { pharmacyService } from '@/services';
+import { useAuthStore } from '@/stores/auth';
 
 export const usePharmacyStore = defineStore('pharmacy', {
   state: () => ({
@@ -24,7 +25,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.error = null;
       try {
         const response = await pharmacyService.getProfile();
-        this.profile = response.data.pharmacy;
+        this.profile = response.data || response;
         return this.profile;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load profile';
@@ -39,7 +40,11 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.error = null;
       try {
         const response = await pharmacyService.updateProfile(profileData);
-        this.profile = response.data.pharmacy;
+        this.profile = response.data || response;
+        const authStore = useAuthStore();
+        authStore.patchUser({
+          full_name: profileData.pharmacyName || profileData.pharmacy_name || this.profile?.pharmacy_name,
+        });
         return this.profile;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to update profile';
@@ -56,7 +61,10 @@ export const usePharmacyStore = defineStore('pharmacy', {
         const formData = new FormData();
         formData.append('logo', file);
         const response = await pharmacyService.uploadLogo(formData);
-        this.profile.logo = response.data.logo;
+        const logoUrl = response.data?.logo_url || response.logo_url;
+        if (this.profile) this.profile.logo = logoUrl;
+        const authStore = useAuthStore();
+        authStore.patchUser({ profile_picture: logoUrl });
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to upload logo';
@@ -72,7 +80,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.error = null;
       try {
         const response = await pharmacyService.getPrescriptions(params);
-        this.prescriptions = response.data.prescriptions;
+        this.prescriptions = response.data?.prescriptions || response.data || [];
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load prescriptions';
@@ -87,7 +95,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.error = null;
       try {
         const response = await pharmacyService.getPrescription(id);
-        return response.data.prescription;
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load prescription';
         throw error;
@@ -101,7 +109,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.error = null;
       try {
         const response = await pharmacyService.dispensePrescription(id, dispensingData);
-        return response.data.prescription;
+        return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to dispense prescription';
         throw error;
@@ -116,7 +124,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.error = null;
       try {
         const response = await pharmacyService.getPayments(params);
-        this.payments = response.data.payments;
+        this.payments = response.data?.payments || response.data || [];
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load payments';
@@ -168,7 +176,11 @@ export const usePharmacyStore = defineStore('pharmacy', {
       this.loading = true;
       this.error = null;
       try {
-        const response = await pharmacyService.updateSettings(settings);
+        // updateSettings maps to updateProfile on the backend
+        const response = await pharmacyService.updateProfile(settings);
+        if (this.profile) {
+          this.profile = { ...this.profile, ...(response.data || response) };
+        }
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to update settings';

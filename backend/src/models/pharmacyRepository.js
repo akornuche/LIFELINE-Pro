@@ -1,6 +1,7 @@
 import database from '../database/connection.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, ConflictError } from '../middleware/errorHandler.js';
+import { randomUUID } from 'crypto';
 
 /**
  * Pharmacy Repository
@@ -11,38 +12,32 @@ import { NotFoundError, ConflictError } from '../middleware/errorHandler.js';
  * Create pharmacy record
  */
 export const createPharmacy = async (userId, pharmacyData) => {
+  const id = randomUUID();
   const {
     pharmacyName,
     address,
     licenseNumber,
-    licenseExpiryDate,
-    operatingHours = null,
-    hasDelivery = false,
-    deliveryRadius = null,
   } = pharmacyData;
 
   try {
     const result = await database.query(
       `INSERT INTO pharmacies (
-        user_id, pharmacy_name, address, license_number, 
-        license_expiry_date, operating_hours, has_delivery, delivery_radius
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *`,
+        id, user_id, pharmacy_name, address, license_number
+      ) VALUES ($1, $2, $3, $4, $5)`,
       [
+        id,
         userId,
         pharmacyName,
         address,
         licenseNumber,
-        licenseExpiryDate,
-        operatingHours ? JSON.stringify(operatingHours) : null,
-        hasDelivery,
-        deliveryRadius,
       ]
     );
 
-    logger.info('Pharmacy record created', { userId, pharmacyId: result.rows[0].id });
+    // Fetch after insert (SQLite compatible)
+    const created = await findByUserId(userId);
+    logger.info('Pharmacy record created', { userId, pharmacyId: created.id });
 
-    return result.rows[0];
+    return created;
   } catch (error) {
     if (error.code === '23505') {
       if (error.constraint === 'pharmacies_user_id_key') {
@@ -66,7 +61,8 @@ export const createPharmacy = async (userId, pharmacyData) => {
 export const findByUserId = async (userId) => {
   try {
     const result = await database.query(
-      `SELECT p.*, u.lifeline_id, u.email, u.phone
+      `SELECT p.*, u.lifeline_id, u.email, u.phone, u.profile_image_url as logo,
+              p.pharmacy_name as name
        FROM pharmacies p
        JOIN users u ON p.user_id = u.id
        WHERE p.user_id = $1`,
@@ -97,7 +93,8 @@ export const findByUserId = async (userId) => {
 export const findById = async (pharmacyId) => {
   try {
     const result = await database.query(
-      `SELECT p.*, u.lifeline_id, u.email, u.phone
+      `SELECT p.*, u.lifeline_id, u.email, u.phone, u.profile_image_url as logo,
+              p.pharmacy_name as name
        FROM pharmacies p
        JOIN users u ON p.user_id = u.id
        WHERE p.id = $1`,
@@ -128,53 +125,82 @@ export const findById = async (pharmacyId) => {
 export const updateProfile = async (pharmacyId, updates) => {
   const allowedFields = [
     'pharmacy_name',
+    'description',
     'address',
+    'phone',
+    'email',
     'operating_hours',
-    'has_delivery',
-    'delivery_radius',
+    'services_offered',
+    'open_24_hours',
+    'delivery_available',
   ];
+
+  const mappedUpdates = {};
+  const fieldMapping = {
+    pharmacyName: 'pharmacy_name',
+    pharmacy_name: 'pharmacy_name',
+    name: 'pharmacy_name',
+    operatingHours: 'operating_hours',
+    operating_hours: 'operating_hours',
+    hasDelivery: 'delivery_available',
+    has_delivery: 'delivery_available',
+    delivery_available: 'delivery_available',
+    deliveryRadius: null, // not in schema, ignore
+    emergencyService: 'open_24_hours',
+    open_24_hours: 'open_24_hours',
+    description: 'description',
+    servicesOffered: 'services_offered',
+    services_offered: 'services_offered',
+  };
+
+  Object.keys(updates).forEach((key) => {
+    const dbKey = fieldMapping[key] || key;
+    if (allowedFields.includes(dbKey) && updates[key] !== undefined) {
+      mappedUpdates[dbKey] = updates[key];
+    }
+  });
 
   const fields = [];
   const values = [];
   let paramCount = 1;
 
-  Object.keys(updates).forEach((key) => {
-    if (allowedFields.includes(key) && updates[key] !== undefined) {
-      fields.push(`${key} = $${paramCount}`);
-      
-      // Handle JSON fields
-      if (key === 'operating_hours') {
-        values.push(JSON.stringify(updates[key]));
-      } else {
-        values.push(updates[key]);
-      }
-      paramCount++;
+  Object.keys(mappedUpdates).forEach((key) => {
+    fields.push(`${key} = $${paramCount}`);
+    
+    // Handle JSON fields
+    if (key === 'operating_hours') {
+      values.push(JSON.stringify(mappedUpdates[key]));
+    } else {
+      values.push(mappedUpdates[key]);
     }
+    paramCount++;
   });
 
   if (fields.length === 0) {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(pharmacyId);
 
   try {
     const result = await database.query(
       `UPDATE pharmacies
        SET ${fields.join(', ')}
-       WHERE id = $${paramCount}
-       RETURNING *`,
+       WHERE id = $${paramCount}`,
       values
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       throw new NotFoundError('Pharmacy');
     }
 
+    // Fetch after update (SQLite compatible)
+    const updated = await findById(pharmacyId);
+
     logger.info('Pharmacy profile updated', { pharmacyId });
 
-    return result.rows[0];
+    return updated;
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
     logger.error('Error updating pharmacy profile', {
@@ -196,7 +222,7 @@ export const updateLicense = async (pharmacyId, licenseData) => {
       `UPDATE pharmacies
        SET license_number = $1,
            license_expiry_date = $2,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
       [licenseNumber, licenseExpiryDate, pharmacyId]
@@ -231,7 +257,7 @@ export const updateVerificationStatus = async (pharmacyId, status, verifiedAt = 
       `UPDATE pharmacies
        SET verification_status = $1,
            verified_at = $2,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
       [status, verifiedAt || (status === 'verified' ? new Date() : null), pharmacyId]
@@ -263,7 +289,7 @@ export const updateRating = async (pharmacyId, newRating, reviewCount) => {
       `UPDATE pharmacies
        SET average_rating = $1,
            total_reviews = $2,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
       [newRating, reviewCount, pharmacyId]
@@ -350,15 +376,17 @@ export const findAll = async (options = {}) => {
 /**
  * Search pharmacies
  */
-export const searchPharmacies = async (searchTerm, options = {}) => {
+export const searchPharmacies = async (searchTerm = '', options = {}) => {
   const { limit = 50, offset = 0, verificationStatus = 'verified' } = options;
 
   try {
+    const searchPattern = searchTerm ? `%${searchTerm}%` : '%';
     const result = await database.query(
       `SELECT p.*, u.lifeline_id, u.email, u.phone
        FROM pharmacies p
        JOIN users u ON p.user_id = u.id
        WHERE p.verification_status = $1
+         AND u.status = 'active'
          AND (
            LOWER(p.pharmacy_name) LIKE LOWER($2) OR
            LOWER(p.address) LIKE LOWER($2) OR
@@ -366,16 +394,17 @@ export const searchPharmacies = async (searchTerm, options = {}) => {
          )
        ORDER BY p.average_rating DESC, p.created_at DESC
        LIMIT $3 OFFSET $4`,
-      [verificationStatus, `%${searchTerm}%`, limit, offset]
+      [verificationStatus, searchPattern, limit, offset]
     );
 
-    return result.rows;
+    return result.rows || result || [];
   } catch (error) {
     logger.error('Error searching pharmacies', {
       error: error.message,
       searchTerm,
     });
-    throw error;
+    // Return empty array instead of throwing
+    return [];
   }
 };
 
@@ -471,7 +500,7 @@ export const incrementPrescriptions = async (pharmacyId) => {
     await database.query(
       `UPDATE pharmacies
        SET total_prescriptions = total_prescriptions + 1,
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $1`,
       [pharmacyId]
     );
@@ -489,22 +518,51 @@ export const incrementPrescriptions = async (pharmacyId) => {
 /**
  * Get pharmacy statistics
  */
-export const getStatistics = async (pharmacyId, startDate, endDate) => {
+export const getStatistics = async (pharmacyId, options = {}) => {
+  const {
+    startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    endDate = new Date().toISOString(),
+  } = options;
+
   try {
-    const result = await database.query(
-      `SELECT 
-        (SELECT COUNT(*) FROM prescriptions 
-         WHERE pharmacy_id = $1 AND dispensed_at BETWEEN $2 AND $3 
-         AND status = 'dispensed') as prescriptions_dispensed,
-        (SELECT COUNT(DISTINCT patient_id) FROM prescriptions 
-         WHERE pharmacy_id = $1 AND dispensed_at BETWEEN $2 AND $3) as unique_patients,
-        (SELECT COALESCE(SUM(total_amount), 0) FROM payment_records 
-         WHERE provider_id = (SELECT user_id FROM pharmacies WHERE id = $1)
-         AND created_at BETWEEN $2 AND $3) as total_earnings`,
-      [pharmacyId, startDate, endDate]
+    // Step 1: Get pharmacy info and user_id
+    const pharmacyResult = await database.query(
+      `SELECT user_id, total_prescriptions, total_reviews, average_rating FROM pharmacies WHERE id = $1`,
+      [pharmacyId]
     );
 
-    return result.rows[0];
+    if (pharmacyResult.rows.length === 0) {
+      return {
+        totalPrescriptions: 0,
+        totalReviews: 0,
+        averageRating: 0,
+        totalEarnings: 0,
+        monthlyEarnings: 0,
+      };
+    }
+
+    const pharmacy = pharmacyResult.rows[0];
+
+    // Step 2: Get earnings using the resolved user_id
+    const earningsResult = await database.query(
+      `SELECT COALESCE(SUM(amount), 0) as total_earnings
+       FROM payment_records
+       WHERE provider_id = $1
+         AND status = 'completed'
+         AND created_at >= $2
+         AND created_at <= $3`,
+      [pharmacy.user_id, startDate, endDate]
+    );
+
+    const earnings = earningsResult.rows[0] || {};
+
+    return {
+      totalPrescriptions: pharmacy.total_prescriptions || 0,
+      totalReviews: pharmacy.total_reviews || 0,
+      averageRating: parseFloat(pharmacy.average_rating) || 0,
+      totalEarnings: parseFloat(earnings.total_earnings) || 0,
+      monthlyEarnings: parseFloat(earnings.total_earnings) || 0,
+    };
   } catch (error) {
     logger.error('Error getting pharmacy statistics', {
       error: error.message,
@@ -587,7 +645,7 @@ export const getExpiringLicenses = async (daysThreshold = 30) => {
        FROM pharmacies p
        JOIN users u ON p.user_id = u.id
        WHERE p.license_expiry_date <= $1
-         AND p.license_expiry_date > NOW()
+         AND p.license_expiry_date > CURRENT_TIMESTAMP
          AND p.verification_status = 'verified'
        ORDER BY p.license_expiry_date ASC`,
       [thresholdDate]

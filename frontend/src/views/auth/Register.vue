@@ -17,20 +17,20 @@
             <!-- Role Selection -->
             <div class="form-group">
               <label class="form-label">Register As</label>
-              <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <button
-                  v-for="role in roles"
-                  :key="role.value"
+                  v-for="type in userTypes"
+                  :key="type.value"
                   type="button"
-                  @click="form.role = role.value"
+                  @click="form.userType = type.value"
                   :class="[
                     'px-4 py-3 border-2 rounded-lg text-sm font-medium transition-all',
-                    form.role === role.value
+                    form.userType === type.value
                       ? 'border-primary-600 bg-primary-50 text-primary-700'
                       : 'border-gray-200 hover:border-gray-300'
                   ]"
                 >
-                  {{ role.label }}
+                  {{ type.label }}
                 </button>
               </div>
             </div>
@@ -112,8 +112,8 @@
               <div class="form-group">
                 <label for="gender" class="form-label">Gender</label>
                 <select
-                  id="userType"
-                  v-model="form.userType"
+                  id="gender"
+                  v-model="form.gender"
                   required
                   class="input"
                   :disabled="loading"
@@ -311,12 +311,11 @@ const loading = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 
-const roles = [
+const userTypes = [
   { value: 'patient', label: 'Patient' },
   { value: 'doctor', label: 'Doctor' },
   { value: 'pharmacy', label: 'Pharmacy' },
-  { value: 'hospital', label: 'Hospital' },
-  { value: 'admin', label: 'Admin' }
+  { value: 'hospital', label: 'Hospital' }
 ];
 
 const form = reactive({
@@ -370,6 +369,8 @@ const handleRegister = async () => {
 
     await authStore.register(registrationData);
     
+    success('Registration successful! Please login to select your healthcare package.');
+    
     // Redirect to login page
     router.push({
       name: 'login',
@@ -377,6 +378,13 @@ const handleRegister = async () => {
     });
   } catch (error) {
     console.error('Registration failed:', error);
+    const message = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+    showError(message);
+    
+    // If there are specific field errors, show the first one
+    if (error.response?.data?.errors && error.response.data.errors.length > 0) {
+      showError(error.response.data.errors[0].message);
+    }
   } finally {
     loading.value = false;
   }

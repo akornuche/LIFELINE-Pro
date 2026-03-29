@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <div class="flex items-center justify-between mb-8">
       <div class="flex items-center">
@@ -116,6 +116,6 @@ const dispensePrescription = async () => {
 };
 
 const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy h:mm a');
-const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(amount);
+const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 const getStatusBadge = (status) => ({ pending: 'badge badge-warning', dispensed: 'badge badge-success', cancelled: 'badge badge-error' }[status] || 'badge');
 </script>

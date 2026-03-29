@@ -13,7 +13,7 @@
       <input
         v-if="type !== 'textarea'"
         :id="inputId"
-        :type="type"
+        :type="type === 'password' ? (showPassword ? 'text' : 'password') : type"
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
@@ -43,8 +43,17 @@
         @focus="handleFocus"
       ></textarea>
       
-      <div v-if="$slots.suffix" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+      <div v-if="$slots.suffix || type === 'password'" class="absolute inset-y-0 right-0 pr-3 flex items-center">
         <slot name="suffix" />
+        <button 
+          v-if="type === 'password'" 
+          type="button" 
+          @click="showPassword = !showPassword" 
+          class="text-gray-500 hover:text-gray-700 focus:outline-none"
+        >
+          <EyeIcon v-if="!showPassword" class="h-5 w-5" />
+          <EyeSlashIcon v-else class="h-5 w-5" />
+        </button>
       </div>
     </div>
     
@@ -54,7 +63,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, useSlots } from 'vue';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
+
+const slots = useSlots();
 
 const props = defineProps({
   modelValue: {
@@ -114,12 +126,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'blur', 'focus']);
 
 const inputId = ref(`input-${Math.random().toString(36).substr(2, 9)}`);
+const showPassword = ref(false);
 
 const inputClasses = computed(() => {
   const classes = ['input'];
   if (props.error) classes.push('input-error');
-  if (props.$slots?.prefix) classes.push('pl-10');
-  if (props.$slots?.suffix) classes.push('pr-10');
+  if (slots.prefix) classes.push('pl-10');
+  if (slots.suffix || props.type === 'password') classes.push('pr-10');
   return classes.join(' ');
 });
 

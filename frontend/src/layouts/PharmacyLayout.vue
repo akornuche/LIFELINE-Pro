@@ -27,7 +27,13 @@
         <div class="px-4 py-4 border-t">
           <div class="flex items-center px-4 py-3">
             <div class="flex-shrink-0">
-              <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+              <img
+                v-if="authStore.user?.profile_picture"
+                :src="authStore.user.profile_picture"
+                class="h-10 w-10 rounded-full object-cover"
+                alt="Pharmacy logo"
+              />
+              <div v-else class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                 <span class="text-green-600 font-semibold">
                   {{ userInitials }}
                 </span>

@@ -32,21 +32,25 @@ export const updatePatientProfileSchema = Joi.object({
 
 // Create subscription
 export const createSubscriptionSchema = Joi.object({
-  packageType: Joi.string().valid('basic', 'medium', 'advanced').required().messages({
-    'any.only': 'Package type must be basic, medium, or advanced',
-    'any.required': 'Package type is required',
-  }),
+  packageType: Joi.string()
+    .valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED')
+    .required()
+    .messages({
+      'any.only': 'Package type must be basic, medium, or advanced',
+      'any.required': 'Package type is required',
+    }),
   billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual').default('monthly'),
   paymentMethod: Joi.string()
     .valid('card', 'bank_transfer', 'wallet')
     .default('card'),
   autoRenew: Joi.boolean().default(true),
+  subscriptionStatus: Joi.string().valid('active', 'inactive', 'cancelled', 'expired').default('active'),
 });
 
 // Upgrade subscription
 export const upgradeSubscriptionSchema = Joi.object({
   newPackageType: Joi.string()
-    .valid('basic', 'medium', 'advanced')
+    .valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED')
     .required()
     .messages({
       'any.required': 'New package type is required',
@@ -81,17 +85,18 @@ export const cancelSubscriptionSchema = Joi.object({
 
 // Renew subscription
 export const renewSubscriptionSchema = Joi.object({
-  packageType: Joi.string().valid('basic', 'medium', 'advanced'),
+  packageType: Joi.string().valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED'),
   billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual'),
   paymentMethod: Joi.string().valid('card', 'bank_transfer', 'wallet'),
 });
 
 // Update subscription
 export const updateSubscriptionSchema = Joi.object({
-  packageType: Joi.string().valid('basic', 'medium', 'advanced'),
+  packageType: Joi.string().valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED'),
   billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual'),
   paymentMethod: Joi.string().valid('card', 'bank_transfer', 'wallet'),
   autoRenew: Joi.boolean(),
+  subscriptionStatus: Joi.string().valid('active', 'inactive', 'cancelled', 'expired'),
 }).min(1);
 
 /**
@@ -100,35 +105,43 @@ export const updateSubscriptionSchema = Joi.object({
 
 // Add dependent
 export const addDependentSchema = Joi.object({
-  firstName: Joi.string().trim().min(2).max(100).required(),
-  lastName: Joi.string().trim().min(2).max(100).required(),
-  dateOfBirth: Joi.date().max('now').required().messages({
+  firstName: Joi.string().trim().min(2).max(100),
+  lastName: Joi.string().trim().min(2).max(100),
+  dateOfBirth: Joi.date().max('now').messages({
     'date.max': 'Date of birth cannot be in the future',
   }),
+  first_name: Joi.string().trim().min(2).max(100),
+  last_name: Joi.string().trim().min(2).max(100),
+  date_of_birth: Joi.date().max('now'),
   gender: Joi.string().valid('male', 'female', 'other').required(),
   relationship: Joi.string()
     .valid('spouse', 'child', 'parent', 'sibling', 'other')
     .required(),
   bloodGroup: Joi.string().valid('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'),
   genotype: Joi.string().valid('AA', 'AS', 'SS', 'AC', 'SC'),
-  allergies: Joi.array().items(Joi.string().trim().max(200)),
-  chronicConditions: Joi.array().items(Joi.string().trim().max(200)),
+  allergies: Joi.alternatives().try(Joi.array().items(Joi.string()), Joi.string().allow('')),
+  chronicConditions: Joi.alternatives().try(Joi.array().items(Joi.string()), Joi.string().allow('')),
+  medical_conditions: Joi.string().allow(''),
   isMinor: Joi.boolean().default(false),
-});
+}).unknown(true);
 
 // Update dependent
 export const updateDependentSchema = Joi.object({
   firstName: Joi.string().trim().min(2).max(100),
   lastName: Joi.string().trim().min(2).max(100),
   dateOfBirth: Joi.date().max('now'),
+  first_name: Joi.string().trim().min(2).max(100),
+  last_name: Joi.string().trim().min(2).max(100),
+  date_of_birth: Joi.date().max('now'),
   gender: Joi.string().valid('male', 'female', 'other'),
   relationship: Joi.string().valid('spouse', 'child', 'parent', 'sibling', 'other'),
   bloodGroup: Joi.string().valid('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'),
   genotype: Joi.string().valid('AA', 'AS', 'SS', 'AC', 'SC'),
-  allergies: Joi.array().items(Joi.string().trim().max(200)),
-  chronicConditions: Joi.array().items(Joi.string().trim().max(200)),
+  allergies: Joi.alternatives().try(Joi.array().items(Joi.string()), Joi.string().allow('')),
+  chronicConditions: Joi.alternatives().try(Joi.array().items(Joi.string()), Joi.string().allow('')),
+  medical_conditions: Joi.string().allow(''),
   isMinor: Joi.boolean(),
-}).min(1);
+}).unknown(true);
 
 // Remove dependent
 export const removeDependentSchema = Joi.object({

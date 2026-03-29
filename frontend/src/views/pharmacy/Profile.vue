@@ -260,7 +260,11 @@ const changePassword = async () => {
   
   changingPassword.value = true;
   try {
-    await authStore.changePassword(passwordForm.value);
+    await authStore.changePassword({
+      currentPassword: passwordForm.value.current_password,
+      newPassword: passwordForm.value.new_password,
+      confirmPassword: passwordForm.value.confirm_password
+    });
     success('Password changed successfully');
     passwordForm.value = {
       current_password: '',

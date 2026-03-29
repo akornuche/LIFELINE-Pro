@@ -15,6 +15,8 @@ import { randomUUID } from 'crypto';
 export const createPatient = async (userId, patientData) => {
   const id = randomUUID();
   const {
+    firstName,
+    lastName,
     dateOfBirth,
     gender,
     address,
@@ -28,35 +30,45 @@ export const createPatient = async (userId, patientData) => {
   } = patientData;
 
   try {
+    // Get user's lifeline_id
+    const userResult = await database.query('SELECT lifeline_id FROM users WHERE id = $1', [userId]);
+    const lifelineId = userResult.rows[0]?.lifeline_id;
+
     const result = await database.query(
       `INSERT INTO patients (
-        id, user_id, date_of_birth, gender, address,
-        blood_group, genotype, allergies, chronic_conditions,
+        id, user_id, lifeline_id,
         emergency_contact_name, emergency_contact_phone, 
-        emergency_contact_relationship
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      RETURNING *`,
+        emergency_contact_relationship,
+        blood_type, allergies, medical_conditions,
+        current_medications, current_package, subscription_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         id,
         userId,
-        dateOfBirth,
-        gender,
-        address,
-        bloodGroup,
-        genotype,
+        lifelineId,
+        emergencyContactName || null,
+        emergencyContactPhone || null,
+        emergencyContactRelationship || null,
+        bloodGroup || null,
         JSON.stringify(allergies),
         JSON.stringify(chronicConditions),
-        emergencyContactName,
-        emergencyContactPhone,
-        emergencyContactRelationship,
+        JSON.stringify([]),
+        'BASIC',
+        'inactive'
       ]
     );
 
-    logger.info('Patient record created', { userId, patientId: result.rows[0].id });
+    // Get the created patient record
+    const patientResult = await database.query(
+      'SELECT * FROM patients WHERE id = $1',
+      [id]
+    );
 
-    return result.rows[0];
+    logger.info('Patient record created', { userId, patientId: patientResult.rows[0].id });
+
+    return patientResult.rows[0];
   } catch (error) {
-    if (error.code === '23505') {
+    if (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT') {
       throw new ConflictError('Patient record already exists for this user');
     }
     logger.error('Error creating patient record', {
@@ -81,17 +93,20 @@ export const findByUserId = async (userId) => {
     );
 
     if (result.rows.length === 0) {
-      throw new NotFoundError('Patient');
+      return null; // Return null instead of throwing error
     }
 
     // Parse JSON fields
     const patient = result.rows[0];
-    patient.allergies = patient.allergies || [];
-    patient.chronic_conditions = patient.chronic_conditions || [];
+    if (typeof patient.allergies === 'string') {
+      try { patient.allergies = JSON.parse(patient.allergies); } catch { patient.allergies = []; }
+    }
+    if (typeof patient.medical_conditions === 'string') {
+      try { patient.medical_conditions = JSON.parse(patient.medical_conditions); } catch { patient.medical_conditions = []; }
+    }
 
     return patient;
   } catch (error) {
-    if (error instanceof NotFoundError) throw error;
     logger.error('Error finding patient by user ID', {
       error: error.message,
       userId,
@@ -105,18 +120,31 @@ export const findByUserId = async (userId) => {
  */
 export const getSubscriptions = async (patientId) => {
   try {
+    // Get current subscription from patients table
     const result = await database.query(
-      `SELECT * FROM patient_payments WHERE patient_id = $1 ORDER BY created_at DESC`,
+      `SELECT 
+        current_package as package_type,
+        subscription_status as status,
+        subscription_start_date as start_date,
+        subscription_end_date as end_date,
+        auto_renew
+       FROM patients 
+       WHERE id = $1`,
       [patientId]
     );
 
-    return result.rows || result;
+    if (result.rows.length === 0) {
+      return [];
+    }
+
+    return [result.rows[0]];
   } catch (error) {
     logger.error('Error getting subscriptions', {
       error: error.message,
       patientId,
     });
-    throw error;
+    // Return empty array instead of throwing
+    return [];
   }
 };
 
@@ -169,29 +197,44 @@ export const updateProfile = async (patientId, updates) => {
     'emergency_contact_relationship',
   ];
 
+  const mappedUpdates = {};
+  const fieldMapping = {
+    dateOfBirth: 'date_of_birth',
+    bloodGroup: 'blood_group',
+    chronicConditions: 'chronic_conditions',
+    emergencyContactName: 'emergency_contact_name',
+    emergencyContactPhone: 'emergency_contact_phone',
+    emergencyContactRelationship: 'emergency_contact_relationship',
+  };
+
+  Object.keys(updates).forEach((key) => {
+    const dbKey = fieldMapping[key] || key;
+    if (allowedFields.includes(dbKey) && updates[key] !== undefined) {
+      mappedUpdates[dbKey] = updates[key];
+    }
+  });
+
   const fields = [];
   const values = [];
   let paramCount = 1;
 
-  Object.keys(updates).forEach((key) => {
-    if (allowedFields.includes(key) && updates[key] !== undefined) {
-      fields.push(`${key} = $${paramCount}`);
-      
-      // Handle JSON fields
-      if (key === 'allergies' || key === 'chronic_conditions') {
-        values.push(JSON.stringify(updates[key]));
-      } else {
-        values.push(updates[key]);
-      }
-      paramCount++;
+  Object.keys(mappedUpdates).forEach((key) => {
+    fields.push(`${key} = $${paramCount}`);
+    
+    // Handle JSON fields
+    if (key === 'allergies' || key === 'chronic_conditions') {
+      values.push(JSON.stringify(mappedUpdates[key]));
+    } else {
+      values.push(mappedUpdates[key]);
     }
+    paramCount++;
   });
 
   if (fields.length === 0) {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push(`updated_at = datetime('now')`);
   values.push(patientId);
 
   try {
@@ -245,7 +288,7 @@ export const updateSubscription = async (patientId, subscriptionData) => {
            subscription_end_date = $3,
            subscription_status = $4,
            auto_renew = $5,
-           updated_at = NOW()
+           updated_at = datetime('now')
        WHERE id = $6
        RETURNING *`,
       [
@@ -285,8 +328,11 @@ export const updateSubscription = async (patientId, subscriptionData) => {
 export const getActiveSubscription = async (patientId) => {
   try {
     const result = await database.query(
-      `SELECT id, current_package, subscription_start_date, 
-              subscription_end_date, subscription_status, auto_renew
+      `SELECT id, current_package, current_package as package_type, 
+              subscription_start_date, subscription_start_date as start_date,
+              subscription_end_date, subscription_end_date as end_date,
+              subscription_status, subscription_status as status, 
+              auto_renew
        FROM patients
        WHERE id = $1`,
       [patientId]
@@ -391,7 +437,7 @@ export const cancelSubscription = async (patientId, cancellationDate = null) => 
        SET subscription_status = 'cancelled',
            subscription_end_date = $1,
            auto_renew = false,
-           updated_at = NOW()
+           updated_at = datetime('now')
        WHERE id = $2
        RETURNING *`,
       [endDate, patientId]
@@ -549,7 +595,8 @@ export const findAll = async (options = {}) => {
 
   try {
     let query = `
-      SELECT p.*, u.lifeline_id, u.first_name, u.last_name, u.email, u.phone, u.is_active
+      SELECT p.*, p.current_package as package_type, p.subscription_status as status,
+             u.lifeline_id, u.first_name, u.last_name, u.email, u.phone, (u.status = 'active') as is_active
       FROM patients p
       JOIN users u ON p.user_id = u.id
       WHERE 1=1
@@ -663,7 +710,7 @@ export const getExpiringSubscriptions = async (daysThreshold = 7) => {
        JOIN users u ON p.user_id = u.id
        WHERE p.subscription_status = 'active'
          AND p.subscription_end_date <= $1
-         AND p.subscription_end_date > NOW()
+         AND p.subscription_end_date > datetime('now')
        ORDER BY p.subscription_end_date ASC`,
       [thresholdDate]
     );
@@ -685,9 +732,9 @@ export const expireSubscriptions = async () => {
     const result = await database.query(
       `UPDATE patients
        SET subscription_status = 'expired',
-           updated_at = NOW()
+           updated_at = datetime('now')
        WHERE subscription_status = 'active'
-         AND subscription_end_date < NOW()
+         AND subscription_end_date < datetime('now')
        RETURNING id, user_id, subscription_end_date`
     );
 

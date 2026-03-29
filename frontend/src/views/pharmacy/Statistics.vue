@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <h1 class="text-3xl font-bold text-gray-900 mb-8 animate-fade-in">Statistics & Analytics</h1>
     <LoadingSpinner v-if="loading" />
@@ -49,5 +49,5 @@ const initCharts = () => {
   }
 };
 
-const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(amount);
+const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 </script>

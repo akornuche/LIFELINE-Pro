@@ -256,11 +256,16 @@ class SQLiteAdapter extends DatabaseAdapter {
       // Enable foreign keys
       await this.db.exec('PRAGMA foreign_keys = ON;');
 
+      // Configure SQLite for better performance and concurrency
+      await this.db.exec('PRAGMA busy_timeout = 5000'); // Wait up to 5s if locked
+      await this.db.exec('PRAGMA journal_mode = WAL');  // Use Write-Ahead Logging for better concurrency
+      await this.db.exec('PRAGMA foreign_keys = ON'); // Enable foreign key constraints
+      
       // Test the connection
       await this.healthCheck();
 
-      logger.info('SQLite database initialized successfully', {
-        path: this.dbPath,
+      logger.info('SQLite database connected successfully', {
+        path: config.database.sqlitePath,
       });
 
       this.isConnected = true;
@@ -309,8 +314,9 @@ class SQLiteAdapter extends DatabaseAdapter {
         }
       }
 
-      // For SELECT queries, use get() or all()
-      if (sqliteQuery.trim().toUpperCase().startsWith('SELECT')) {
+      // For SELECT queries or queries with RETURNING, use all() to get the results
+      const upperQuery = sqliteQuery.trim().toUpperCase();
+      if (upperQuery.startsWith('SELECT') || upperQuery.includes('RETURNING')) {
         const result = await this.db.all(sqliteQuery, params);
         const duration = Date.now() - start;
 

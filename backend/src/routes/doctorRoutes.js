@@ -3,6 +3,7 @@ import * as doctorController from '../controllers/doctorController.js';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
+import upload from '../middleware/upload.js';
 import {
   updateDoctorProfileSchema,
   updateLicenseSchema,
@@ -20,7 +21,20 @@ const router = express.Router();
  * @desc    Get doctor profile
  * @access  Private (Doctor)
  */
-router.get('/profile', authenticate, checkRole(['doctor']), doctorController.getProfile);
+router.get('/profile', authenticate, checkRole('doctor'), doctorController.getProfile);
+
+/**
+ * @route   POST /api/doctors/profile/photo
+ * @desc    Upload profile photo
+ * @access  Private (Doctor)
+ */
+router.post(
+  '/profile/photo',
+  authenticate,
+  checkRole('doctor'),
+  upload.single('profile_photo'),
+  doctorController.uploadProfilePhoto
+);
 
 /**
  * @route   PUT /api/doctors/profile
@@ -30,7 +44,7 @@ router.get('/profile', authenticate, checkRole(['doctor']), doctorController.get
 router.put(
   '/profile',
   authenticate,
-  checkRole(['doctor']),
+  checkRole('doctor'),
   validate(updateDoctorProfileSchema),
   doctorController.updateProfile
 );
@@ -43,7 +57,7 @@ router.put(
 router.put(
   '/license',
   authenticate,
-  checkRole(['doctor']),
+  checkRole('doctor'),
   validate(updateLicenseSchema),
   doctorController.updateLicense
 );
@@ -53,7 +67,7 @@ router.put(
  * @desc    Get consultations
  * @access  Private (Doctor)
  */
-router.get('/consultations', authenticate, checkRole(['doctor']), doctorController.getConsultations);
+router.get('/consultations', authenticate, checkRole('doctor'), doctorController.getConsultations);
 
 /**
  * @route   POST /api/doctors/consultations
@@ -63,7 +77,7 @@ router.get('/consultations', authenticate, checkRole(['doctor']), doctorControll
 router.post(
   '/consultations',
   authenticate,
-  checkRole(['doctor']),
+  checkRole('doctor'),
   validate(createConsultationSchema),
   doctorController.createConsultation
 );
@@ -76,10 +90,17 @@ router.post(
 router.put(
   '/consultations/:consultationId',
   authenticate,
-  checkRole(['doctor']),
+  checkRole('doctor'),
   validate(updateConsultationSchema),
   doctorController.updateConsultation
 );
+
+/**
+ * @route   GET /api/doctors/prescriptions
+ * @desc    Get prescriptions
+ * @access  Private (Doctor)
+ */
+router.get('/prescriptions', authenticate, checkRole('doctor'), doctorController.getPrescriptions);
 
 /**
  * @route   POST /api/doctors/prescriptions
@@ -89,7 +110,7 @@ router.put(
 router.post(
   '/prescriptions',
   authenticate,
-  checkRole(['doctor']),
+  checkRole('doctor'),
   validate(createPrescriptionSchema),
   doctorController.createPrescription
 );
@@ -99,7 +120,7 @@ router.post(
  * @desc    Get statistics
  * @access  Private (Doctor)
  */
-router.get('/statistics', authenticate, checkRole(['doctor']), doctorController.getStatistics);
+router.get('/statistics', authenticate, checkRole('doctor'), doctorController.getStatistics);
 
 /**
  * @route   GET /api/doctors/specializations
@@ -137,7 +158,7 @@ router.get('/top-rated', doctorController.getTopRatedDoctors);
 router.get(
   '/admin/pending-verifications',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   doctorController.getPendingVerifications
 );
 
@@ -149,7 +170,7 @@ router.get(
 router.get(
   '/admin/expiring-licenses',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   doctorController.getExpiringLicenses
 );
 
@@ -161,7 +182,7 @@ router.get(
 router.put(
   '/:doctorId/verification',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   validate(updateVerificationStatusSchema),
   doctorController.updateVerificationStatus
 );
@@ -174,7 +195,7 @@ router.put(
 router.post(
   '/:doctorId/rating',
   authenticate,
-  checkRole(['patient']),
+  checkRole('patient'),
   validate(updateRatingSchema),
   doctorController.updateRating
 );

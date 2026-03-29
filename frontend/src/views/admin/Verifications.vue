@@ -27,8 +27,9 @@ const loadVerifications = async () => {
   loading.value = true;
   try {
     const data = await adminStore.getVerifications({ ...filters.value, page: pagination.value.currentPage, limit: pagination.value.perPage });
-    verifications.value = data.verifications || [];
-    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: data.total || 0, perPage: data.perPage || 10 };
+    verifications.value = Array.isArray(data) ? data : (data.verifications || []);
+    const totalCount = Array.isArray(data) ? data.length : (data.total || 0);
+    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: totalCount, perPage: data.perPage || 10 };
   } catch (error) {
     showError('Failed to load verifications');
   } finally {

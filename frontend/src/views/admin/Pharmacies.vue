@@ -2,7 +2,7 @@
   <div class="page-container">
     <h1 class="text-3xl font-bold text-gray-900 mb-8 animate-fade-in">Pharmacies</h1>
     <BaseCard class="mb-6"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><BaseInput v-model="filters.search" placeholder="Search pharmacies..." @input="handleSearch" /><select v-model="filters.verified" class="input" @change="loadPharmacies"><option value="">All Verification</option><option value="true">Verified</option><option value="false">Unverified</option></select><BaseButton variant="outline" @click="resetFilters" fullWidth>Reset</BaseButton></div></BaseCard>
-    <BaseCard><BaseTable :columns="columns" :data="pharmacies" :loading="loading" emptyText="No pharmacies found"><template #cell-name="{ row }"><div><p class="font-medium">{{ row.name }}</p><p class="text-xs text-gray-500">{{ row.address }}</p></div></template><template #cell-license="{ value }"><span class="font-mono text-sm">{{ value }}</span></template><template #cell-verified="{ value }"><span :class="value ? 'badge badge-success' : 'badge badge-warning'">{{ value ? 'Verified' : 'Pending' }}</span></template><template #cell-joined_date="{ value }">{{ formatDate(value) }}</template><template #actions="{ row }"><button v-if="!row.verified" @click="verifyPharmacy(row.id)" class="text-green-600 hover:text-green-700 text-sm font-medium">Verify</button></template></BaseTable><div v-if="pagination.totalPages > 1" class="mt-6"><BasePagination :current-page="pagination.currentPage" :total-pages="pagination.totalPages" :total="pagination.total" :per-page="pagination.perPage" @page-change="handlePageChange" /></div></BaseCard>
+    <BaseCard><BaseTable :columns="columns" :data="pharmacies" :loading="loading" emptyText="No pharmacies found"><template #cell-name="{ row }"><div><p class="font-medium">{{ row.name }}</p><p class="text-xs text-gray-500">{{ row.address }}</p></div></template><template #cell-license="{ value }"><span class="font-mono text-sm">{{ value }}</span></template><template #cell-verified="{ value }"><span :class="value ? 'badge badge-success' : 'badge badge-warning'">{{ value ? 'Verified' : 'Pending' }}</span></template><template #cell-created_at="{ value }">{{ formatDate(value) }}</template><template #actions="{ row }"><button v-if="!row.verified" @click="verifyPharmacy(row.id)" class="text-green-600 hover:text-green-700 text-sm font-medium">Verify</button></template></BaseTable><div v-if="pagination.totalPages > 1" class="mt-6"><BasePagination :current-page="pagination.currentPage" :total-pages="pagination.totalPages" :total="pagination.total" :per-page="pagination.perPage" @page-change="handlePageChange" /></div></BaseCard>
   </div>
 </template>
 
@@ -19,7 +19,7 @@ const loading = ref(false);
 const pharmacies = ref([]);
 const filters = ref({ search: '', verified: '' });
 const pagination = ref({ currentPage: 1, totalPages: 1, total: 0, perPage: 10 });
-const columns = [{ key: 'name', label: 'Pharmacy' }, { key: 'license', label: 'License' }, { key: 'verified', label: 'Status' }, { key: 'joined_date', label: 'Joined' }];
+const columns = [{ key: 'name', label: 'Pharmacy' }, { key: 'license', label: 'License' }, { key: 'verified', label: 'Status' }, { key: 'created_at', label: 'Joined' }];
 
 onMounted(() => loadPharmacies());
 
@@ -27,10 +27,13 @@ const loadPharmacies = async () => {
   loading.value = true;
   try {
     const data = await adminStore.getPharmacies({ ...filters.value, page: pagination.value.currentPage, limit: pagination.value.perPage });
-    pharmacies.value = data.pharmacies || [];
-    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: data.total || 0, perPage: data.perPage || 10 };
+    pharmacies.value = Array.isArray(data) ? data : (data.pharmacies || []);
+    const totalCount = Array.isArray(data) ? data.length : (data.total || 0);
+    const perPage = data.limit || 10;
+    const totalPages = Math.ceil(totalCount / perPage);
+    pagination.value = { currentPage: data.page || 1, totalPages, total: totalCount, perPage };
   } catch (error) {
-    showError('Failed to load pharmacies');
+    // Error handled by interceptor
   } finally {
     loading.value = false;
   }
@@ -48,5 +51,5 @@ const verifyPharmacy = async (id) => {
     showError('Failed to verify pharmacy');
   }
 };
-const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy');
+const formatDate = (dateString) => dateString ? format(new Date(dateString), 'MMM d, yyyy') : 'N/A';
 </script>

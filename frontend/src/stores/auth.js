@@ -205,6 +205,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Patch the local auth user with updated fields (e.g. after a provider profile update).
+   * No API call — just keeps the sidebar name/photo in sync.
+   */
+  function patchUser(fields = {}) {
+    if (!user.value) return;
+
+    const patchedFields = { ...fields };
+
+    // Automatically split full_name into first/last if provided
+    if (patchedFields.full_name) {
+      const parts = patchedFields.full_name.trim().split(/\s+/);
+      patchedFields.first_name = parts[0];
+      patchedFields.last_name = parts.slice(1).join(' ');
+      delete patchedFields.full_name;
+    }
+
+    user.value = { ...user.value, ...patchedFields };
+  }
+
   async function deactivateAccount() {
     loading.value = true;
     error.value = null;
@@ -216,6 +236,24 @@ export const useAuthStore = defineStore('auth', () => {
       return response;
     } catch (err) {
       error.value = err.response?.data?.message || 'Account deactivation failed';
+      toast.error(error.value);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function deleteAccount() {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const response = await authService.deleteAccount();
+      clearAuth();
+      toast.success('Account deleted successfully');
+      return response;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Account deletion failed';
       toast.error(error.value);
       throw err;
     } finally {
@@ -263,7 +301,9 @@ export const useAuthStore = defineStore('auth', () => {
     resendVerification,
     getCurrentUser,
     updateProfile,
+    patchUser,
     deactivateAccount,
+    deleteAccount,
     setToken,
     setRefreshToken,
     clearAuth

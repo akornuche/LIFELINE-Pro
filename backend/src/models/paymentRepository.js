@@ -33,8 +33,7 @@ export const createPayment = async (paymentData) => {
         patient_id, provider_id, provider_type, amount,
         payment_method, payment_type, payment_reference,
         gateway_response, status, description, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         patientId,
         providerId,
@@ -50,14 +49,22 @@ export const createPayment = async (paymentData) => {
       ]
     );
 
+    // Fetch the inserted record
+    const fetchResult = await database.query(
+      `SELECT * FROM payment_records WHERE payment_reference = $1`,
+      [paymentReference]
+    );
+
+    const payment = fetchResult.rows[0];
+
     logger.info('Payment record created', {
-      paymentId: result.rows[0].id,
+      paymentId: payment?.id,
       patientId,
       amount,
       paymentType,
     });
 
-    return result.rows[0];
+    return payment;
   } catch (error) {
     logger.error('Error creating payment record', {
       error: error.message,
@@ -129,23 +136,28 @@ export const findPaymentByReference = async (paymentReference) => {
  */
 export const updatePaymentStatus = async (paymentId, status, gatewayResponse = null) => {
   try {
-    const result = await database.query(
+    await database.query(
       `UPDATE payment_records
        SET status = $1,
            gateway_response = COALESCE($2, gateway_response),
-           updated_at = NOW()
-       WHERE id = $3
-       RETURNING *`,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
       [status, gatewayResponse ? JSON.stringify(gatewayResponse) : null, paymentId]
     );
 
-    if (result.rows.length === 0) {
+    // Fetch after update (SQLite compatible)
+    const fetchResult = await database.query(
+      `SELECT * FROM payment_records WHERE id = $1`,
+      [paymentId]
+    );
+
+    if (fetchResult.rows.length === 0) {
       throw new NotFoundError('Payment');
     }
 
     logger.info('Payment status updated', { paymentId, status });
 
-    return result.rows[0];
+    return fetchResult.rows[0];
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
     logger.error('Error updating payment status', {
@@ -201,7 +213,7 @@ export const getPatientPayments = async (patientId, options = {}) => {
  * Get provider payments
  */
 export const getProviderPayments = async (providerId, options = {}) => {
-  const { limit = 50, offset = 0, status = 'completed', startDate = null, endDate = null } = options;
+  const { limit = 50, offset = 0, status = null, startDate = null, endDate = null } = options;
 
   try {
     let query = `
@@ -210,8 +222,8 @@ export const getProviderPayments = async (providerId, options = {}) => {
              u.first_name as patient_first_name,
              u.last_name as patient_last_name
       FROM payment_records p
-      JOIN patients pat ON p.patient_id = pat.id
-      JOIN users u ON pat.user_id = u.id
+      LEFT JOIN patients pat ON p.patient_id = pat.id
+      LEFT JOIN users u ON pat.user_id = u.id
       WHERE p.provider_id = $1
     `;
     const params = [providerId];
@@ -240,7 +252,7 @@ export const getProviderPayments = async (providerId, options = {}) => {
 
     const result = await database.query(query, params);
 
-    return result.rows;
+    return result.rows || [];
   } catch (error) {
     logger.error('Error getting provider payments', {
       error: error.message,
@@ -340,7 +352,7 @@ export const updateWebhookStatus = async (webhookId, status, errorMessage = null
       `UPDATE payment_webhooks
        SET processing_status = $1,
            error_message = $2,
-           processed_at = NOW()
+           processed_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
       [status, errorMessage, webhookId]
@@ -480,9 +492,9 @@ export const updateStatementStatus = async (statementId, status, approvedBy = nu
       `UPDATE monthly_statements
        SET status = $1,
            approved_by = COALESCE($2, approved_by),
-           approved_at = CASE WHEN $1 = 'approved' THEN NOW() ELSE approved_at END,
+           approved_at = CASE WHEN $1 = 'approved' THEN CURRENT_TIMESTAMP ELSE approved_at END,
            notes = COALESCE($3, notes),
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $4
        RETURNING *`,
       [status, approvedBy, notes, statementId]
@@ -640,7 +652,7 @@ export const updatePatientPaymentStatus = async (paymentId, status, paidAt = nul
       `UPDATE patient_payments
        SET status = $1,
            paid_at = COALESCE($2, paid_at),
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
       [status, paidAt, paymentId]
@@ -678,7 +690,7 @@ export const getOverduePayments = async (options = {}) => {
        JOIN patients pat ON pp.patient_id = pat.id
        JOIN users u ON pat.user_id = u.id
        WHERE pp.status = 'pending'
-         AND pp.due_date < NOW()
+         AND pp.due_date < CURRENT_TIMESTAMP
        ORDER BY pp.due_date ASC
        LIMIT $1 OFFSET $2`,
       [limit, offset]

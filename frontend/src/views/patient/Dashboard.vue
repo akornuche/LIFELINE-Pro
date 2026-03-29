@@ -16,6 +16,21 @@
 
     <!-- Content -->
     <div v-else class="animate-fade-in">
+      <!-- Subscription Warning Reminder -->
+      <div v-if="patientStore.hasActiveSubscription && patientStore.daysRemaining <= 30" class="mb-8 p-4 bg-orange-50 border-l-4 border-orange-500 rounded-lg shadow-sm animate-pulse">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <ClockIcon class="h-6 w-6 text-orange-600 mr-3" />
+            <div>
+              <p class="text-orange-800 font-bold">Subscription Expiring Soon!</p>
+              <p class="text-orange-700 text-sm">Your {{ patientStore.packageType }} plan expires in <span class="font-black">{{ patientStore.daysRemaining }} days</span>. Renew now to avoid service interruption.</p>
+            </div>
+          </div>
+          <RouterLink to="/patient/subscription" class="btn btn-sm bg-orange-600 hover:bg-orange-700 text-white border-none">
+            Renew Now
+          </RouterLink>
+        </div>
+      </div>
     <!-- Quick Stats -->
     <div class="dashboard-grid mb-8">
       <div class="stat-card">
@@ -168,7 +183,8 @@ import {
   CreditCardIcon,
   UsersIcon,
   CheckCircleIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ClockIcon
 } from '@heroicons/vue/24/outline';
 import { format } from 'date-fns';
 
@@ -197,8 +213,22 @@ onMounted(async () => {
 
 const loadRecentActivity = async () => {
   try {
-    const response = await patientStore.fetchMedicalHistory({ limit: 5 });
-    medicalHistory.value = response.data;
+    await patientStore.fetchMedicalHistory({ limit: 5 });
+    // The store already assigns to its own medicalHistory state
+    // Use the store's data or build from the various history arrays
+    const history = patientStore.medicalHistory;
+    if (Array.isArray(history)) {
+      medicalHistory.value = history;
+    } else if (history && typeof history === 'object') {
+      // Flatten the different history types into a single array
+      medicalHistory.value = [
+        ...(history.consultations || []).map(c => ({ ...c, type: 'Consultation' })),
+        ...(history.prescriptions || []).map(p => ({ ...p, type: 'Prescription' })),
+        ...(history.surgeries || []).map(s => ({ ...s, type: 'Surgery' })),
+        ...(history.labTests || []).map(l => ({ ...l, type: 'Lab Test' }))
+      ].sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
+       .slice(0, 5);
+    }
   } catch (error) {
     console.error('Failed to load recent activity:', error);
   }

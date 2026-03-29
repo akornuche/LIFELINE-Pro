@@ -21,12 +21,33 @@
         <div class="card">
           <div class="card-body text-center">
             <div class="mb-6">
-              <div class="h-32 w-32 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                <span class="text-primary-600 font-semibold text-4xl">
-                  {{ userInitials }}
-                </span>
+              <div class="relative inline-block">
+                <div class="h-32 w-32 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                  <img 
+                    v-if="profilePictureUrl" 
+                    :src="profilePictureUrl" 
+                    alt="Profile" 
+                    class="h-full w-full object-cover"
+                  />
+                  <span v-else class="text-primary-600 font-semibold text-4xl">
+                    {{ userInitials }}
+                  </span>
+                </div>
               </div>
-              <button class="btn btn-secondary btn-sm">Upload Photo</button>
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                @change="handleFileSelect"
+                class="hidden"
+              />
+              <button 
+                type="button"
+                @click="$refs.fileInput.click()"
+                class="btn btn-secondary btn-sm"
+              >
+                Upload Photo
+              </button>
             </div>
             <h3 class="text-xl font-semibold text-gray-900 mb-1">
               {{ form.first_name }} {{ form.last_name }}
@@ -133,17 +154,35 @@
             <form @submit.prevent="handlePasswordChange" class="space-y-6">
               <div class="form-group">
                 <label class="form-label">Current Password</label>
-                <input v-model="passwordForm.currentPassword" type="password" class="input" required />
+                <div class="relative">
+                  <input v-model="passwordForm.currentPassword" :type="showCurrentPassword ? 'text' : 'password'" class="input pr-10" required />
+                  <button type="button" @click="showCurrentPassword = !showCurrentPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+                    <EyeIcon v-if="!showCurrentPassword" class="h-5 w-5" />
+                    <EyeSlashIcon v-else class="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               <div class="form-group">
                 <label class="form-label">New Password</label>
-                <input v-model="passwordForm.newPassword" type="password" class="input" required />
+                <div class="relative">
+                  <input v-model="passwordForm.newPassword" :type="showNewPassword ? 'text' : 'password'" class="input pr-10" required />
+                  <button type="button" @click="showNewPassword = !showNewPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+                    <EyeIcon v-if="!showNewPassword" class="h-5 w-5" />
+                    <EyeSlashIcon v-else class="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Confirm New Password</label>
-                <input v-model="passwordForm.confirmPassword" type="password" class="input" required />
+                <div class="relative">
+                  <input v-model="passwordForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="input pr-10" required />
+                  <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+                    <EyeIcon v-if="!showConfirmPassword" class="h-5 w-5" />
+                    <EyeSlashIcon v-else class="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               <div class="flex justify-end">
@@ -168,6 +207,7 @@ import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import SkeletonLoader from '@/components/SkeletonLoader.vue';
 import { format } from 'date-fns';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
 const patientStore = usePatientStore();
@@ -177,6 +217,8 @@ const { confirm } = useConfirm();
 const loading = ref(true);
 const saving = ref(false);
 const changingPassword = ref(false);
+const fileInput = ref(null);
+const profilePictureUrl = ref(null);
 
 const form = ref({
   first_name: '',
@@ -193,6 +235,10 @@ const passwordForm = ref({
   newPassword: '',
   confirmPassword: ''
 });
+
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const userInitials = computed(() => {
   return `${form.value.first_name?.[0] || ''}${form.value.last_name?.[0] || ''}`.toUpperCase();
@@ -222,6 +268,11 @@ onMounted(async () => {
       gender: authStore.user.gender || '',
       address: authStore.user.address || ''
     };
+    
+    // Set profile picture if available
+    if (authStore.user.profile_picture) {
+      profilePictureUrl.value = authStore.user.profile_picture;
+    }
   } catch (error) {
     console.error('Failed to load profile:', error);
     showError('Failed to load profile data. Please refresh the page.');
@@ -255,6 +306,44 @@ const resetForm = () => {
   };
 };
 
+const handleFileSelect = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showError('Please select an image file');
+    return;
+  }
+
+  // Validate file size (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showError('Image size must be less than 2MB');
+    return;
+  }
+
+  try {
+    // Convert to base64 for preview and storage
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Image = e.target.result;
+      profilePictureUrl.value = base64Image;
+
+      // Update profile with new picture
+      try {
+        await authStore.updateProfile({ profile_picture: base64Image });
+      } catch (error) {
+        console.error('Failed to upload profile picture:', error);
+        profilePictureUrl.value = authStore.user.profile_picture || null;
+      }
+    };
+    reader.readAsDataURL(file);
+  } catch (error) {
+    console.error('File read error:', error);
+    showError('Failed to read image file');
+  }
+};
+
 const handlePasswordChange = async () => {
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
     showError('Passwords do not match');
@@ -272,11 +361,11 @@ const handlePasswordChange = async () => {
 
   changingPassword.value = true;
   try {
-    await authStore.changePassword(
-      passwordForm.value.currentPassword,
-      passwordForm.value.newPassword
-    );
-    success('Password changed successfully!');
+    await authStore.changePassword({
+      currentPassword: passwordForm.value.currentPassword,
+      newPassword: passwordForm.value.newPassword,
+      confirmPassword: passwordForm.value.confirmPassword
+    });
     passwordForm.value = {
       currentPassword: '',
       newPassword: '',
@@ -284,7 +373,6 @@ const handlePasswordChange = async () => {
     };
   } catch (error) {
     console.error('Failed to change password:', error);
-    showError('Failed to change password. Please check your current password.');
   } finally {
     changingPassword.value = false;
   }

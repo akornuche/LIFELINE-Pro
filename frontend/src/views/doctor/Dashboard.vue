@@ -143,7 +143,7 @@ import { useRouter } from 'vue-router';
 import { useDoctorStore } from '@/stores/doctor';
 import { BaseCard, LoadingSpinner } from '@/components';
 import { useToast } from '@/composables/useToast';
-import SkeletonLoader from '@/components/ui/SkeletonLoader.vue';
+import SkeletonLoader from '@/components/SkeletonLoader.vue';
 import {
   CalendarIcon,
   UserGroupIcon,
@@ -187,7 +187,15 @@ onMounted(async () => {
 const loadStats = async () => {
   try {
     const data = await doctorStore.getStatistics();
-    stats.value = data;
+    if (data) {
+      stats.value = {
+        ...stats.value,
+        ...data,
+        // Normalize revenue field names from backend
+        monthlyRevenue: data.monthlyEarnings ?? data.monthlyRevenue ?? data.totalEarnings ?? 0,
+        totalRevenue: data.totalEarnings ?? data.totalRevenue ?? 0,
+      };
+    }
   } catch (error) {
     console.error('Error loading stats:', error);
     showError('Failed to load statistics');
@@ -218,7 +226,7 @@ const loadRecentActivity = async () => {
 };
 
 const formatMoney = (amount) => {
-  return new Intl.NumberFormat('en-NG').format(amount);
+  return new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 };
 
 const formatTime = (dateString) => {

@@ -115,4 +115,17 @@ router.post(
   authController.deactivateAccount
 );
 
+/**
+ * @route   DELETE /api/auth/account
+ * @desc    Delete account permanently
+ * @access  Private
+ */
+router.delete(
+  '/account',
+  authenticate,
+  validate(deactivateAccountSchema), // Reusing schema since payload is similar (optional password)
+  authController.deleteAccount
+);
+
 export default router;
+

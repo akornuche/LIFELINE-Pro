@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import db from './connection.js';
 import logger from '../utils/logger.js';
 import { generateLifelineId } from '../utils/idGenerator.js';
@@ -31,10 +32,7 @@ class AdminSeeder {
    * Create admin user
    */
   async createAdmin() {
-    const client = await db.pool.connect();
     try {
-      await client.query('BEGIN');
-
       // Generate unique LifeLine ID
       const lifeLineId = generateLifelineId('admin');
 
@@ -44,22 +42,24 @@ class AdminSeeder {
       // Insert admin user
       const userQuery = `
         INSERT INTO users (
+          id,
           lifeline_id,
           email,
           password_hash,
           first_name,
           last_name,
-          phone_number,
+          phone,
           role,
           status,
           email_verified,
           created_at,
           updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-        RETURNING id, lifeline_id, email, first_name, last_name, role
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `;
 
+      const userId = crypto.randomUUID?.() || Math.random().toString(36).substring(2);
       const userValues = [
+        userId,
         lifeLineId,
         this.adminEmail,
         hashedPassword,
@@ -68,21 +68,18 @@ class AdminSeeder {
         '+2348000000000', // Placeholder phone
         'admin',
         'active',
-        true, // Email already verified
+        1, // Email already verified (SQLite uses 1 for true)
       ];
 
-      const result = await client.query(userQuery, userValues);
-      const admin = result.rows[0];
-
-      await client.query('COMMIT');
+      await db.query(userQuery, userValues);
 
       logger.info('=================================');
       logger.info('ADMIN USER CREATED SUCCESSFULLY');
       logger.info('=================================');
-      logger.info(`LifeLine ID: ${admin.lifeline_id}`);
-      logger.info(`Email: ${admin.email}`);
-      logger.info(`Name: ${admin.first_name} ${admin.last_name}`);
-      logger.info(`Role: ${admin.role}`);
+      logger.info(`LifeLine ID: ${lifeLineId}`);
+      logger.info(`Email: ${this.adminEmail}`);
+      logger.info(`Name: ${this.adminFirstName} ${this.adminLastName}`);
+      logger.info(`Role: admin`);
       logger.info('');
       logger.info('Login Credentials:');
       logger.info(`Email: ${this.adminEmail}`);
@@ -91,12 +88,10 @@ class AdminSeeder {
       logger.info('⚠️  IMPORTANT: Change the admin password immediately after first login!');
       logger.info('=================================');
 
-      return admin;
+      return { id: userId, email: this.adminEmail, role: 'admin' };
     } catch (error) {
-      await client.query('ROLLBACK');
+      logger.error('Error creating admin:', error);
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -119,14 +114,11 @@ class AdminSeeder {
       },
     ];
 
-    const client = await db.pool.connect();
     try {
-      await client.query('BEGIN');
-
       for (const admin of additionalAdmins) {
         // Check if already exists
         const checkQuery = 'SELECT id FROM users WHERE email = $1';
-        const checkResult = await client.query(checkQuery, [admin.email]);
+        const checkResult = await db.query(checkQuery, [admin.email]);
 
         if (checkResult.rows.length > 0) {
           logger.info(`Admin ${admin.email} already exists - skipping`);
@@ -138,22 +130,24 @@ class AdminSeeder {
 
         const userQuery = `
           INSERT INTO users (
+            id,
             lifeline_id,
             email,
             password_hash,
             first_name,
             last_name,
-            phone_number,
+            phone,
             role,
             status,
             email_verified,
             created_at,
             updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-          RETURNING email
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `;
 
+        const userId = crypto.randomUUID?.() || Math.random().toString(36).substring(2);
         const userValues = [
+          userId,
           lifeLineId,
           admin.email,
           hashedPassword,
@@ -162,20 +156,17 @@ class AdminSeeder {
           admin.phone,
           'admin',
           'active',
-          true,
+          1,
         ];
 
-        await client.query(userQuery, userValues);
+        await db.query(userQuery, userValues);
         logger.info(`✓ Created admin: ${admin.email}`);
       }
 
-      await client.query('COMMIT');
       logger.info('Additional admin users created successfully');
     } catch (error) {
-      await client.query('ROLLBACK');
+      logger.error('Error creating additional admins:', error);
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -184,6 +175,9 @@ class AdminSeeder {
    */
   async seed() {
     try {
+      // Connect to database first
+      await db.connect();
+
       logger.info('=================================');
       logger.info('ADMIN SEEDING STARTING');
       logger.info('=================================');
@@ -219,12 +213,14 @@ class AdminSeeder {
 }
 
 // Run seeding if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`;
+if (isMainModule || process.argv[1]?.includes('seedAdmin.js')) {
+  logger.info('=== STARTING ADMIN SEEDING ===');
   const seeder = new AdminSeeder();
   seeder
     .seed()
     .then(() => {
-      logger.info('Admin setup completed');
+      logger.info('=== ADMIN SETUP COMPLETED ===');
       process.exit(0);
     })
     .catch((error) => {

@@ -26,10 +26,13 @@ const loadHospitals = async () => {
   loading.value = true;
   try {
     const data = await adminStore.getHospitals({ ...filters.value, page: pagination.value.currentPage, limit: pagination.value.perPage });
-    hospitals.value = data.hospitals || [];
-    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: data.total || 0, perPage: data.perPage || 10 };
+    hospitals.value = Array.isArray(data) ? data : (data.hospitals || []);
+    const totalCount = Array.isArray(data) ? data.length : (data.total || 0);
+    const perPage = data.limit || 10;
+    const totalPages = Math.ceil(totalCount / perPage);
+    pagination.value = { currentPage: data.page || 1, totalPages, total: totalCount, perPage };
   } catch (error) {
-    showError('Failed to load hospitals');
+    // Error handled by interceptor
   } finally {
     loading.value = false;
   }

@@ -58,6 +58,36 @@ export const authenticate = async (req, res, next) => {
       return responseFormatter.forbidden(res, 'Account not verified. Please verify your account.');
     }
 
+    // Subscription enforcement for Patients
+    let hasActiveSub = true;
+    if (user.role === 'patient') {
+      const subResult = await database.query(
+        "SELECT subscription_status, subscription_end_date FROM patients WHERE user_id = $1",
+        [user.id]
+      );
+      
+      const sub = subResult.rows[0];
+      hasActiveSub = sub && sub.subscription_status === 'active' && 
+                    (!sub.subscription_end_date || new Date(sub.subscription_end_date) > new Date());
+      
+      // Allow access to subscription management and profile/me endpoints even if locked
+      const allowedPaths = [
+        '/api/patients/subscriptions',
+        '/api/auth/me',
+        '/api/auth/profile',
+        '/api/auth/logout'
+      ];
+      
+      const isAllowed = allowedPaths.some(path => req.originalUrl.startsWith(path));
+      
+      if (!hasActiveSub && !isAllowed) {
+        return responseFormatter.forbidden(res, 'Active subscription required. Please subscribe to continue.', {
+          code: 'SUBSCRIPTION_REQUIRED',
+          redirectTo: '/patient/subscription'
+        });
+      }
+    }
+
     // Attach user to request
     req.user = {
       userId: user.id,
@@ -68,6 +98,7 @@ export const authenticate = async (req, res, next) => {
       role: user.role,
       isVerified: user.email_verified,
       isActive: user.status === 'active',
+      hasActiveSubscription: hasActiveSub
     };
 
     // Attach token to request (for blacklisting on logout)

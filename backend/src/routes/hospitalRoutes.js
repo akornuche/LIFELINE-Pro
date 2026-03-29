@@ -21,7 +21,7 @@ const router = express.Router();
  * @desc    Get hospital profile
  * @access  Private (Hospital)
  */
-router.get('/profile', authenticate, checkRole(['hospital']), hospitalController.getProfile);
+router.get('/profile', authenticate, checkRole('hospital'), hospitalController.getProfile);
 
 /**
  * @route   PUT /api/hospitals/profile
@@ -31,7 +31,7 @@ router.get('/profile', authenticate, checkRole(['hospital']), hospitalController
 router.put(
   '/profile',
   authenticate,
-  checkRole(['hospital']),
+  checkRole('hospital'),
   validate(updateHospitalProfileSchema),
   hospitalController.updateProfile
 );
@@ -44,7 +44,7 @@ router.put(
 router.put(
   '/beds',
   authenticate,
-  checkRole(['hospital']),
+  checkRole('hospital'),
   validate(updateBedAvailabilitySchema),
   hospitalController.updateBedAvailability
 );
@@ -57,7 +57,7 @@ router.put(
 router.put(
   '/license',
   authenticate,
-  checkRole(['hospital']),
+  checkRole('hospital'),
   validate(updateLicenseSchema),
   hospitalController.updateLicense
 );
@@ -67,7 +67,7 @@ router.put(
  * @desc    Get surgeries
  * @access  Private (Hospital)
  */
-router.get('/surgeries', authenticate, checkRole(['hospital']), hospitalController.getSurgeries);
+router.get('/surgeries', authenticate, checkRole('hospital'), hospitalController.getSurgeries);
 
 /**
  * @route   POST /api/hospitals/surgeries
@@ -77,7 +77,7 @@ router.get('/surgeries', authenticate, checkRole(['hospital']), hospitalControll
 router.post(
   '/surgeries',
   authenticate,
-  checkRole(['hospital']),
+  checkRole('hospital'),
   validate(scheduleSurgerySchema),
   hospitalController.scheduleSurgery
 );
@@ -90,7 +90,7 @@ router.post(
 router.put(
   '/surgeries/:surgeryId',
   authenticate,
-  checkRole(['hospital']),
+  checkRole('hospital'),
   validate(updateSurgerySchema),
   hospitalController.updateSurgery
 );
@@ -103,7 +103,7 @@ router.put(
 router.post(
   '/surgeries/:surgeryId/complete',
   authenticate,
-  checkRole(['hospital']),
+  checkRole('hospital'),
   validate(completeSurgerySchema),
   hospitalController.completeSurgery
 );
@@ -113,7 +113,7 @@ router.post(
  * @desc    Get statistics
  * @access  Private (Hospital)
  */
-router.get('/statistics', authenticate, checkRole(['hospital']), hospitalController.getStatistics);
+router.get('/statistics', authenticate, checkRole('hospital'), hospitalController.getStatistics);
 
 /**
  * @route   GET /api/hospitals/search
@@ -158,7 +158,7 @@ router.get('/top-rated', hospitalController.getTopRatedHospitals);
 router.get(
   '/admin/pending-verifications',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   hospitalController.getPendingVerifications
 );
 
@@ -170,7 +170,7 @@ router.get(
 router.get(
   '/admin/expiring-licenses',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   hospitalController.getExpiringLicenses
 );
 
@@ -182,7 +182,7 @@ router.get(
 router.put(
   '/:hospitalId/verification',
   authenticate,
-  checkRole(['admin']),
+  checkRole('admin'),
   validate(updateVerificationStatusSchema),
   hospitalController.updateVerificationStatus
 );
@@ -195,7 +195,7 @@ router.put(
 router.post(
   '/:hospitalId/rating',
   authenticate,
-  checkRole(['patient']),
+  checkRole('patient'),
   validate(updateRatingSchema),
   hospitalController.updateRating
 );

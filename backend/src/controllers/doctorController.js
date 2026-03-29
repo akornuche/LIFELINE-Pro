@@ -23,6 +23,26 @@ export const getProfile = async (req, res, next) => {
 };
 
 /**
+ * Upload profile photo
+ * POST /api/doctors/profile/photo
+ */
+export const uploadProfilePhoto = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const photoUrl = await doctorService.uploadProfilePhoto(userId, req.file);
+
+    return successResponse(res, { profile_photo: photoUrl }, 'Profile photo uploaded successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Update doctor profile
  * PUT /api/doctors/profile
  */
@@ -104,6 +124,27 @@ export const updateConsultation = async (req, res, next) => {
     const consultation = await doctorService.updateConsultation(userId, consultationId, req.body);
 
     return successResponse(res, consultation, 'Consultation updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get prescriptions
+ * GET /api/doctors/prescriptions
+ */
+export const getPrescriptions = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { limit, offset, status } = req.query;
+
+    const prescriptions = await doctorService.getPrescriptions(userId, {
+      limit: parseInt(limit) || 50,
+      offset: parseInt(offset) || 0,
+      status,
+    });
+
+    return successResponse(res, prescriptions, 'Prescriptions retrieved successfully');
   } catch (error) {
     next(error);
   }

@@ -106,13 +106,21 @@ export const resetPassword = async (req, res, next) => {
  */
 export const changePassword = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
-    const { oldPassword, newPassword } = req.body;
+    const userId = req.user?.userId || req.user?.id;
+    logger.info('[DEBUG] changing password for user:', { userId });
+    logger.info('[DEBUG] request body keys:', { keys: Object.keys(req.body) });
+    const { currentPassword, newPassword } = req.body;
 
-    const result = await authService.changePassword(userId, oldPassword, newPassword);
+    if (!userId) {
+       logger.error('[ERROR] No userId in req.user');
+       return next(new Error('Authentication failed - no user identity found'));
+    }
+
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
 
     return successResponse(res, result, 'Password changed successfully');
   } catch (error) {
+    logger.error('[ERROR] changePassword controller error:', { error: error.message, stack: error.stack });
     next(error);
   }
 };
@@ -198,6 +206,23 @@ export const deactivateAccount = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete account
+ * DELETE /api/auth/account
+ */
+export const deleteAccount = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { password } = req.body;
+
+    const result = await authService.deleteAccount(userId, password);
+
+    return successResponse(res, result, 'Account deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   register,
   login,
@@ -211,4 +236,5 @@ export default {
   getCurrentUser,
   updateProfile,
   deactivateAccount,
+  deleteAccount,
 };

@@ -1,5 +1,8 @@
 import * as userRepository from '../models/userRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import * as doctorRepository from '../models/doctorRepository.js';
+import * as pharmacyRepository from '../models/pharmacyRepository.js';
+import * as hospitalRepository from '../models/hospitalRepository.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, blacklistToken } from '../utils/jwt.js';
 import { generateLifelineId } from '../utils/idGenerator.js';
@@ -15,7 +18,18 @@ import { BusinessLogicError, UnauthorizedError, NotFoundError } from '../middlew
  * Register new user
  */
 export const register = async (userData) => {
-  const { email, password, firstName, lastName, phone, userType = 'patient', dateOfBirth = null } = userData;
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    phone,
+    userType = 'patient',
+    dateOfBirth = null,
+    gender = null,
+    address = null,
+    emergencyContact = null,
+  } = userData;
 
   try {
     // Check if email already exists
@@ -25,7 +39,7 @@ export const register = async (userData) => {
     }
 
     // Generate LifeLine ID
-    const lifelineId = generateLifelineId(userType);
+    const lifelineId = await generateLifelineId(userType);
     logger.info('Generated lifelineId', { lifelineId, userType });
 
     // Check if LifeLine ID exists (extremely rare collision)
@@ -50,10 +64,41 @@ export const register = async (userData) => {
       dateOfBirth,
     });
 
-    // If patient role, create patient record
+    // Create role-specific records
     if (userType === 'patient') {
-      await patientRepository.createPatient({
-        userId: user.id,
+      await patientRepository.createPatient(user.id, {
+        firstName,
+        lastName,
+        dateOfBirth,
+        gender,
+        address,
+        emergencyContactName: emergencyContact?.name,
+        emergencyContactPhone: emergencyContact?.phone,
+        emergencyContactRelationship: emergencyContact?.relationship,
+      });
+    } else if (userType === 'doctor') {
+      await doctorRepository.createDoctor(user.id, {
+        specialization: 'General Practice', // Default value
+        licenseNumber: `PENDING-${lifelineId}`,
+        licenseExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        yearsOfExperience: 0,
+        consultationFee: 0,
+      });
+    } else if (userType === 'pharmacy') {
+      await pharmacyRepository.createPharmacy(user.id, {
+        pharmacyName: `${firstName} ${lastName} Pharmacy`,
+        address: address || 'Pending Address',
+        licenseNumber: `PHARM-PENDING-${lifelineId}`,
+        licenseExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      });
+    } else if (userType === 'hospital') {
+      await hospitalRepository.createHospital(user.id, {
+        hospitalName: `${firstName} ${lastName} Hospital`,
+        address: address || 'Pending Address',
+        hospitalType: 'General',
+        licenseNumber: `HOSP-PENDING-${lifelineId}`,
+        licenseExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        numberOfBeds: 0,
       });
     }
 
@@ -312,25 +357,33 @@ export const resetPassword = async (resetToken, newPassword) => {
  */
 export const changePassword = async (userId, oldPassword, newPassword) => {
   try {
+    logger.info('[DEBUG-SERVICE] starting changePassword for userId:', { userId });
     // Get user
     const user = await userRepository.findById(userId);
 
     if (!user) {
+      logger.error('[ERROR-SERVICE] User not found during pwd change:', { userId });
       throw new NotFoundError('User');
     }
 
+    logger.info('[DEBUG-SERVICE] Found user. Verifying password...');
     // Verify old password
     const isPasswordValid = await verifyPassword(oldPassword, user.password_hash);
 
     if (!isPasswordValid) {
+      logger.warn('[WARN-SERVICE] Current password mismatch for user:', { userId });
       throw new UnauthorizedError('Current password is incorrect');
     }
 
+    logger.info('[DEBUG-SERVICE] Password valid. Hashing new password...');
     // Hash new password
     const hashedPassword = await hashPassword(newPassword);
 
+    logger.info('[DEBUG-SERVICE] Updating password in DB...');
     // Update password
     await userRepository.updatePassword(userId, hashedPassword);
+
+    logger.info('[DEBUG-SERVICE] Database update complete.');
 
     logger.info('Password changed successfully', {
       userId,
@@ -340,10 +393,7 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
       message: 'Password changed successfully',
     };
   } catch (error) {
-    logger.error('Password change error', {
-      error: error.message,
-      userId,
-    });
+    logger.error('[ERROR-SERVICE] error in changePassword service:', { error: error.message, stack: error.stack, userId });
     throw error;
   }
 };
@@ -469,16 +519,25 @@ export const getCurrentUser = async (userId) => {
  * Update user profile
  */
 export const updateProfile = async (userId, updateData) => {
-  const { firstName, lastName, phone, dateOfBirth, address } = updateData;
+  const { 
+    firstName, first_name, 
+    lastName, last_name, 
+    phone, phone_number, 
+    dateOfBirth, date_of_birth, 
+    address, 
+    profile_picture 
+  } = updateData;
 
   try {
-    const updatedUser = await userRepository.updateProfile(userId, {
-      firstName,
-      lastName,
-      phone,
-      dateOfBirth,
-      address,
-    });
+    const dbUpdates = {};
+    if (firstName !== undefined || first_name !== undefined) dbUpdates.first_name = firstName || first_name;
+    if (lastName !== undefined || last_name !== undefined) dbUpdates.last_name = lastName || last_name;
+    if (phone !== undefined || phone_number !== undefined) dbUpdates.phone = phone || phone_number;
+    if (dateOfBirth !== undefined || date_of_birth !== undefined) dbUpdates.date_of_birth = dateOfBirth || date_of_birth;
+    if (address !== undefined) dbUpdates.address = address;
+    if (profile_picture !== undefined) dbUpdates.profile_picture = profile_picture;
+
+    const updatedUser = await userRepository.updateProfile(userId, dbUpdates);
 
     logger.info('User profile updated', {
       userId,
@@ -509,11 +568,13 @@ export const deactivateAccount = async (userId, password) => {
       throw new NotFoundError('User');
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(password, user.password_hash);
+    // Verify password if provided
+    if (password) {
+      const isPasswordValid = await verifyPassword(password, user.password_hash);
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedError('Password is incorrect');
+      if (!isPasswordValid) {
+        throw new UnauthorizedError('Password is incorrect');
+      }
     }
 
     // Deactivate account
@@ -535,6 +596,46 @@ export const deactivateAccount = async (userId, password) => {
   }
 };
 
+/**
+ * Delete account
+ */
+export const deleteAccount = async (userId, password) => {
+  try {
+    // Get user
+    const user = await userRepository.findById(userId);
+
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    // Verify password if provided
+    if (password) {
+      const isPasswordValid = await verifyPassword(password, user.password_hash);
+
+      if (!isPasswordValid) {
+        throw new UnauthorizedError('Password is incorrect');
+      }
+    }
+
+    // Delete account
+    await userRepository.deleteAccount(userId);
+
+    logger.info('Account deleted', {
+      userId,
+    });
+
+    return {
+      message: 'Account deleted successfully',
+    };
+  } catch (error) {
+    logger.error('Account deletion error', {
+      error: error.message,
+      userId,
+    });
+    throw error;
+  }
+};
+
 export default {
   register,
   login,
@@ -548,4 +649,5 @@ export default {
   getCurrentUser,
   updateProfile,
   deactivateAccount,
+  deleteAccount,
 };

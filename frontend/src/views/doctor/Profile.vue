@@ -217,6 +217,11 @@ const loadProfile = async () => {
   try {
     profile.value = await doctorStore.getProfile();
     form.value = { ...profile.value };
+    if (Array.isArray(form.value.qualifications)) {
+      form.value.qualifications = form.value.qualifications.join(', ');
+    } else if (!form.value.qualifications) {
+      form.value.qualifications = '';
+    }
   } catch (error) {
     showError('Failed to load profile');
   }
@@ -225,7 +230,11 @@ const loadProfile = async () => {
 const updateProfile = async () => {
   saving.value = true;
   try {
-    await doctorStore.updateProfile(form.value);
+    const dataToSave = { ...form.value };
+    if (typeof dataToSave.qualifications === 'string') {
+      dataToSave.qualifications = dataToSave.qualifications.split(',').map(q => q.trim()).filter(Boolean);
+    }
+    await doctorStore.updateProfile(dataToSave);
     success('Profile updated successfully');
     await loadProfile();
   } catch (error) {
@@ -243,7 +252,11 @@ const changePassword = async () => {
   
   changingPassword.value = true;
   try {
-    await authStore.changePassword(passwordForm.value);
+    await authStore.changePassword({
+      currentPassword: passwordForm.value.current_password,
+      newPassword: passwordForm.value.new_password,
+      confirmPassword: passwordForm.value.confirm_password
+    });
     success('Password changed successfully');
     passwordForm.value = {
       current_password: '',

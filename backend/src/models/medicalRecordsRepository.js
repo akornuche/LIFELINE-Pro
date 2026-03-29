@@ -129,7 +129,7 @@ export const updateConsultation = async (consultationId, updates) => {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(consultationId);
 
   try {
@@ -346,7 +346,7 @@ export const updatePrescriptionStatus = async (prescriptionId, status, pharmacyI
        SET status = $1, 
            pharmacy_id = COALESCE($2, pharmacy_id),
            dispensed_at = COALESCE($3, dispensed_at),
-           updated_at = NOW()
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $4
        RETURNING *`,
       [status, pharmacyId, dispensedAt, prescriptionId]
@@ -440,6 +440,46 @@ export const getPharmacyPrescriptions = async (pharmacyId, options = {}) => {
 };
 
 // ============= SURGERIES =============
+
+/**
+ * Get doctor prescriptions
+ */
+export const getDoctorPrescriptions = async (doctorId, options = {}) => {
+  const { limit = 50, offset = 0, status = null } = options;
+
+  try {
+    let query = `
+      SELECT p.*, 
+             u1.first_name as patient_first_name, u1.last_name as patient_last_name,
+             pat.lifeline_id as patient_lifeline_id
+      FROM prescriptions p
+      JOIN patients pat ON p.patient_id = pat.id
+      JOIN users u1 ON pat.user_id = u1.id
+      WHERE p.doctor_id = $1
+    `;
+    const params = [doctorId];
+    let paramCount = 1;
+
+    if (status) {
+      paramCount++;
+      query += ` AND p.status = $${paramCount}`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY p.created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    params.push(limit, offset);
+
+    const result = await database.query(query, params);
+
+    return result.rows;
+  } catch (error) {
+    logger.error('Error getting doctor prescriptions', {
+      error: error.message,
+      doctorId,
+    });
+    throw error;
+  }
+};
 
 /**
  * Create surgery
@@ -563,7 +603,7 @@ export const updateSurgery = async (surgeryId, updates) => {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(surgeryId);
 
   try {
@@ -790,7 +830,7 @@ export const updateLabTest = async (labTestId, updates) => {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(labTestId);
 
   try {

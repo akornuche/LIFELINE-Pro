@@ -3,7 +3,6 @@
     <ErrorBoundary>
       <RouterView />
     </ErrorBoundary>
-    <ToastContainer />
     <ConfirmDialog />
     <PwaInstallPrompt />
   </div>
@@ -14,7 +13,6 @@ import { onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import ErrorBoundary from '@/components/ErrorBoundary.vue';
-import ToastContainer from '@/components/ToastContainer.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PwaInstallPrompt from '@/components/PwaInstallPrompt.vue';
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { doctorService } from '@/services';
+import { useAuthStore } from '@/stores/auth';
 
 export const useDoctorStore = defineStore('doctor', {
   state: () => ({
@@ -26,7 +27,7 @@ export const useDoctorStore = defineStore('doctor', {
       this.error = null;
       try {
         const response = await doctorService.getProfile();
-        this.profile = response.data.doctor;
+        this.profile = response.data || response;
         return this.profile;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load profile';
@@ -41,7 +42,13 @@ export const useDoctorStore = defineStore('doctor', {
       this.error = null;
       try {
         const response = await doctorService.updateProfile(profileData);
-        this.profile = response.data.doctor;
+        this.profile = response.data;
+        // Sync name fields to the auth store so sidebar updates immediately
+        const authStore = useAuthStore();
+        authStore.patchUser({
+          full_name: profileData.full_name || profileData.fullName || (profileData.firstName && `${profileData.firstName} ${profileData.lastName || ''}`),
+          phone: profileData.phone || this.profile?.phone,
+        });
         return this.profile;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to update profile';
@@ -58,7 +65,11 @@ export const useDoctorStore = defineStore('doctor', {
         const formData = new FormData();
         formData.append('profile_photo', file);
         const response = await doctorService.uploadProfilePhoto(formData);
-        this.profile.profile_photo = response.data.profile_photo;
+        const photoUrl = response.data?.profile_photo || response.data?.photo_url || response.data;
+        if (this.profile) this.profile.profile_photo = photoUrl;
+        // Sync photo to sidebar
+        const authStore = useAuthStore();
+        authStore.patchUser({ profile_picture: photoUrl });
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to upload photo';
@@ -74,7 +85,7 @@ export const useDoctorStore = defineStore('doctor', {
       this.error = null;
       try {
         const response = await doctorService.getConsultations(params);
-        this.consultations = response.data.consultations;
+        this.consultations = response.data?.consultations || response.data || [];
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load consultations';
@@ -160,7 +171,7 @@ export const useDoctorStore = defineStore('doctor', {
       this.error = null;
       try {
         const response = await doctorService.getPrescriptions(params);
-        this.prescriptions = response.data.prescriptions;
+        this.prescriptions = response.data?.prescriptions || response.data || [];
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load prescriptions';
@@ -211,7 +222,7 @@ export const useDoctorStore = defineStore('doctor', {
       this.error = null;
       try {
         const response = await doctorService.getPayments(params);
-        this.payments = response.data.payments;
+        this.payments = response.data?.payments || response.data || [];
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load payments';

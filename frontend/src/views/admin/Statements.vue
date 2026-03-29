@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <h1 class="text-3xl font-bold text-gray-900 mb-8 animate-fade-in">Financial Statements</h1>
     <BaseCard class="mb-6"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><select v-model="filters.provider_type" class="input" @change="loadStatements"><option value="">All Providers</option><option value="doctor">Doctors</option><option value="pharmacy">Pharmacies</option><option value="hospital">Hospitals</option></select><select v-model="filters.period" class="input" @change="loadStatements"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option></select><BaseButton variant="outline" @click="resetFilters" fullWidth>Reset</BaseButton></div></BaseCard>
@@ -26,8 +26,9 @@ const loadStatements = async () => {
   loading.value = true;
   try {
     const data = await adminStore.getStatements({ ...filters.value, page: pagination.value.currentPage, limit: pagination.value.perPage });
-    statements.value = data.statements || [];
-    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: data.total || 0, perPage: data.perPage || 10 };
+    statements.value = Array.isArray(data) ? data : (data.statements || []);
+    const totalCount = Array.isArray(data) ? data.length : (data.total || 0);
+    pagination.value = { currentPage: data.currentPage || 1, totalPages: data.totalPages || 1, total: totalCount, perPage: data.perPage || 10 };
   } catch (error) {
     showError('Failed to load statements');
   } finally {
@@ -45,5 +46,5 @@ const downloadStatement = async (id) => {
     showError('Failed to download statement');
   }
 };
-const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(amount);
+const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 </script>

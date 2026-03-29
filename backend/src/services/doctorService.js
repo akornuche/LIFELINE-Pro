@@ -3,7 +3,8 @@ import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
 import logger from '../utils/logger.js';
-import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js';
+import config from '../config/index.js';
+import { BusinessLogicError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
 
 /**
  * Doctor Service
@@ -13,19 +14,49 @@ import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js
 /**
  * Get doctor profile
  */
-export const getDoctorProfile = async (userId) => {
+const ensureDoctorProfile = async (userId) => {
   try {
     const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
+    if (!doctor) throw new NotFoundError('Doctor profile');
+    return doctor;
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      // Auto-create profile if missing for an existing user (fail-safe)
+      const user = await userRepository.findById(userId);
+      try {
+        return await doctorRepository.createDoctor(userId, {
+          specialization: 'General Practice',
+          licenseNumber: `AUTO-${user.lifeline_id || Math.random().toString(36).substring(7).toUpperCase()}`,
+          yearsOfExperience: 0,
+          consultationFee: 0,
+        });
+      } catch (createErr) {
+        // Fallback for concurrent request collision where another request already created it
+        if (createErr instanceof ConflictError || (createErr.message && createErr.message.includes('UNIQUE'))) {
+          return await doctorRepository.findByUserId(userId);
+        }
+        throw createErr;
+      }
     }
+    throw err;
+  }
+};
+
+export const getDoctorProfile = async (userId) => {
+  try {
+    const doctor = await ensureDoctorProfile(userId);
 
     // Get user details
     const user = await userRepository.findById(userId);
 
+    // Resolve full photo URL
+    const apiUrl = config.apiUrl;
+    const profilePhoto = doctor.profile_photo;
+    const absolutePhotoUrl = profilePhoto ? (profilePhoto.startsWith('http') ? profilePhoto : `${apiUrl}${profilePhoto}`) : null;
+
     return {
       ...doctor,
+      profile_photo: absolutePhotoUrl,
       user: {
         lifeline_id: user.lifeline_id,
         email: user.email,
@@ -44,6 +75,29 @@ export const getDoctorProfile = async (userId) => {
 };
 
 /**
+ * Upload profile photo
+ */
+export const uploadProfilePhoto = async (userId, file) => {
+  try {
+    const apiUrl = config.apiUrl;
+    const photoUrl = `/uploads/${file.filename}`;
+    const absolutePhotoUrl = `${apiUrl}${photoUrl}`;
+
+    await userRepository.updateProfile(userId, {
+      profilePicture: photoUrl, // Store relative URL in DB
+    });
+
+    return absolutePhotoUrl;
+  } catch (error) {
+    logger.error('Upload profile photo error', {
+      error: error.message,
+      userId,
+    });
+    throw error;
+  }
+};
+
+/**
  * Update doctor profile
  */
 export const updateDoctorProfile = async (userId, updateData) => {
@@ -51,20 +105,27 @@ export const updateDoctorProfile = async (userId, updateData) => {
     updateData;
 
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
+    const doctor = await ensureDoctorProfile(userId);
 
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
+    // Update identity fields in userRepository if present
+    const identityUpdates = {};
+    if (updateData.full_name) {
+      const parts = updateData.full_name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        identityUpdates.firstName = parts[0];
+        identityUpdates.lastName = parts.slice(1).join(' ');
+      } else {
+        identityUpdates.firstName = parts[0];
+      }
+    }
+    if (updateData.email) identityUpdates.email = updateData.email;
+    if (updateData.phone) identityUpdates.phone = updateData.phone;
+    
+    if (Object.keys(identityUpdates).length > 0) {
+      await userRepository.updateProfile(userId, identityUpdates);
     }
 
-    const updatedDoctor = await doctorRepository.updateProfile(doctor.id, {
-      specialization,
-      qualifications,
-      yearsOfExperience,
-      consultationFee,
-      bio,
-      availableHours,
-    });
+    const updatedDoctor = await doctorRepository.updateProfile(doctor.id, updateData);
 
     logger.info('Doctor profile updated', {
       userId,
@@ -88,11 +149,7 @@ export const updateLicense = async (userId, licenseData) => {
   const { licenseNumber, licenseExpiry, licenseDocument } = licenseData;
 
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
-    }
+    const doctor = await ensureDoctorProfile(userId);
 
     const updatedDoctor = await doctorRepository.updateLicense(doctor.id, {
       licenseNumber,
@@ -120,11 +177,7 @@ export const updateLicense = async (userId, licenseData) => {
  */
 export const getConsultations = async (userId, options = {}) => {
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
-    }
+    const doctor = await ensureDoctorProfile(userId);
 
     const consultations = await medicalRecordsRepository.getDoctorConsultations(doctor.id, options);
 
@@ -153,11 +206,7 @@ export const createConsultation = async (userId, consultationData) => {
   } = consultationData;
 
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
-    }
+    const doctor = await ensureDoctorProfile(userId);
 
     // Verify patient exists
     const patient = await patientRepository.findById(patientId);
@@ -207,11 +256,7 @@ export const createConsultation = async (userId, consultationData) => {
  */
 export const updateConsultation = async (userId, consultationId, updateData) => {
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
-    }
+    const doctor = await ensureDoctorProfile(userId);
 
     // Verify consultation belongs to doctor
     const consultation = await medicalRecordsRepository.findConsultationById(consultationId);
@@ -252,11 +297,7 @@ export const createPrescription = async (userId, prescriptionData) => {
   } = prescriptionData;
 
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
-    }
+    const doctor = await ensureDoctorProfile(userId);
 
     // Verify patient exists
     const patient = await patientRepository.findById(patientId);
@@ -292,15 +333,33 @@ export const createPrescription = async (userId, prescriptionData) => {
 };
 
 /**
+ * Get doctor prescriptions
+ */
+export const getPrescriptions = async (userId, options = {}) => {
+  try {
+    const doctor = await ensureDoctorProfile(userId);
+
+    const prescriptions = await medicalRecordsRepository.getDoctorPrescriptions(
+      doctor.id,
+      options
+    );
+
+    return prescriptions;
+  } catch (error) {
+    logger.error('Get doctor prescriptions error', {
+      error: error.message,
+      userId,
+    });
+    throw error;
+  }
+};
+
+/**
  * Get doctor statistics
  */
 export const getStatistics = async (userId, options = {}) => {
   try {
-    const doctor = await doctorRepository.findByUserId(userId);
-
-    if (!doctor) {
-      throw new NotFoundError('Doctor profile');
-    }
+    const doctor = await ensureDoctorProfile(userId);
 
     const stats = await doctorRepository.getStatistics(doctor.id, options);
 

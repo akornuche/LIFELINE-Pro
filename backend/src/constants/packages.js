@@ -257,7 +257,7 @@ export const PACKAGE_ENTITLEMENTS = {
     name: 'Advanced Plan',
     price: PACKAGE_PRICES.ADVANCED,
     currency: 'NGN',
-    maxDependents: 4,
+    maxDependents: 6,
     entitlements: {
       consultations: {
         allowed: true,

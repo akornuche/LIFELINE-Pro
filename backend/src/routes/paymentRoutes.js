@@ -1,7 +1,7 @@
 import express from 'express';
 import * as paymentController from '../controllers/paymentController.js';
 import { authenticate } from '../middleware/auth.js';
-import { checkRole } from '../middleware/rbac.js';
+import { isPatient, isProvider, isAdmin, isAdminOrProvider } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
 import {
   initializePaymentSchema,
@@ -23,7 +23,7 @@ const router = express.Router();
 router.post(
   '/initialize',
   authenticate,
-  checkRole(['patient']),
+  isPatient,
   paymentLimiter,
   validate(initializePaymentSchema),
   paymentController.initializePayment
@@ -48,7 +48,7 @@ router.post('/webhook/:gateway', paymentController.handleWebhook);
  * @desc    Get payment history
  * @access  Private (Patient)
  */
-router.get('/history', authenticate, checkRole(['patient']), paymentController.getPaymentHistory);
+router.get('/history', authenticate, isPatient, paymentController.getPaymentHistory);
 
 /**
  * @route   GET /api/payments/provider
@@ -58,7 +58,7 @@ router.get('/history', authenticate, checkRole(['patient']), paymentController.g
 router.get(
   '/provider',
   authenticate,
-  checkRole(['doctor', 'pharmacy', 'hospital']),
+  isProvider,
   paymentController.getProviderPayments
 );
 
@@ -70,7 +70,7 @@ router.get(
 router.post(
   '/statements/generate',
   authenticate,
-  checkRole(['doctor', 'pharmacy', 'hospital']),
+  isProvider,
   validate(generateStatementSchema),
   paymentController.generateStatement
 );
@@ -83,7 +83,7 @@ router.post(
 router.get(
   '/statements',
   authenticate,
-  checkRole(['doctor', 'pharmacy', 'hospital']),
+  isProvider,
   paymentController.getStatements
 );
 
@@ -95,7 +95,7 @@ router.get(
 router.get(
   '/statements/pending',
   authenticate,
-  checkRole(['admin']),
+  isAdmin,
   paymentController.getPendingStatements
 );
 
@@ -107,7 +107,7 @@ router.get(
 router.get(
   '/statements/:statementId',
   authenticate,
-  checkRole(['doctor', 'pharmacy', 'hospital', 'admin']),
+  isAdminOrProvider,
   paymentController.getStatementById
 );
 
@@ -119,7 +119,7 @@ router.get(
 router.post(
   '/statements/:statementId/approve',
   authenticate,
-  checkRole(['admin']),
+  isAdmin,
   validate(approveStatementSchema),
   paymentController.approveStatement
 );
@@ -132,7 +132,7 @@ router.post(
 router.post(
   '/statements/:statementId/reject',
   authenticate,
-  checkRole(['admin']),
+  isAdmin,
   validate(rejectStatementSchema),
   paymentController.rejectStatement
 );
@@ -142,14 +142,14 @@ router.post(
  * @desc    Calculate revenue
  * @access  Private (Admin)
  */
-router.get('/revenue', authenticate, checkRole(['admin']), paymentController.calculateRevenue);
+router.get('/revenue', authenticate, isAdmin, paymentController.calculateRevenue);
 
 /**
  * @route   GET /api/payments/analytics
  * @desc    Get payment analytics
  * @access  Private (Admin)
  */
-router.get('/analytics', authenticate, checkRole(['admin']), paymentController.getAnalytics);
+router.get('/analytics', authenticate, isAdmin, paymentController.getAnalytics);
 
 /**
  * @route   POST /api/payments/patient-payment
@@ -159,7 +159,7 @@ router.get('/analytics', authenticate, checkRole(['admin']), paymentController.g
 router.post(
   '/patient-payment',
   authenticate,
-  checkRole(['admin']),
+  isAdmin,
   validate(recordPatientPaymentSchema),
   paymentController.recordPatientPayment
 );
@@ -169,7 +169,7 @@ router.post(
  * @desc    Get overdue payments
  * @access  Private (Admin)
  */
-router.get('/overdue', authenticate, checkRole(['admin']), paymentController.getOverduePayments);
+router.get('/overdue', authenticate, isAdmin, paymentController.getOverduePayments);
 
 /**
  * @route   POST /api/payments/:paymentId/refund
@@ -179,7 +179,7 @@ router.get('/overdue', authenticate, checkRole(['admin']), paymentController.get
 router.post(
   '/:paymentId/refund',
   authenticate,
-  checkRole(['admin']),
+  isAdmin,
   validate(processRefundSchema),
   paymentController.processRefund
 );

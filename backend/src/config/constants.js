@@ -4,34 +4,26 @@
  */
 
 export const PACKAGE_ENTITLEMENTS = {
-  basic: {
-    maxDependents: 3,
-    consultationsPerMonth: 2,
-    prescriptionsPerMonth: 2,
+  BASIC: {
+    maxDependents: 4,
+    consultationsPerMonth: 5,
+    prescriptionsPerMonth: 10,
+    labTestsPerMonth: 5,
+    surgeriesPerYear: 1,
     features: {
       telemedicine: true,
       emergencyCare: false,
       specialistConsultation: false,
-      labTests: false,
-      diagnostics: false,
-    },
-  },
-  standard: {
-    maxDependents: 5,
-    consultationsPerMonth: 5,
-    prescriptionsPerMonth: 5,
-    features: {
-      telemedicine: true,
-      emergencyCare: true,
-      specialistConsultation: true,
       labTests: true,
       diagnostics: false,
     },
   },
-  premium: {
-    maxDependents: 10,
-    consultationsPerMonth: -1, // unlimited
-    prescriptionsPerMonth: -1, // unlimited
+  MEDIUM: {
+    maxDependents: 4,
+    consultationsPerMonth: 10,
+    prescriptionsPerMonth: 20,
+    labTestsPerMonth: 10,
+    surgeriesPerYear: 2,
     features: {
       telemedicine: true,
       emergencyCare: true,
@@ -40,6 +32,26 @@ export const PACKAGE_ENTITLEMENTS = {
       diagnostics: true,
     },
   },
+  ADVANCED: {
+    maxDependents: 6,
+    consultationsPerMonth: -1, // unlimited
+    prescriptionsPerMonth: -1, // unlimited
+    labTestsPerMonth: 20,
+    surgeriesPerYear: 4,
+    features: {
+      telemedicine: true,
+      emergencyCare: true,
+      specialistConsultation: true,
+      labTests: true,
+      diagnostics: true,
+    },
+  },
+  // Legacy support (lowercase aliases)
+  basic: null, // Will be set below
+  medium: null,
+  advanced: null,
+  standard: null,
+  premium: null,
 };
 
 export const USER_ROLES = {
@@ -96,6 +108,13 @@ export const NOTIFICATION_TYPES = {
   VERIFICATION: 'verification',
   SYSTEM: 'system',
 };
+
+// Set up legacy/lowercase aliases for package entitlements
+PACKAGE_ENTITLEMENTS.basic = PACKAGE_ENTITLEMENTS.BASIC;
+PACKAGE_ENTITLEMENTS.medium = PACKAGE_ENTITLEMENTS.MEDIUM;
+PACKAGE_ENTITLEMENTS.advanced = PACKAGE_ENTITLEMENTS.ADVANCED;
+PACKAGE_ENTITLEMENTS.standard = PACKAGE_ENTITLEMENTS.MEDIUM; // Legacy alias
+PACKAGE_ENTITLEMENTS.premium = PACKAGE_ENTITLEMENTS.ADVANCED; // Legacy alias
 
 export default {
   PACKAGE_ENTITLEMENTS,
