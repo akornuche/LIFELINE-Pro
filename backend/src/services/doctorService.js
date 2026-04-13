@@ -2,6 +2,9 @@ import * as doctorRepository from '../models/doctorRepository.js';
 import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import entitlementChecker from '../utils/entitlementChecker.js';
+import { SERVICE_TYPES } from '../constants/packages.js';
+import * as paymentService from './paymentService.js';
 import logger from '../utils/logger.js';
 import config from '../config/index.js';
 import { BusinessLogicError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
@@ -220,6 +223,23 @@ export const createConsultation = async (userId, consultationData) => {
       throw new BusinessLogicError('Patient does not have an active subscription');
     }
 
+    // Entitlement checks
+    const packageType = patient.current_package || 'GENERAL';
+
+    const providerAccess = entitlementChecker.checkProviderAccess(packageType, 'doctor');
+    if (!providerAccess.entitled) {
+      throw new BusinessLogicError(providerAccess.reason);
+    }
+
+    const consultationEntitlement = entitlementChecker.isServiceEntitled(
+      packageType,
+      SERVICE_TYPES.CONSULTATION,
+      { chiefComplaint }
+    );
+    if (!consultationEntitlement.entitled) {
+      throw new BusinessLogicError(consultationEntitlement.reason);
+    }
+
     const consultation = await medicalRecordsRepository.createConsultation({
       patientId,
       doctorId: doctor.id,
@@ -233,6 +253,22 @@ export const createConsultation = async (userId, consultationData) => {
 
     // Increment consultation count
     await doctorRepository.incrementConsultations(doctor.id);
+
+    // Create payment record for this consultation
+    try {
+      await paymentService.processServicePayment({
+        patientId,
+        providerId: doctor.id,
+        providerType: 'doctor',
+        serviceType: SERVICE_TYPES.CONSULTATION,
+        packageType,
+      });
+    } catch (paymentError) {
+      logger.warn('Payment record creation failed (consultation still created)', {
+        consultationId: consultation.id,
+        error: paymentError.message,
+      });
+    }
 
     logger.info('Consultation created', {
       userId,

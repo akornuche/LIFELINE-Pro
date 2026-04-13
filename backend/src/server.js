@@ -99,8 +99,8 @@ if (process.env.NODE_ENV === 'development') {
 // Rate limiting
 app.use(globalLimiter);
 
-// Audit logging
-// app.use(auditLog); // Temporarily disabled - audit_logs table doesn't exist yet
+// Audit logging - logs all mutating requests (POST/PUT/DELETE) to audit_logs table
+app.use(auditLog({ eventType: 'api.request', eventCategory: 'general' }));
 
 // Static files
 app.use('/uploads', express.static('uploads'));

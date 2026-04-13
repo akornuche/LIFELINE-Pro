@@ -118,6 +118,13 @@ export const patientService = {
     return apiClient.delete(`/patients/dependents/${id}`);
   },
 
+  // Upload profile photo
+  uploadProfilePhoto(formData) {
+    return apiClient.post('/patients/profile/photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   // Medical history
   getMedicalHistory(params) {
     return apiClient.get('/patients/medical-history', { params });
@@ -165,6 +172,10 @@ export const doctorService = {
   // Consultations
   getConsultations(params) {
     return apiClient.get('/doctors/consultations', { params });
+  },
+
+  getConsultation(id) {
+    return apiClient.get(`/doctors/consultations/${id}`);
   },
 
   createConsultation(data) {
@@ -269,6 +280,10 @@ export const pharmacyService = {
     return apiClient.get('/pharmacies/prescriptions', { params });
   },
 
+  getPrescription(id) {
+    return apiClient.get(`/pharmacies/prescriptions/${id}`);
+  },
+
   dispensePrescription(id, data) {
     return apiClient.post(`/pharmacies/prescriptions/${id}/dispense`, data);
   },
@@ -360,6 +375,10 @@ export const hospitalService = {
     return apiClient.get('/hospitals/surgeries', { params });
   },
 
+  getSurgery(id) {
+    return apiClient.get(`/hospitals/surgeries/${id}`);
+  },
+
   scheduleSurgery(data) {
     return apiClient.post('/hospitals/surgeries', data);
   },
@@ -400,6 +419,22 @@ export const hospitalService = {
 
   getHospitalById(id) {
     return apiClient.get(`/hospitals/${id}`);
+  },
+
+  // Beds management
+  getBeds(params) {
+    return apiClient.get('/hospitals/beds', { params });
+  },
+
+  updateBed(id, data) {
+    return apiClient.put(`/hospitals/beds/${id}`, data);
+  },
+
+  // Logo upload
+  uploadLogo(formData) {
+    return apiClient.post('/hospitals/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 
   // Verification (admin)

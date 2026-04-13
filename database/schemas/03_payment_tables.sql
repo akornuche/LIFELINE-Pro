@@ -154,7 +154,7 @@ CREATE TABLE patient_payments (
     
     -- Payment Details
     payment_type VARCHAR(20) NOT NULL CHECK (payment_type IN ('subscription', 'upgrade', 'renewal', 'penalty')),
-    package_type VARCHAR(20) NOT NULL CHECK (package_type IN ('BASIC', 'MEDIUM', 'ADVANCED')),
+    package_type VARCHAR(20) NOT NULL CHECK (package_type IN ('GENERAL', 'BASIC', 'STANDARD', 'PREMIUM')),
     
     -- Amount
     amount DECIMAL(10, 2) NOT NULL,

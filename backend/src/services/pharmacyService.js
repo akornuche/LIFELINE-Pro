@@ -2,6 +2,9 @@ import * as pharmacyRepository from '../models/pharmacyRepository.js';
 import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import entitlementChecker from '../utils/entitlementChecker.js';
+import { SERVICE_TYPES } from '../constants/packages.js';
+import * as paymentService from './paymentService.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
 
@@ -193,6 +196,26 @@ export const dispensePrescription = async (userId, prescriptionId, dispensingDat
     // Get prescription
     const prescription = await medicalRecordsRepository.findPrescriptionById(prescriptionId);
 
+    // Entitlement checks — verify patient's package allows pharmacy access
+    const patient = await patientRepository.findById(prescription.patient_id);
+    if (patient) {
+      const packageType = patient.current_package || 'GENERAL';
+
+      const providerAccess = entitlementChecker.checkProviderAccess(packageType, 'pharmacy');
+      if (!providerAccess.entitled) {
+        throw new BusinessLogicError(providerAccess.reason);
+      }
+
+      const drugEntitlement = entitlementChecker.isServiceEntitled(
+        packageType,
+        SERVICE_TYPES.DRUG_DISPENSING,
+        { medication: prescription.medication }
+      );
+      if (!drugEntitlement.entitled) {
+        throw new BusinessLogicError(drugEntitlement.reason);
+      }
+    }
+
     // Check if prescription is already dispensed
     if (prescription.status === 'dispensed') {
       throw new BusinessLogicError('Prescription already dispensed');
@@ -213,6 +236,24 @@ export const dispensePrescription = async (userId, prescriptionId, dispensingDat
 
     // Increment prescription count
     await pharmacyRepository.incrementPrescriptions(pharmacy.id);
+
+    // Create payment record for this dispensing
+    try {
+      if (patient) {
+        await paymentService.processServicePayment({
+          patientId: prescription.patient_id,
+          providerId: pharmacy.id,
+          providerType: 'pharmacy',
+          serviceType: SERVICE_TYPES.DRUG_DISPENSING,
+          packageType: patient.current_package || 'GENERAL',
+        });
+      }
+    } catch (paymentError) {
+      logger.warn('Payment record creation failed (prescription still dispensed)', {
+        prescriptionId,
+        error: paymentError.message,
+      });
+    }
 
     logger.info('Prescription dispensed', {
       userId,

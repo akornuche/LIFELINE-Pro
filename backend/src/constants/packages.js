@@ -1,24 +1,36 @@
 /**
  * LifeLine Pro - Package Definitions and Entitlements
  * 
- * This file defines the three coverage plans and their entitlements:
- * - BASIC (₦1,500/month)
- * - MEDIUM 
- * - ADVANCED
+ * This file is the SINGLE SOURCE OF TRUTH for all package/subscription definitions.
+ * 
+ * Two subscription categories:
+ * 1. GENERAL (₦1,500/month) — Doctor consultations only, up to 4 dependents
+ * 2. INSURANCE PLANS:
+ *    - BASIC    (₦3,500/month) — Common illnesses coverage
+ *    - STANDARD (₦5,500/month) — Common illnesses + minor surgeries
+ *    - PREMIUM  (₦10,000/month) — Full coverage including childbirth & major surgeries
  */
 
 // Package Types
 export const PACKAGE_TYPES = {
+  GENERAL: 'GENERAL',
   BASIC: 'BASIC',
-  MEDIUM: 'MEDIUM',
-  ADVANCED: 'ADVANCED',
+  STANDARD: 'STANDARD',
+  PREMIUM: 'PREMIUM',
 };
 
-// Package Prices (in Naira)
+// Package Category (General vs Insurance)
+export const PACKAGE_CATEGORIES = {
+  GENERAL: 'general',
+  INSURANCE: 'insurance',
+};
+
+// Package Prices (in Naira, per month)
 export const PACKAGE_PRICES = {
+  GENERAL: 1500,
   BASIC: 3500,
-  MEDIUM: 5000,
-  ADVANCED: 10000,
+  STANDARD: 5500,
+  PREMIUM: 10000,
 };
 
 // Service Types
@@ -141,11 +153,17 @@ export const IMAGING_TYPES = {
 
 // Package Entitlements Configuration
 export const PACKAGE_ENTITLEMENTS = {
-  [PACKAGE_TYPES.BASIC]: {
-    name: 'Basic Plan',
-    price: PACKAGE_PRICES.BASIC,
+  [PACKAGE_TYPES.GENERAL]: {
+    name: 'General Plan',
+    category: PACKAGE_CATEGORIES.GENERAL,
+    price: PACKAGE_PRICES.GENERAL,
     currency: 'NGN',
     maxDependents: 4,
+    consultationsPerMonth: 5,
+    prescriptionsPerMonth: 10,
+    labTestsPerMonth: 3,
+    surgeriesPerYear: 0,
+    allowedProviderTypes: ['doctor'], // General plan: doctors ONLY
     entitlements: {
       consultations: {
         allowed: true,
@@ -157,9 +175,9 @@ export const PACKAGE_ENTITLEMENTS = {
         drugCategories: [DRUG_CATEGORIES.ESSENTIAL],
       },
       drugDispensing: {
-        allowed: true,
-        categories: DRUG_CATEGORIES.ESSENTIAL,
-        limitPerMonth: 10, // Maximum 10 prescriptions per month
+        allowed: false, // No pharmacy access on General plan
+        categories: [],
+        limitPerMonth: 0,
       },
       surgeries: {
         allowed: false,
@@ -183,23 +201,92 @@ export const PACKAGE_ENTITLEMENTS = {
       },
       emergency: {
         allowed: true,
-        coverage: 'basic_emergency_care', // Stabilization only
+        coverage: 'basic_emergency_care',
+      },
+    },
+    limitations: [
+      'Doctor consultations only — no pharmacy or hospital access',
+      'No surgeries',
+      'No specialist consultations',
+      'Limited to essential medications (prescribed only)',
+      'No imaging',
+      'No hospital admissions',
+    ],
+  },
+
+  [PACKAGE_TYPES.BASIC]: {
+    name: 'Basic Insurance',
+    category: PACKAGE_CATEGORIES.INSURANCE,
+    price: PACKAGE_PRICES.BASIC,
+    currency: 'NGN',
+    maxDependents: 4,
+    consultationsPerMonth: 8,
+    prescriptionsPerMonth: 15,
+    labTestsPerMonth: 5,
+    surgeriesPerYear: 0,
+    allowedProviderTypes: ['doctor', 'pharmacy', 'hospital'], // Full provider access
+    entitlements: {
+      consultations: {
+        allowed: true,
+        types: ['general_practitioner'],
+        ailments: AILMENT_CATEGORIES.BASIC,
+      },
+      prescriptions: {
+        allowed: true,
+        drugCategories: [DRUG_CATEGORIES.ESSENTIAL],
+      },
+      drugDispensing: {
+        allowed: true,
+        categories: DRUG_CATEGORIES.ESSENTIAL,
+        limitPerMonth: 10,
+      },
+      surgeries: {
+        allowed: false,
+        types: [],
+      },
+      specialists: {
+        allowed: false,
+        types: [],
+      },
+      laboratoryTests: {
+        allowed: true,
+        types: LAB_TEST_TYPES.BASIC,
+        limitPerMonth: 5,
+      },
+      imaging: {
+        allowed: false,
+        types: [],
+      },
+      admissions: {
+        allowed: true,
+        maxDays: 3,
+        type: 'general_ward',
+      },
+      emergency: {
+        allowed: true,
+        coverage: 'basic_emergency_care',
       },
     },
     limitations: [
       'No surgeries',
       'No specialist consultations',
       'Limited to essential medications',
-      'No major diagnostic tests',
-      'No admissions',
+      'No advanced diagnostic tests',
+      'Admission limited to 3 days',
     ],
   },
 
-  [PACKAGE_TYPES.MEDIUM]: {
-    name: 'Medium Plan',
-    price: PACKAGE_PRICES.MEDIUM,
+  [PACKAGE_TYPES.STANDARD]: {
+    name: 'Standard Insurance',
+    category: PACKAGE_CATEGORIES.INSURANCE,
+    price: PACKAGE_PRICES.STANDARD,
     currency: 'NGN',
     maxDependents: 4,
+    consultationsPerMonth: 10,
+    prescriptionsPerMonth: 20,
+    labTestsPerMonth: 10,
+    surgeriesPerYear: 2,
+    allowedProviderTypes: ['doctor', 'pharmacy', 'hospital'],
     entitlements: {
       consultations: {
         allowed: true,
@@ -228,7 +315,7 @@ export const PACKAGE_ENTITLEMENTS = {
       laboratoryTests: {
         allowed: true,
         types: [...LAB_TEST_TYPES.BASIC, ...LAB_TEST_TYPES.ADVANCED],
-        limitPerMonth: 5,
+        limitPerMonth: 10,
       },
       imaging: {
         allowed: true,
@@ -253,11 +340,17 @@ export const PACKAGE_ENTITLEMENTS = {
     ],
   },
 
-  [PACKAGE_TYPES.ADVANCED]: {
-    name: 'Advanced Plan',
-    price: PACKAGE_PRICES.ADVANCED,
+  [PACKAGE_TYPES.PREMIUM]: {
+    name: 'Premium Insurance',
+    category: PACKAGE_CATEGORIES.INSURANCE,
+    price: PACKAGE_PRICES.PREMIUM,
     currency: 'NGN',
     maxDependents: 6,
+    consultationsPerMonth: -1, // unlimited
+    prescriptionsPerMonth: -1, // unlimited
+    labTestsPerMonth: -1, // unlimited
+    surgeriesPerYear: -1, // unlimited
+    allowedProviderTypes: ['doctor', 'pharmacy', 'hospital'],
     entitlements: {
       consultations: {
         allowed: true,
@@ -271,31 +364,31 @@ export const PACKAGE_ENTITLEMENTS = {
       drugDispensing: {
         allowed: true,
         categories: 'all',
-        limitPerMonth: null, // Unlimited
+        limitPerMonth: null,
       },
       surgeries: {
         allowed: true,
         types: [...SURGERY_TYPES.MINOR, ...SURGERY_TYPES.MAJOR],
-        limitPerYear: null, // Unlimited
+        limitPerYear: null,
       },
       specialists: {
         allowed: true,
         types: 'all',
-        limitPerMonth: null, // Unlimited
+        limitPerMonth: null,
       },
       laboratoryTests: {
         allowed: true,
         types: 'all',
-        limitPerMonth: null, // Unlimited
+        limitPerMonth: null,
       },
       imaging: {
         allowed: true,
         types: [...IMAGING_TYPES.BASIC, ...IMAGING_TYPES.ADVANCED],
-        limitPerMonth: null, // Unlimited
+        limitPerMonth: null,
       },
       admissions: {
         allowed: true,
-        maxDays: null, // Unlimited
+        maxDays: null,
         type: 'private_ward',
       },
       emergency: {
@@ -376,6 +469,7 @@ export const ERROR_CATEGORIES = {
 
 export default {
   PACKAGE_TYPES,
+  PACKAGE_CATEGORIES,
   PACKAGE_PRICES,
   PACKAGE_ENTITLEMENTS,
   SERVICE_TYPES,

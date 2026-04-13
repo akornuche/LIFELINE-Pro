@@ -67,6 +67,17 @@ class DatabaseInitializer {
         '03_doctors.sql',
         '04_pharmacies.sql',
         '05_hospitals.sql',
+        '06_pricing.sql',
+        '07_dependents.sql',
+        '08_consultations.sql',
+        '09_prescriptions.sql',
+        '10_surgeries.sql',
+        '11_lab_tests.sql',
+        '12_payment_records.sql',
+        '13_payment_webhooks.sql',
+        '14_monthly_statements.sql',
+        '15_patient_payments.sql',
+        '16_audit_logs.sql',
       ];
 
       // Import database dynamically to avoid circular dependency

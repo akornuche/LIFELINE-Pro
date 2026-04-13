@@ -48,7 +48,7 @@ CREATE TABLE patients (
     country VARCHAR(100) DEFAULT 'Nigeria',
     
     -- Package Information
-    package_type VARCHAR(20) NOT NULL CHECK (package_type IN ('BASIC', 'MEDIUM', 'ADVANCED')),
+    package_type VARCHAR(20) NOT NULL CHECK (package_type IN ('GENERAL', 'BASIC', 'STANDARD', 'PREMIUM')),
     subscription_status VARCHAR(20) DEFAULT 'active' CHECK (subscription_status IN ('active', 'expired', 'cancelled', 'suspended')),
     subscription_start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     subscription_end_date TIMESTAMP,

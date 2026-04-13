@@ -406,9 +406,10 @@ router.beforeEach(async (to, from, next) => {
     }
 
     const hasNoActiveSub = !patientStore.hasActiveSubscription;
-    const isNotOnSubPage = to.name !== 'patient-subscription';
+    const subscriptionExemptRoutes = ['patient-subscription', 'patient-profile', 'patient-settings'];
+    const isNotOnExemptPage = !subscriptionExemptRoutes.includes(to.name);
 
-    if (hasNoActiveSub && isNotOnSubPage) {
+    if (hasNoActiveSub && isNotOnExemptPage) {
       next({ name: 'patient-subscription' });
       return;
     }

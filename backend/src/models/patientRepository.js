@@ -1,7 +1,7 @@
 import database from '../database/connection.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, ConflictError, BusinessLogicError } from '../middleware/errorHandler.js';
-import { PACKAGE_TYPES, PACKAGE_ENTITLEMENTS } from '../constants/packages.js';
+import { PACKAGE_TYPES, PACKAGE_ENTITLEMENTS, PACKAGE_PRICES } from '../constants/packages.js';
 import { randomUUID } from 'crypto';
 
 /**
@@ -53,7 +53,7 @@ export const createPatient = async (userId, patientData) => {
         JSON.stringify(allergies),
         JSON.stringify(chronicConditions),
         JSON.stringify([]),
-        'BASIC',
+        'GENERAL',
         'inactive'
       ]
     );

@@ -108,8 +108,49 @@
         </p>
       </div>
       
-      <div class="grid lg:grid-cols-3 gap-8">
-        <!-- Basic Plan -->
+      <div class="grid lg:grid-cols-4 gap-6">
+        <!-- General Plan -->
+        <div 
+          class="card flex flex-col transition-all duration-300" 
+          :class="[
+            patientStore.packageType === 'general' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
+            !patientStore.canRenew && patientStore.packageType !== 'general' ? 'opacity-50 grayscale-[0.5]' : ''
+          ]"
+        >
+          <div class="p-6 flex-1">
+            <div class="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold uppercase rounded-full mb-3">General</div>
+            <h3 class="text-xl font-black mb-1">General</h3>
+            <p class="text-gray-500 text-sm mb-4">Doctor consultations only</p>
+            <div class="flex items-baseline mb-6">
+              <span class="text-4xl font-black text-gray-900 tracking-tighter">₦1,500</span>
+              <span class="text-gray-500 ml-1 font-bold">/month</span>
+            </div>
+            
+            <ul class="space-y-3 mb-6">
+              <li v-for="(feature, index) in generalFeatures" :key="index" class="flex items-start group">
+                <div class="bg-green-100 p-1 rounded-full mr-2 group-hover:scale-110 transition-transform flex-shrink-0">
+                  <CheckIcon class="h-3 w-3 text-green-600" />
+                </div>
+                <span class="text-gray-700 text-xs font-medium">{{ feature }}</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div class="p-6 pt-0 mt-auto">
+            <button
+              @click="selectPlan('general')"
+              class="w-full py-3 rounded-xl font-black text-sm transition-all"
+              :class="[
+                patientStore.packageType === 'general' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-gray-600 text-white hover:bg-gray-700 hover:shadow-lg'
+              ]"
+              :disabled="!patientStore.canRenew || patientStore.packageType === 'general'"
+            >
+              {{ patientStore.packageType === 'general' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Switch' : 'Select') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Basic Insurance -->
         <div 
           class="card flex flex-col transition-all duration-300" 
           :class="[
@@ -117,116 +158,119 @@
             !patientStore.canRenew && patientStore.packageType !== 'basic' ? 'opacity-50 grayscale-[0.5]' : ''
           ]"
         >
-          <div class="p-8 flex-1">
-            <h3 class="text-2xl font-black mb-1">Basic</h3>
-            <p class="text-gray-500 text-sm mb-6">Essential health coverage</p>
-            <div class="flex items-baseline mb-8">
-              <span class="text-5xl font-black text-gray-900 tracking-tighter">₦3,500</span>
-              <span class="text-gray-500 ml-1 font-bold">/year</span>
+          <div class="p-6 flex-1">
+            <div class="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase rounded-full mb-3">Insurance</div>
+            <h3 class="text-xl font-black mb-1">Basic</h3>
+            <p class="text-gray-500 text-sm mb-4">Common illnesses coverage</p>
+            <div class="flex items-baseline mb-6">
+              <span class="text-4xl font-black text-gray-900 tracking-tighter">₦3,500</span>
+              <span class="text-gray-500 ml-1 font-bold">/month</span>
             </div>
             
-            <ul class="space-y-4 mb-8">
+            <ul class="space-y-3 mb-6">
               <li v-for="(feature, index) in basicFeatures" :key="index" class="flex items-start group">
-                <div class="bg-green-100 p-1 rounded-full mr-3 group-hover:scale-110 transition-transform">
-                  <CheckIcon class="h-4 w-4 text-green-600" />
+                <div class="bg-green-100 p-1 rounded-full mr-2 group-hover:scale-110 transition-transform flex-shrink-0">
+                  <CheckIcon class="h-3 w-3 text-green-600" />
                 </div>
-                <span class="text-gray-700 text-sm font-medium">{{ feature }}</span>
+                <span class="text-gray-700 text-xs font-medium">{{ feature }}</span>
               </li>
             </ul>
           </div>
           
-          <div class="p-8 pt-0 mt-auto">
+          <div class="p-6 pt-0 mt-auto">
             <button
               @click="selectPlan('basic')"
-              class="w-full py-4 rounded-xl font-black transition-all"
+              class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'basic' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg shadow-primary-200'
+                patientStore.packageType === 'basic' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg'
               ]"
               :disabled="!patientStore.canRenew || patientStore.packageType === 'basic'"
             >
-              {{ patientStore.packageType === 'basic' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Switch to Basic' : 'Select Basic') }}
+              {{ patientStore.packageType === 'basic' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Switch' : 'Select') }}
             </button>
           </div>
         </div>
 
-        <!-- Medium Plan (Featured) -->
+        <!-- Standard Insurance (Featured) -->
         <div 
           class="card flex flex-col relative transition-all duration-300" 
           :class="[
-            patientStore.packageType === 'medium' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
-            !patientStore.canRenew && patientStore.packageType !== 'medium' ? 'opacity-50 grayscale-[0.5]' : ''
+            patientStore.packageType === 'standard' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
+            !patientStore.canRenew && patientStore.packageType !== 'standard' ? 'opacity-50 grayscale-[0.5]' : ''
           ]"
         >
-          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-secondary-500 text-white px-6 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Most Popular</div>
-          <div class="p-8 flex-1">
-            <h3 class="text-2xl font-black mb-1">Medium</h3>
-            <p class="text-gray-500 text-sm mb-6">Comprehensive family care</p>
-            <div class="flex items-baseline mb-8">
-              <span class="text-5xl font-black text-gray-900 tracking-tighter">₦5,000</span>
-              <span class="text-gray-500 ml-1 font-bold">/year</span>
+          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-secondary-500 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Most Popular</div>
+          <div class="p-6 flex-1">
+            <div class="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold uppercase rounded-full mb-3">Insurance</div>
+            <h3 class="text-xl font-black mb-1">Standard</h3>
+            <p class="text-gray-500 text-sm mb-4">Illnesses + minor surgeries</p>
+            <div class="flex items-baseline mb-6">
+              <span class="text-4xl font-black text-gray-900 tracking-tighter">₦5,500</span>
+              <span class="text-gray-500 ml-1 font-bold">/month</span>
             </div>
             
-            <ul class="space-y-4 mb-8">
-              <li v-for="(feature, index) in mediumFeatures" :key="index" class="flex items-start group">
-                <div class="bg-green-100 p-1 rounded-full mr-3 group-hover:scale-110 transition-transform">
-                  <CheckIcon class="h-4 w-4 text-green-600" />
+            <ul class="space-y-3 mb-6">
+              <li v-for="(feature, index) in standardFeatures" :key="index" class="flex items-start group">
+                <div class="bg-green-100 p-1 rounded-full mr-2 group-hover:scale-110 transition-transform flex-shrink-0">
+                  <CheckIcon class="h-3 w-3 text-green-600" />
                 </div>
-                <span class="text-gray-700 text-sm font-medium">{{ feature }}</span>
+                <span class="text-gray-700 text-xs font-medium">{{ feature }}</span>
               </li>
             </ul>
           </div>
           
-          <div class="p-8 pt-0 mt-auto">
+          <div class="p-6 pt-0 mt-auto">
             <button
-              @click="selectPlan('medium')"
-              class="w-full py-4 rounded-xl font-black transition-all"
+              @click="selectPlan('standard')"
+              class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'medium' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-lg shadow-secondary-200'
+                patientStore.packageType === 'standard' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-lg'
               ]"
-              :disabled="!patientStore.canRenew || patientStore.packageType === 'medium'"
+              :disabled="!patientStore.canRenew || patientStore.packageType === 'standard'"
             >
-              {{ patientStore.packageType === 'medium' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Recommended Switch' : 'Select Medium') }}
+              {{ patientStore.packageType === 'standard' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Upgrade' : 'Select') }}
             </button>
           </div>
         </div>
 
-        <!-- Advanced Plan -->
+        <!-- Premium Insurance -->
         <div 
-          class="card flex flex-col transition-all duration-300" 
+          class="card flex flex-col relative transition-all duration-300" 
           :class="[
-            patientStore.packageType === 'advanced' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
-            !patientStore.canRenew && patientStore.packageType !== 'advanced' ? 'opacity-50 grayscale-[0.5]' : ''
+            patientStore.packageType === 'premium' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
+            !patientStore.canRenew && patientStore.packageType !== 'premium' ? 'opacity-50 grayscale-[0.5]' : ''
           ]"
         >
-          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Premium</div>
-          <div class="p-8 flex-1">
-            <h3 class="text-2xl font-black mb-1">Advanced</h3>
-            <p class="text-gray-500 text-sm mb-6">Full spectrum health safety net</p>
-            <div class="flex items-baseline mb-8">
-              <span class="text-5xl font-black text-gray-900 tracking-tighter">₦10,000</span>
-              <span class="text-gray-500 ml-1 font-bold">/year</span>
+          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Premium</div>
+          <div class="p-6 flex-1">
+            <div class="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold uppercase rounded-full mb-3">Full Coverage</div>
+            <h3 class="text-xl font-black mb-1">Premium</h3>
+            <p class="text-gray-500 text-sm mb-4">Complete health safety net</p>
+            <div class="flex items-baseline mb-6">
+              <span class="text-4xl font-black text-gray-900 tracking-tighter">₦10,000</span>
+              <span class="text-gray-500 ml-1 font-bold">/month</span>
             </div>
             
-            <ul class="space-y-4 mb-8">
-              <li v-for="(feature, index) in advancedFeatures" :key="index" class="flex items-start group">
-                <div class="bg-green-100 p-1 rounded-full mr-3 group-hover:scale-110 transition-transform">
-                  <CheckIcon class="h-4 w-4 text-green-600" />
+            <ul class="space-y-3 mb-6">
+              <li v-for="(feature, index) in premiumFeatures" :key="index" class="flex items-start group">
+                <div class="bg-green-100 p-1 rounded-full mr-2 group-hover:scale-110 transition-transform flex-shrink-0">
+                  <CheckIcon class="h-3 w-3 text-green-600" />
                 </div>
-                <span class="text-gray-700 text-sm font-medium">{{ feature }}</span>
+                <span class="text-gray-700 text-xs font-medium">{{ feature }}</span>
               </li>
             </ul>
           </div>
           
-          <div class="p-8 pt-0 mt-auto">
+          <div class="p-6 pt-0 mt-auto">
             <button
-              @click="selectPlan('advanced')"
-              class="w-full py-4 rounded-xl font-black transition-all"
+              @click="selectPlan('premium')"
+              class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'advanced' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg shadow-gray-200'
+                patientStore.packageType === 'premium' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg'
               ]"
-              :disabled="!patientStore.canRenew || patientStore.packageType === 'advanced'"
+              :disabled="!patientStore.canRenew || patientStore.packageType === 'premium'"
             >
-              {{ patientStore.packageType === 'advanced' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Ultimate Upgrade' : 'Select Advanced') }}
+              {{ patientStore.packageType === 'premium' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Ultimate Upgrade' : 'Select') }}
             </button>
           </div>
         </div>
@@ -255,35 +299,49 @@ const { success, error: showError } = useToast();
 const { confirm } = useConfirm();
 
 const packagePrices = {
+  general: 1500,
   basic: 3500,
-  medium: 5000,
-  advanced: 10000
+  standard: 5500,
+  premium: 10000
 };
 
-const basicFeatures = [
+const generalFeatures = [
+  'Doctor consultations only',
   '5 Consultations / month',
-  '10 Prescriptions / month',
+  'Basic lab tests (3 / month)',
+  'Prescriptions (doctor-issued only)',
+  'Up to 4 Dependents',
+  'No pharmacy / hospital access'
+];
+
+const basicFeatures = [
+  'Common illnesses coverage',
+  '8 Consultations / month',
   '5 Lab Tests / month',
-  '1 Surgery / year',
+  'Pharmacy access (10 dispensings / month)',
+  'Hospital admission (up to 3 days)',
   'Up to 4 Dependents'
 ];
 
-const mediumFeatures = [
+const standardFeatures = [
+  'Common illnesses + minor surgeries',
   '10 Consultations / month',
-  '20 Prescriptions / month',
   '10 Lab Tests / month',
-  '2 Surgeries / year',
+  '2 Minor Surgeries / year',
+  'Specialist consultations',
   'Up to 4 Dependents',
-  'Specialist Access'
+  'Basic imaging (X-ray, Ultrasound)'
 ];
 
-const advancedFeatures = [
+const premiumFeatures = [
+  'Full coverage including major surgeries',
   'Unlimited Consultations',
-  'Unlimited Prescriptions',
-  '20 Lab Tests / month',
-  '4 Surgeries / year',
+  'Unlimited Lab Tests',
+  'Childbirth & major surgery coverage',
   'Up to 6 Dependents',
-  'Premium Specialist Support'
+  'Premium specialist support',
+  'Advanced imaging (CT, MRI)',
+  'Priority care & home visits'
 ];
 
 const formatDate = (date) => {

@@ -1,9 +1,60 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import database from '../database/connection.js';
 import logger from '../utils/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SETTINGS_FILE = path.join(__dirname, '../../data/settings.json');
+
+const DEFAULT_SETTINGS = {
+    platform_name: 'LIFELINE Pro',
+    support_email: 'support@lifelinepro.com',
+    support_phone: '+234 800 000 0000',
+    commission_rate: 5.0,
+    paystack_public_key: '',
+    enable_test_mode: true,
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_username: '',
+    smtp_password: '',
+    maintenanceMode: false,
+    allowRegistration: true,
+    defaultSubscriptionType: 'GENERAL',
+    features: {
+        consultations: true,
+        prescriptions: true,
+        surgeries: true,
+        subscriptions: true,
+    },
+};
+
+function loadSettings() {
+    try {
+        if (fs.existsSync(SETTINGS_FILE)) {
+            const raw = fs.readFileSync(SETTINGS_FILE, 'utf8');
+            return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+        }
+    } catch (err) {
+        logger.warn('Failed to read settings file, using defaults', { error: err.message });
+    }
+    return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(settings) {
+    const dir = path.dirname(SETTINGS_FILE);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    // Never persist sensitive fields that belong in env vars
+    const { smtp_password, ...safeSettings } = settings;
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(safeSettings, null, 2), 'utf8');
+}
 
 const router = express.Router();
 
@@ -494,12 +545,7 @@ router.get('/statements', async (req, res, next) => {
  */
 router.get('/settings', async (req, res, next) => {
     try {
-        // Return default settings if no settings table exists
-        const settings = {
-            maintenanceMode: false,
-            allowRegistration: true,
-            defaultSubscriptionType: 'basic',
-        };
+        const settings = loadSettings();
         return successResponse(res, settings, 'Settings retrieved successfully');
     } catch (error) {
         logger.error('Get admin settings error', { error: error.message });
@@ -514,8 +560,11 @@ router.get('/settings', async (req, res, next) => {
  */
 router.put('/settings', async (req, res, next) => {
     try {
-        const settings = req.body;
-        return successResponse(res, settings, 'Settings updated successfully');
+        const current = loadSettings();
+        const updated = { ...current, ...req.body };
+        saveSettings(updated);
+        logger.info('Admin settings updated', { updatedBy: req.user.userId });
+        return successResponse(res, updated, 'Settings updated successfully');
     } catch (error) {
         logger.error('Update admin settings error', { error: error.message });
         next(error);

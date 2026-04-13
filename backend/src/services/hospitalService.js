@@ -2,6 +2,9 @@ import * as hospitalRepository from '../models/hospitalRepository.js';
 import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import entitlementChecker from '../utils/entitlementChecker.js';
+import { SERVICE_TYPES } from '../constants/packages.js';
+import * as paymentService from './paymentService.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
 
@@ -258,6 +261,27 @@ export const scheduleSurgery = async (userId, surgeryData) => {
       throw new BusinessLogicError('Patient does not have an active subscription');
     }
 
+    // Entitlement checks
+    const packageType = patient.current_package || 'GENERAL';
+
+    const providerAccess = entitlementChecker.checkProviderAccess(packageType, 'hospital');
+    if (!providerAccess.entitled) {
+      throw new BusinessLogicError(providerAccess.reason);
+    }
+
+    // Determine surgery type for entitlement check
+    const surgeryServiceType = surgeryType?.toLowerCase().includes('major')
+      ? SERVICE_TYPES.MAJOR_SURGERY
+      : SERVICE_TYPES.MINOR_SURGERY;
+    const surgeryEntitlement = entitlementChecker.isServiceEntitled(
+      packageType,
+      surgeryServiceType,
+      { surgeryType }
+    );
+    if (!surgeryEntitlement.entitled) {
+      throw new BusinessLogicError(surgeryEntitlement.reason);
+    }
+
     // Check bed availability
     if (hospital.available_beds <= 0) {
       throw new BusinessLogicError('No beds available for surgery scheduling');
@@ -284,6 +308,22 @@ export const scheduleSurgery = async (userId, surgeryData) => {
 
     // Increment surgery count
     await hospitalRepository.incrementSurgeries(hospital.id);
+
+    // Create payment record for this surgery
+    try {
+      await paymentService.processServicePayment({
+        patientId,
+        providerId: hospital.id,
+        providerType: 'hospital',
+        serviceType: surgeryServiceType,
+        packageType,
+      });
+    } catch (paymentError) {
+      logger.warn('Payment record creation failed (surgery still scheduled)', {
+        surgeryId: surgery.id,
+        error: paymentError.message,
+      });
+    }
 
     logger.info('Surgery scheduled', {
       userId,

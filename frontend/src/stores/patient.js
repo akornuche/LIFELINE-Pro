@@ -32,9 +32,10 @@ export const usePatientStore = defineStore('patient', () => {
     if (!subscription.value) return 0;
     const pkg = subscription.value.package_type?.toLowerCase();
     const limits = {
+      general: 4,
       basic: 4,
-      medium: 4,
-      advanced: 6
+      standard: 4,
+      premium: 6
     };
     return limits[pkg] || 0;
   });

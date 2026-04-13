@@ -1,4 +1,4 @@
-import { PACKAGE_ENTITLEMENTS, SERVICE_TYPES, PACKAGE_TYPES } from '../constants/packages.js';
+import { PACKAGE_ENTITLEMENTS, SERVICE_TYPES, PACKAGE_TYPES, PACKAGE_CATEGORIES } from '../constants/packages.js';
 import logger from './logger.js';
 
 /**
@@ -65,6 +65,33 @@ class EntitlementChecker {
         reason: 'Entitlement check failed',
       };
     }
+  }
+
+  /**
+   * Check if patient's package allows access to a specific provider type
+   * GENERAL plan = doctors only. Insurance plans = all providers.
+   */
+  checkProviderAccess(packageType, providerType) {
+    const entitlements = PACKAGE_ENTITLEMENTS[packageType];
+    if (!entitlements) {
+      return {
+        entitled: false,
+        reason: 'Invalid package type',
+      };
+    }
+
+    const allowedProviders = entitlements.allowedProviderTypes || [];
+    if (!allowedProviders.includes(providerType)) {
+      return {
+        entitled: false,
+        reason: `Your ${entitlements.name} does not include ${providerType} access. Upgrade to an Insurance plan.`,
+      };
+    }
+
+    return {
+      entitled: true,
+      reason: `${providerType} access is covered by your ${entitlements.name}`,
+    };
   }
 
   /**
@@ -372,7 +399,7 @@ class EntitlementChecker {
    * Compare packages (for upgrade recommendations)
    */
   comparePackages(currentPackage, desiredService) {
-    const packages = [PACKAGE_TYPES.BASIC, PACKAGE_TYPES.MEDIUM, PACKAGE_TYPES.ADVANCED];
+    const packages = [PACKAGE_TYPES.GENERAL, PACKAGE_TYPES.BASIC, PACKAGE_TYPES.STANDARD, PACKAGE_TYPES.PREMIUM];
     const recommendations = [];
 
     for (const pkg of packages) {

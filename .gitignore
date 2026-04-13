@@ -58,4 +58,25 @@ public/uploads/
 # JWT keys
 *.pem
 *.key
+
+# Graphify output
+graphify-out/
+
+# Vite temp files
+vite.config.js.timestamp-*
+
+# PWA dev service worker output
+dev-dist/
+
+# Backend runtime data
+backend/data/
+
+# Generated / test output files
+backend/jest_output.txt
+backend/test_output.json
+backend/swagger.json
+frontend/build_output.txt
+
+# Production env (secrets)
+.env.production
 !.gitkeep
