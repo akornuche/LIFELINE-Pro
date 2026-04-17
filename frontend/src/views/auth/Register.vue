@@ -35,8 +35,8 @@
               </div>
             </div>
 
-            <!-- Personal Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Personal Information (only for patient & doctor) -->
+            <div v-if="form.userType === 'patient' || form.userType === 'doctor'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="form-group">
                 <label for="firstName" class="form-label">First Name</label>
                 <input
@@ -94,8 +94,8 @@
               </div>
             </div>
 
-            <!-- Date of Birth & Gender -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Date of Birth & Gender (only for patient & doctor) -->
+            <div v-if="form.userType === 'patient' || form.userType === 'doctor'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="form-group">
                 <label for="dateOfBirth" class="form-label">Date of Birth</label>
                 <input
@@ -139,6 +139,333 @@
                 :disabled="loading"
               ></textarea>
             </div>
+
+            <!-- City & State -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="form-group">
+                <label for="city" class="form-label">City</label>
+                <input
+                  id="city"
+                  v-model="form.city"
+                  type="text"
+                  required
+                  class="input"
+                  placeholder="e.g. Lagos"
+                  :disabled="loading"
+                />
+              </div>
+              <div class="form-group">
+                <label for="state" class="form-label">State</label>
+                <select
+                  id="state"
+                  v-model="form.state"
+                  required
+                  class="input"
+                  :disabled="loading"
+                >
+                  <option value="">Select state</option>
+                  <option v-for="s in nigerianStates" :key="s" :value="s">{{ s }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- ===== PATIENT-SPECIFIC FIELDS ===== -->
+            <template v-if="form.userType === 'patient'">
+              <div class="border-t pt-4 mt-2">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Emergency Contact</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="form-group">
+                    <label for="emergencyName" class="form-label">Contact Name</label>
+                    <input
+                      id="emergencyName"
+                      v-model="form.emergencyContact.name"
+                      type="text"
+                      required
+                      class="input"
+                      placeholder="Full name"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="emergencyPhone" class="form-label">Contact Phone</label>
+                    <input
+                      id="emergencyPhone"
+                      v-model="form.emergencyContact.phone"
+                      type="tel"
+                      required
+                      class="input"
+                      placeholder="08012345678"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="emergencyRelationship" class="form-label">Relationship</label>
+                    <select
+                      id="emergencyRelationship"
+                      v-model="form.emergencyContact.relationship"
+                      required
+                      class="input"
+                      :disabled="loading"
+                    >
+                      <option value="">Select</option>
+                      <option value="spouse">Spouse</option>
+                      <option value="parent">Parent</option>
+                      <option value="sibling">Sibling</option>
+                      <option value="child">Child</option>
+                      <option value="friend">Friend</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- ===== DOCTOR-SPECIFIC FIELDS ===== -->
+            <template v-if="form.userType === 'doctor'">
+              <div class="border-t pt-4 mt-2">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Professional Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="form-group">
+                    <label for="specialization" class="form-label">Specialization</label>
+                    <select
+                      id="specialization"
+                      v-model="form.specialization"
+                      required
+                      class="input"
+                      :disabled="loading"
+                    >
+                      <option value="">Select specialization</option>
+                      <option v-for="spec in specializations" :key="spec" :value="spec">{{ spec }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="licenseNumber" class="form-label">Medical License Number</label>
+                    <input
+                      id="licenseNumber"
+                      v-model="form.licenseNumber"
+                      type="text"
+                      required
+                      class="input"
+                      placeholder="e.g. MDCN/2020/12345"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div class="form-group">
+                    <label for="licenseExpiryDate" class="form-label">License Expiry Date</label>
+                    <input
+                      id="licenseExpiryDate"
+                      v-model="form.licenseExpiryDate"
+                      type="date"
+                      required
+                      class="input"
+                      :min="todayDate"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="yearsOfExperience" class="form-label">Years of Experience</label>
+                    <input
+                      id="yearsOfExperience"
+                      v-model.number="form.yearsOfExperience"
+                      type="number"
+                      required
+                      min="0"
+                      max="70"
+                      class="input"
+                      placeholder="e.g. 5"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div class="form-group">
+                    <label for="consultationFee" class="form-label">Consultation Fee (₦)</label>
+                    <input
+                      id="consultationFee"
+                      v-model.number="form.consultationFee"
+                      type="number"
+                      required
+                      min="0"
+                      step="100"
+                      class="input"
+                      placeholder="e.g. 5000"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="qualifications" class="form-label">Qualifications</label>
+                    <input
+                      id="qualifications"
+                      v-model="form.qualificationsText"
+                      type="text"
+                      required
+                      class="input"
+                      placeholder="e.g. MBBS, FWACS (comma-separated)"
+                      :disabled="loading"
+                    />
+                    <p class="form-help">Separate multiple qualifications with commas</p>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- ===== PHARMACY-SPECIFIC FIELDS ===== -->
+            <template v-if="form.userType === 'pharmacy'">
+              <div class="border-t pt-4 mt-2">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Pharmacy Information</h3>
+                <div class="form-group">
+                  <label for="pharmacyName" class="form-label">Pharmacy Name</label>
+                  <input
+                    id="pharmacyName"
+                    v-model="form.pharmacyName"
+                    type="text"
+                    required
+                    class="input"
+                    placeholder="e.g. HealthPlus Pharmacy"
+                    :disabled="loading"
+                  />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div class="form-group">
+                    <label for="pharmLicenseNumber" class="form-label">Pharmacy License Number</label>
+                    <input
+                      id="pharmLicenseNumber"
+                      v-model="form.licenseNumber"
+                      type="text"
+                      required
+                      class="input"
+                      placeholder="e.g. PCN/2020/12345"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="pharmLicenseExpiry" class="form-label">License Expiry Date</label>
+                    <input
+                      id="pharmLicenseExpiry"
+                      v-model="form.licenseExpiryDate"
+                      type="date"
+                      required
+                      class="input"
+                      :min="todayDate"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div class="form-group">
+                    <label for="operatingHoursStart" class="form-label">Opening Time</label>
+                    <input
+                      id="operatingHoursStart"
+                      v-model="form.operatingHoursStart"
+                      type="time"
+                      class="input"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="operatingHoursEnd" class="form-label">Closing Time</label>
+                    <input
+                      id="operatingHoursEnd"
+                      v-model="form.operatingHoursEnd"
+                      type="time"
+                      class="input"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- ===== HOSPITAL-SPECIFIC FIELDS ===== -->
+            <template v-if="form.userType === 'hospital'">
+              <div class="border-t pt-4 mt-2">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Hospital Information</h3>
+                <div class="form-group">
+                  <label for="hospitalName" class="form-label">Hospital Name</label>
+                  <input
+                    id="hospitalName"
+                    v-model="form.hospitalName"
+                    type="text"
+                    required
+                    class="input"
+                    placeholder="e.g. General Hospital Lagos"
+                    :disabled="loading"
+                  />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div class="form-group">
+                    <label for="hospitalType" class="form-label">Hospital Type</label>
+                    <select
+                      id="hospitalType"
+                      v-model="form.hospitalType"
+                      required
+                      class="input"
+                      :disabled="loading"
+                    >
+                      <option value="">Select type</option>
+                      <option value="general">General Hospital</option>
+                      <option value="specialized">Specialized Hospital</option>
+                      <option value="teaching">Teaching Hospital</option>
+                      <option value="clinic">Clinic</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="hospLicenseNumber" class="form-label">Hospital License Number</label>
+                    <input
+                      id="hospLicenseNumber"
+                      v-model="form.licenseNumber"
+                      type="text"
+                      required
+                      class="input"
+                      placeholder="e.g. HEFAMAA/2020/12345"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div class="form-group">
+                    <label for="hospLicenseExpiry" class="form-label">License Expiry Date</label>
+                    <input
+                      id="hospLicenseExpiry"
+                      v-model="form.licenseExpiryDate"
+                      type="date"
+                      required
+                      class="input"
+                      :min="todayDate"
+                      :disabled="loading"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="numberOfBeds" class="form-label">Number of Beds</label>
+                    <input
+                      id="numberOfBeds"
+                      v-model.number="form.numberOfBeds"
+                      type="number"
+                      required
+                      min="1"
+                      class="input"
+                      placeholder="e.g. 50"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+                <div class="form-group mt-4">
+                  <label for="departments" class="form-label">Departments</label>
+                  <input
+                    id="departments"
+                    v-model="form.departmentsText"
+                    type="text"
+                    required
+                    class="input"
+                    placeholder="e.g. Surgery, Pediatrics, Radiology (comma-separated)"
+                    :disabled="loading"
+                  />
+                  <p class="form-help">Separate multiple departments with commas</p>
+                </div>
+              </div>
+            </template>
 
             <!-- Password -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -260,9 +587,9 @@
                 />
                 <label for="terms" class="ml-2 block text-sm text-gray-700">
                   I agree to the
-                  <a href="#" class="text-primary-600 hover:text-primary-500">Terms of Service</a>
+                  <RouterLink to="/terms-of-service" target="_blank" class="text-primary-600 hover:text-primary-500">Terms of Service</RouterLink>
                   and
-                  <a href="#" class="text-primary-600 hover:text-primary-500">Privacy Policy</a>
+                  <RouterLink to="/privacy-policy" target="_blank" class="text-primary-600 hover:text-primary-500">Privacy Policy</RouterLink>
                 </label>
               </div>
             </div>
@@ -302,6 +629,7 @@ import { ref, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
+import * as yup from 'yup';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -318,6 +646,23 @@ const userTypes = [
   { value: 'hospital', label: 'Hospital' }
 ];
 
+const nigerianStates = [
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
+  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT', 'Gombe',
+  'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara',
+  'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau',
+  'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara'
+];
+
+const specializations = [
+  'General Practice', 'Internal Medicine', 'Pediatrics', 'Obstetrics & Gynecology',
+  'Surgery', 'Orthopedics', 'Cardiology', 'Dermatology', 'ENT', 'Ophthalmology',
+  'Psychiatry', 'Radiology', 'Anesthesiology', 'Pathology', 'Neurology',
+  'Urology', 'Oncology', 'Nephrology', 'Pulmonology', 'Endocrinology',
+  'Gastroenterology', 'Hematology', 'Rheumatology', 'Emergency Medicine',
+  'Family Medicine', 'Public Health', 'Dentistry'
+];
+
 const form = reactive({
   userType: 'patient',
   firstName: '',
@@ -327,9 +672,29 @@ const form = reactive({
   dateOfBirth: '',
   gender: '',
   address: '',
+  city: '',
+  state: '',
   password: '',
   confirmPassword: '',
-  acceptTerms: false
+  acceptTerms: false,
+  // Patient specific
+  emergencyContact: { name: '', phone: '', relationship: '' },
+  // Doctor specific
+  specialization: '',
+  licenseNumber: '',
+  licenseExpiryDate: '',
+  yearsOfExperience: null,
+  consultationFee: null,
+  qualificationsText: '',
+  // Pharmacy specific
+  pharmacyName: '',
+  operatingHoursStart: '08:00',
+  operatingHoursEnd: '20:00',
+  // Hospital specific
+  hospitalName: '',
+  hospitalType: '',
+  numberOfBeds: null,
+  departmentsText: '',
 });
 
 const maxDate = computed(() => {
@@ -338,16 +703,53 @@ const maxDate = computed(() => {
   return today.toISOString().split('T')[0];
 });
 
+const todayDate = computed(() => {
+  return new Date().toISOString().split('T')[0];
+});
+
 const handleRegister = async () => {
-  // Validate passwords match
-  if (form.password !== form.confirmPassword) {
-    showError('Passwords do not match');
-    return;
+  // Build yup schema dynamically based on user type
+  const baseSchema = {
+    email: yup.string().required('Email is required').email('Invalid email address'),
+    phone: yup.string().required('Phone number is required'),
+    password: yup.string().required('Password is required').min(8, 'Password must be at least 8 characters'),
+    confirmPassword: yup.string().required('Confirm password is required').oneOf([yup.ref('password')], 'Passwords must match'),
+    address: yup.string().required('Address is required'),
+    city: yup.string().required('City is required'),
+    state: yup.string().required('State is required'),
+    acceptTerms: yup.boolean().oneOf([true], 'You must accept the terms'),
+  };
+
+  if (form.userType === 'patient' || form.userType === 'doctor') {
+    baseSchema.firstName = yup.string().required('First name is required');
+    baseSchema.lastName = yup.string().required('Last name is required');
+    baseSchema.dateOfBirth = yup.string().required('Date of birth is required');
+    baseSchema.gender = yup.string().required('Gender is required');
+  }
+  if (form.userType === 'doctor') {
+    baseSchema.specialization = yup.string().required('Specialization is required');
+    baseSchema.licenseNumber = yup.string().required('License number is required');
+    baseSchema.licenseExpiryDate = yup.string().required('License expiry date is required');
+    baseSchema.qualificationsText = yup.string().required('Qualifications are required');
+  }
+  if (form.userType === 'pharmacy') {
+    baseSchema.pharmacyName = yup.string().required('Pharmacy name is required');
+    baseSchema.licenseNumber = yup.string().required('License number is required');
+    baseSchema.licenseExpiryDate = yup.string().required('License expiry date is required');
+  }
+  if (form.userType === 'hospital') {
+    baseSchema.hospitalName = yup.string().required('Hospital name is required');
+    baseSchema.hospitalType = yup.string().required('Hospital type is required');
+    baseSchema.licenseNumber = yup.string().required('License number is required');
+    baseSchema.licenseExpiryDate = yup.string().required('License expiry date is required');
+    baseSchema.numberOfBeds = yup.number().required('Number of beds is required').min(1, 'Must have at least 1 bed');
+    baseSchema.departmentsText = yup.string().required('Departments are required');
   }
 
-  // Validate password strength
-  if (form.password.length < 8) {
-    showError('Password must be at least 8 characters');
+  try {
+    await yup.object(baseSchema).validate(form, { abortEarly: true });
+  } catch (validationError) {
+    showError(validationError.message);
     return;
   }
 
@@ -356,16 +758,64 @@ const handleRegister = async () => {
   try {
     const registrationData = {
       userType: form.userType,
-      firstName: form.firstName,
-      lastName: form.lastName,
       email: form.email,
       phone: form.phone,
-      dateOfBirth: form.dateOfBirth,
-      gender: form.gender,
       address: form.address,
+      city: form.city,
+      state: form.state,
       password: form.password,
-      confirmPassword: form.confirmPassword
+      confirmPassword: form.confirmPassword,
     };
+
+    // Only include personal fields for patient and doctor
+    if (form.userType === 'patient' || form.userType === 'doctor') {
+      registrationData.firstName = form.firstName;
+      registrationData.lastName = form.lastName;
+      registrationData.dateOfBirth = form.dateOfBirth;
+      registrationData.gender = form.gender;
+    }
+
+    // Add role-specific fields
+    if (form.userType === 'patient') {
+      registrationData.emergencyContact = {
+        name: form.emergencyContact.name,
+        phone: form.emergencyContact.phone,
+        relationship: form.emergencyContact.relationship,
+      };
+    } else if (form.userType === 'doctor') {
+      registrationData.specialization = form.specialization;
+      registrationData.licenseNumber = form.licenseNumber;
+      registrationData.licenseExpiryDate = form.licenseExpiryDate;
+      registrationData.yearsOfExperience = form.yearsOfExperience || 0;
+      registrationData.consultationFee = form.consultationFee || 0;
+      registrationData.qualifications = form.qualificationsText
+        .split(',')
+        .map(q => q.trim())
+        .filter(q => q.length > 0);
+    } else if (form.userType === 'pharmacy') {
+      registrationData.pharmacyName = form.pharmacyName;
+      registrationData.licenseNumber = form.licenseNumber;
+      registrationData.licenseExpiryDate = form.licenseExpiryDate;
+      registrationData.operatingHours = {
+        monday: `${form.operatingHoursStart}-${form.operatingHoursEnd}`,
+        tuesday: `${form.operatingHoursStart}-${form.operatingHoursEnd}`,
+        wednesday: `${form.operatingHoursStart}-${form.operatingHoursEnd}`,
+        thursday: `${form.operatingHoursStart}-${form.operatingHoursEnd}`,
+        friday: `${form.operatingHoursStart}-${form.operatingHoursEnd}`,
+        saturday: `${form.operatingHoursStart}-${form.operatingHoursEnd}`,
+        sunday: 'Closed',
+      };
+    } else if (form.userType === 'hospital') {
+      registrationData.hospitalName = form.hospitalName;
+      registrationData.hospitalType = form.hospitalType;
+      registrationData.licenseNumber = form.licenseNumber;
+      registrationData.licenseExpiryDate = form.licenseExpiryDate;
+      registrationData.numberOfBeds = form.numberOfBeds;
+      registrationData.departments = form.departmentsText
+        .split(',')
+        .map(d => d.trim())
+        .filter(d => d.length > 0);
+    }
 
     await authStore.register(registrationData);
     

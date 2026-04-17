@@ -89,6 +89,17 @@
               <h4 class="text-sm font-semibold text-gray-700 mb-2">Additional Notes</h4>
               <p class="text-gray-600">{{ consultation.notes }}</p>
             </div>
+
+            <!-- Referral Information -->
+            <div v-if="consultation.referral_needed" class="border-t pt-4">
+              <h4 class="text-sm font-semibold text-gray-700 mb-2">Referral</h4>
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Referral Needed
+                </span>
+                <span v-if="consultation.referral_to" class="text-gray-900 font-medium">→ {{ consultation.referral_to }}</span>
+              </div>
+            </div>
           </div>
         </BaseCard>
 
@@ -243,6 +254,53 @@
         </BaseButton>
       </template>
     </BaseModal>
+
+    <!-- Complete Consultation Modal -->
+    <BaseModal :is-open="showCompleteModal" @close="showCompleteModal = false" title="Complete Consultation" size="lg">
+      <form @submit.prevent="submitComplete" class="space-y-4">
+        <BaseInput
+          v-model="completeForm.diagnosis"
+          label="Final Diagnosis"
+          type="textarea"
+          :rows="3"
+          placeholder="Enter final diagnosis..."
+        />
+        <BaseInput
+          v-model="completeForm.treatment_plan"
+          label="Treatment Plan"
+          type="textarea"
+          :rows="3"
+          placeholder="Enter treatment plan..."
+        />
+        <BaseInput
+          v-model="completeForm.notes"
+          label="Closing Notes"
+          type="textarea"
+          :rows="2"
+        />
+        <div class="border-t pt-4">
+          <div class="flex items-center gap-3 mb-3">
+            <input
+              id="complete_referral"
+              v-model="completeForm.referral_needed"
+              type="checkbox"
+              class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label for="complete_referral" class="text-sm font-medium text-gray-700">Referral Needed</label>
+          </div>
+          <BaseInput
+            v-if="completeForm.referral_needed"
+            v-model="completeForm.referral_to"
+            label="Refer To (Specialist / Facility)"
+            placeholder="e.g. Cardiologist, Lagos University Teaching Hospital"
+          />
+        </div>
+      </form>
+      <template #footer>
+        <BaseButton variant="outline" @click="showCompleteModal = false">Cancel</BaseButton>
+        <BaseButton @click="submitComplete" :loading="completing">Complete</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -270,6 +328,15 @@ const cancelling = ref(false);
 const creatingPrescription = ref(false);
 const consultation = ref({});
 const showPrescriptionModal = ref(false);
+const showCompleteModal = ref(false);
+
+const completeForm = ref({
+  diagnosis: '',
+  treatment_plan: '',
+  notes: '',
+  referral_needed: false,
+  referral_to: '',
+});
 
 const prescriptionForm = ref({
   drugs: [{
@@ -310,10 +377,22 @@ const startConsultation = async () => {
 };
 
 const completeConsultation = async () => {
+  showCompleteModal.value = true;
+};
+
+const submitComplete = async () => {
   completing.value = true;
   try {
-    await doctorStore.completeConsultation(consultation.value.id, {});
+    const data = {
+      diagnosis: completeForm.value.diagnosis || undefined,
+      treatment_plan: completeForm.value.treatment_plan || undefined,
+      notes: completeForm.value.notes || undefined,
+      referral_needed: completeForm.value.referral_needed,
+      referral_to: completeForm.value.referral_needed ? completeForm.value.referral_to : null,
+    };
+    await doctorStore.completeConsultation(consultation.value.id, data);
     success('Consultation completed');
+    showCompleteModal.value = false;
     await loadConsultation();
   } catch (error) {
     showError('Failed to complete consultation');

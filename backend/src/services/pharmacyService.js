@@ -185,6 +185,26 @@ export const getPrescriptions = async (userId, options = {}) => {
 };
 
 /**
+ * Get prescription by ID
+ */
+export const getPrescriptionById = async (userId, prescriptionId) => {
+  try {
+    const pharmacy = await ensurePharmacyProfile(userId);
+
+    const prescription = await medicalRecordsRepository.findPrescriptionById(prescriptionId);
+
+    return prescription;
+  } catch (error) {
+    logger.error('Get prescription by ID error', {
+      error: error.message,
+      userId,
+      prescriptionId,
+    });
+    throw error;
+  }
+};
+
+/**
  * Dispense prescription
  */
 export const dispensePrescription = async (userId, prescriptionId, dispensingData = {}) => {
@@ -556,6 +576,7 @@ export default {
   updatePharmacyProfile,
   updateLicense,
   getPrescriptions,
+  getPrescriptionById,
   dispensePrescription,
   verifyPrescription,
   getStatistics,

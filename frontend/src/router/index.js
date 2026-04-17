@@ -24,6 +24,18 @@ const router = createRouter({
       meta: { public: true, guest: true }
     },
     {
+      path: '/terms-of-service',
+      name: 'terms-of-service',
+      component: () => import('@/views/legal/TermsOfService.vue'),
+      meta: { public: true }
+    },
+    {
+      path: '/privacy-policy',
+      name: 'privacy-policy',
+      component: () => import('@/views/legal/PrivacyPolicy.vue'),
+      meta: { public: true }
+    },
+    {
       path: '/forgot-password',
       name: 'forgot-password',
       component: () => import('@/views/auth/ForgotPassword.vue'),
@@ -64,6 +76,11 @@ const router = createRouter({
           component: () => import('@/views/patient/Subscription.vue')
         },
         {
+          path: 'payment/callback',
+          name: 'payment-callback',
+          component: () => import('@/views/patient/PaymentCallback.vue')
+        },
+        {
           path: 'dependents',
           name: 'patient-dependents',
           component: () => import('@/views/patient/Dependents.vue')
@@ -97,6 +114,11 @@ const router = createRouter({
           path: 'settings',
           name: 'patient-settings',
           component: () => import('@/views/patient/Settings.vue')
+        },
+        {
+          path: 'service-requests',
+          name: 'patient-service-requests',
+          component: () => import('@/views/patient/ServiceRequests.vue')
         }
       ]
     },
@@ -151,6 +173,11 @@ const router = createRouter({
           path: 'settings',
           name: 'doctor-settings',
           component: () => import('@/views/doctor/Settings.vue')
+        },
+        {
+          path: 'assignments',
+          name: 'doctor-assignments',
+          component: () => import('@/views/shared/Assignments.vue')
         }
       ]
     },
@@ -195,6 +222,11 @@ const router = createRouter({
           path: 'settings',
           name: 'pharmacy-settings',
           component: () => import('@/views/pharmacy/Settings.vue')
+        },
+        {
+          path: 'assignments',
+          name: 'pharmacy-assignments',
+          component: () => import('@/views/shared/Assignments.vue')
         }
       ]
     },
@@ -249,6 +281,11 @@ const router = createRouter({
           path: 'settings',
           name: 'hospital-settings',
           component: () => import('@/views/hospital/Settings.vue')
+        },
+        {
+          path: 'assignments',
+          name: 'hospital-assignments',
+          component: () => import('@/views/shared/Assignments.vue')
         }
       ]
     },
@@ -406,7 +443,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     const hasNoActiveSub = !patientStore.hasActiveSubscription;
-    const subscriptionExemptRoutes = ['patient-subscription', 'patient-profile', 'patient-settings'];
+    const subscriptionExemptRoutes = ['patient-subscription', 'patient-profile', 'patient-settings', 'payment-callback'];
     const isNotOnExemptPage = !subscriptionExemptRoutes.includes(to.name);
 
     if (hasNoActiveSub && isNotOnExemptPage) {

@@ -17,6 +17,7 @@ import pharmacyRoutes from './routes/pharmacyRoutes.js';
 import hospitalRoutes from './routes/hospitalRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import queueRoutes from './routes/queueRoutes.js';
 
 // Import utilities
 import logger from './utils/logger.js';
@@ -79,8 +80,11 @@ app.use(
   })
 );
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
+// Body parsing middleware — capture rawBody for webhook HMAC verification
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); },
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging middleware
@@ -123,6 +127,7 @@ app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/queue', queueRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -218,14 +223,14 @@ const startServer = async () => {
       });
 
       // Initialize Socket.IO for real-time notifications
-      // initializeSocketIO(server);
-      // logger.info('Socket.IO initialized for real-time notifications');
+      initializeSocketIO(server);
+      logger.info('Socket.IO initialized for real-time notifications');
 
       // Start payment reminder service
-      // if (process.env.ENABLE_CRON_JOBS === 'true') {
-      //   paymentReminderService.initialize();
-      //   logger.info('Payment reminder service started');
-      // }
+      if (process.env.ENABLE_CRON_JOBS === 'true') {
+        paymentReminderService.initialize();
+        logger.info('Payment reminder service started');
+      }
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`\n🚀 Server running on http://localhost:${PORT}`);
@@ -249,25 +254,25 @@ const startServer = async () => {
     });
 
     // Handle unhandled promise rejections
-    // process.on('unhandledRejection', (reason, promise) => {
-    //   logger.error('Unhandled Rejection', {
-    //     reason: reason,
-    //     promise: promise,
-    //   });
-    // });
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled Rejection', {
+        reason: reason,
+        promise: promise,
+      });
+    });
 
     // Handle uncaught exceptions
-    // process.on('uncaughtException', (error) => {
-    //   logger.error('Uncaught Exception', {
-    //     error: error.message,
-    //     stack: error.stack,
-    //   });
-    //   process.exit(1);
-    // });
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught Exception', {
+        error: error.message,
+        stack: error.stack,
+      });
+      process.exit(1);
+    });
 
     // Graceful shutdown handlers
-    // process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    // process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
     logger.error('Failed to start server', {
       error: error.message,

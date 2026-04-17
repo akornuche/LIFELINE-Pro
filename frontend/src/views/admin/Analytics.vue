@@ -14,36 +14,47 @@ import { useAdminStore } from '@/stores/admin';
 import { BaseCard } from '@/components';
 
 const adminStore = useAdminStore();
-const stats = ref({ totalUsers: 1247, totalRevenue: 5420000, activeProviders: 124, totalTransactions: 3456, userGrowth: 12, revenueGrowth: 18, totalProviders: 124, doctorCount: 56, pharmacyCount: 38, hospitalCount: 30 });
+const stats = ref({ totalUsers: 0, totalRevenue: 0, activeProviders: 0, totalTransactions: 0, userGrowth: 0, revenueGrowth: 0, totalProviders: 0, doctorCount: 0, pharmacyCount: 0, hospitalCount: 0, totalPatients: 0 });
 const userGrowthChart = ref(null);
 const revenueChart = ref(null);
 const portalUsageChart = ref(null);
+const timeSeries = ref({ labels: [], userGrowth: [], revenue: [] });
 
 onMounted(async () => {
-  const data = await adminStore.getStatistics();
-  if (data) stats.value = { ...stats.value, ...data };
+  try {
+    const [statsData, tsData] = await Promise.all([
+      adminStore.getStatistics(),
+      adminStore.getTimeSeries({ months: 6 }),
+    ]);
+    if (statsData) stats.value = { ...stats.value, ...statsData };
+    if (tsData) timeSeries.value = tsData;
+  } catch (e) {
+    console.error('Failed to load analytics:', e);
+  }
   createUserGrowthChart();
   createRevenueChart();
   createPortalUsageChart();
 });
 
 const createUserGrowthChart = () => {
+  const ts = timeSeries.value;
   new Chart(userGrowthChart.value, {
     type: 'line',
     data: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [{ label: 'New Users', data: [120, 195, 150, 280, 250, 340], borderColor: 'rgb(59, 130, 246)', tension: 0.1 }]
+      labels: ts.labels.length ? ts.labels : ['—'],
+      datasets: [{ label: 'New Users', data: ts.userGrowth.length ? ts.userGrowth : [0], borderColor: 'rgb(59, 130, 246)', tension: 0.1 }]
     },
     options: { responsive: true, maintainAspectRatio: true }
   });
 };
 
 const createRevenueChart = () => {
+  const ts = timeSeries.value;
   new Chart(revenueChart.value, {
     type: 'bar',
     data: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [{ label: 'Revenue (₦)', data: [650000, 890000, 750000, 1200000, 980000, 1450000], backgroundColor: 'rgb(34, 197, 94)' }]
+      labels: ts.labels.length ? ts.labels : ['—'],
+      datasets: [{ label: 'Revenue (₦)', data: ts.revenue.length ? ts.revenue : [0], backgroundColor: 'rgb(34, 197, 94)' }]
     },
     options: { responsive: true, maintainAspectRatio: true }
   });
@@ -54,7 +65,7 @@ const createPortalUsageChart = () => {
     type: 'doughnut',
     data: {
       labels: ['Patient', 'Doctor', 'Pharmacy', 'Hospital'],
-      datasets: [{ data: [856, 56, 38, 30], backgroundColor: ['rgb(147, 51, 234)', 'rgb(239, 68, 68)', 'rgb(59, 130, 246)', 'rgb(34, 197, 94)'] }]
+      datasets: [{ data: [stats.value.totalPatients || 0, stats.value.doctorCount || 0, stats.value.pharmacyCount || 0, stats.value.hospitalCount || 0], backgroundColor: ['rgb(147, 51, 234)', 'rgb(239, 68, 68)', 'rgb(59, 130, 246)', 'rgb(34, 197, 94)'] }]
     },
     options: { responsive: true, maintainAspectRatio: true }
   });

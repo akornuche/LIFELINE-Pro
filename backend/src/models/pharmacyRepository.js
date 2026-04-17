@@ -17,19 +17,21 @@ export const createPharmacy = async (userId, pharmacyData) => {
     pharmacyName,
     address,
     licenseNumber,
+    operatingHours = null,
   } = pharmacyData;
 
   try {
     const result = await database.query(
       `INSERT INTO pharmacies (
-        id, user_id, pharmacy_name, address, license_number
-      ) VALUES ($1, $2, $3, $4, $5)`,
+        id, user_id, pharmacy_name, address, license_number, operating_hours
+      ) VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         id,
         userId,
         pharmacyName,
         address,
         licenseNumber,
+        operatingHours ? JSON.stringify(operatingHours) : null,
       ]
     );
 

@@ -43,7 +43,23 @@ const loadPayments = async () => {
 const handleSearch = () => { pagination.value.currentPage = 1; loadPayments(); };
 const handlePageChange = (page) => { pagination.value.currentPage = page; loadPayments(); };
 const resetFilters = () => { filters.value = { search: '', type: '', status: '' }; pagination.value.currentPage = 1; loadPayments(); };
-const viewPaymentDetails = (id) => info('Payment details view coming soon');
+const viewPaymentDetails = async (id) => {
+  try {
+    const data = await adminStore.getPayment(id);
+    if (data) {
+      const details = [
+        `Reference: ${data.reference || data.transaction_reference || 'N/A'}`,
+        `Amount: \u20a6${formatMoney(data.amount)}`,
+        `Status: ${data.status}`,
+        `Type: ${data.payment_type || 'N/A'}`,
+        `Date: ${data.created_at ? formatDate(data.created_at) : 'N/A'}`,
+      ].join('\n');
+      alert(details);
+    }
+  } catch (error) {
+    showError('Failed to load payment details');
+  }
+};
 const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
 const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy h:mm a');
 const getStatusBadge = (status) => ({ completed: 'badge badge-success', pending: 'badge badge-warning', failed: 'badge badge-error' }[status] || 'badge');

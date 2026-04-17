@@ -72,6 +72,18 @@ router.get(
 );
 
 /**
+ * @route   GET /api/pharmacies/prescriptions/:prescriptionId
+ * @desc    Get prescription by ID
+ * @access  Private (Pharmacy)
+ */
+router.get(
+  '/prescriptions/:prescriptionId',
+  authenticate,
+  checkRole('pharmacy'),
+  pharmacyController.getPrescriptionById
+);
+
+/**
  * @route   POST /api/pharmacies/prescriptions/:prescriptionId/dispense
  * @desc    Dispense prescription
  * @access  Private (Pharmacy)

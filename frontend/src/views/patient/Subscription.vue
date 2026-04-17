@@ -285,6 +285,7 @@ import { useRouter } from 'vue-router';
 import { usePatientStore } from '@/stores/patient';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
+import { paymentService } from '@/services';
 import { 
   CheckIcon, 
   ClockIcon, 
@@ -355,26 +356,58 @@ const formatDate = (date) => {
 
 const selectPlan = async (packageType) => {
   const isRenewal = patientStore.hasActiveSubscription;
+  const amount = packagePrices[packageType];
   
   const confirmed = await confirm({
     title: isRenewal ? 'Renew/Change Plan' : 'Select Plan',
-    message: `${isRenewal ? 'Switch/Renew' : 'Subscribe'} to ${packageType.toUpperCase()} plan for ₦${packagePrices[packageType]}/year?`,
-    confirmText: 'Confirm Payment',
+    message: `${isRenewal ? 'Switch/Renew' : 'Subscribe'} to ${packageType.toUpperCase()} plan for ₦${amount}/month?`,
+    confirmText: 'Proceed to Payment',
     type: 'info'
   });
   
   if (!confirmed) return;
   
   try {
+    // Initialize Paystack payment
+    const response = await paymentService.initializePayment({
+      amount,
+      paymentMethod: 'card',
+      paymentType: 'subscription',
+      description: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} subscription plan`,
+      metadata: { packageType, isRenewal },
+    });
+
+    const { authorizationUrl, paymentReference } = response.data || response;
+
+    // Store pending package info so callback can activate subscription
+    sessionStorage.setItem('pendingPackageType', packageType);
+    sessionStorage.setItem('pendingPaymentReference', paymentReference);
+
+    if (authorizationUrl && !authorizationUrl.includes('localhost')) {
+      // Live Paystack — redirect to payment page
+      window.location.href = authorizationUrl;
+    } else {
+      // Dev/mock mode — simulate successful payment and activate subscription directly
+      success('Dev mode: simulating payment success...');
+      await activateSubscription(packageType, isRenewal);
+    }
+  } catch (err) {
+    console.error('Payment error:', err);
+    showError(err.response?.data?.message || 'Payment initialization failed. Please try again.');
+  }
+};
+
+const activateSubscription = async (packageType, isRenewal) => {
+  try {
     if (isRenewal) {
       await patientStore.updateSubscription({ 
-        packageType: packageType,
+        packageType,
         autoRenew: true,
         subscriptionStatus: 'active'
       });
     } else {
       await patientStore.createSubscription({
-        packageType: packageType,
+        packageType,
         autoRenew: true,
         subscriptionStatus: 'active'
       });
@@ -383,14 +416,12 @@ const selectPlan = async (packageType) => {
     success(`Plan ${packageType} activated! Unlocking your dashboard...`);
     await patientStore.fetchSubscription();
     
-    // Redirect to dashboard after selection
     setTimeout(() => {
       router.push('/patient');
     }, 1500);
-    
   } catch (error) {
-    console.error('Subscription error:', error);
-    showError(error.response?.data?.message || 'Transaction failed. Please try again.');
+    console.error('Subscription activation error:', error);
+    showError(error.response?.data?.message || 'Subscription activation failed.');
   }
 };
 </script>

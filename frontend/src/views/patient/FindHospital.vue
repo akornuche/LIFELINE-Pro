@@ -231,6 +231,7 @@ const { success, error: showError } = useToast();
 const loading = ref(true);
 const searchQuery = ref('');
 const hospitals = ref([]);
+const selectedHospital = ref(null);
 
 const filters = ref({
   type: '',
@@ -280,13 +281,13 @@ const truncate = (text, length) => {
 };
 
 const viewDetails = (hospital) => {
-  // TODO: Show hospital details modal
-  console.log('View details:', hospital);
+  selectedHospital.value = hospital;
 };
 
 const viewLocation = (hospital) => {
-  // TODO: Show map modal
-  console.log('View location:', hospital);
+  if (hospital.address) {
+    window.open(`https://maps.google.com/?q=${encodeURIComponent(hospital.address)}`, '_blank');
+  }
 };
 
 const contactHospital = (hospital) => {

@@ -305,7 +305,7 @@ export const getSubscriptionDetails = async (userId) => {
     }
 
     // Get package entitlements directly from constants
-    const entitlements = PACKAGE_ENTITLEMENTS[subscription.current_package] || null;
+    const entitlements = PACKAGE_ENTITLEMENTS[subscription.current_package || subscription.package_type || 'GENERAL'] || null;
 
     // Map database field names to frontend expected names
     return mapSubscription(subscription);

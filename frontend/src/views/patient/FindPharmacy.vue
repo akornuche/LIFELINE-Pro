@@ -248,12 +248,12 @@ const resetFilters = () => {
 };
 
 const viewLocation = (pharmacy) => {
-  // TODO: Show map modal
-  console.log('View location:', pharmacy);
+  if (pharmacy.address) {
+    window.open(`https://maps.google.com/?q=${encodeURIComponent(pharmacy.address)}`, '_blank');
+  }
 };
 
 const contactPharmacy = (pharmacy) => {
-  // TODO: Show contact options
   window.location.href = `tel:${pharmacy.phone}`;
 };
 </script>

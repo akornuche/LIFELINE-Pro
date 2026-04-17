@@ -13,6 +13,7 @@ import {
   deactivateAccountSchema,
 } from '../validation/authSchemas.js';
 import { authLimiter, strictAuthLimiter } from '../middleware/rateLimiter.js';
+import { auditAuth } from '../middleware/auditLog.js';
 
 const router = express.Router();
 
@@ -21,14 +22,14 @@ const router = express.Router();
  * @desc    Register new user
  * @access  Public
  */
-router.post('/register', authLimiter, validate(registerSchema), authController.register);
+router.post('/register', authLimiter, validate(registerSchema), auditAuth('user.register'), authController.register);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', authLimiter, validate(loginSchema), authController.login);
+router.post('/login', authLimiter, validate(loginSchema), auditAuth('user.login'), authController.login);
 
 /**
  * @route   POST /api/auth/refresh
@@ -42,7 +43,7 @@ router.post('/refresh', validate(refreshTokenSchema), authController.refreshToke
  * @desc    Logout user
  * @access  Private
  */
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', authenticate, auditAuth('user.logout'), authController.logout);
 
 /**
  * @route   POST /api/auth/forgot-password
@@ -53,6 +54,7 @@ router.post(
   '/forgot-password',
   authLimiter,
   validate(forgotPasswordSchema),
+  auditAuth('user.password_reset_request'),
   authController.forgotPassword
 );
 
@@ -61,7 +63,7 @@ router.post(
  * @desc    Reset password with token
  * @access  Public
  */
-router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+router.post('/reset-password', validate(resetPasswordSchema), auditAuth('user.password_reset'), authController.resetPassword);
 
 /**
  * @route   POST /api/auth/change-password

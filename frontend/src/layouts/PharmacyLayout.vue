@@ -68,7 +68,8 @@ import {
   ClipboardDocumentCheckIcon,
   ChartBarIcon,
   CurrencyDollarIcon,
-  CogIcon
+  CogIcon,
+  QueueListIcon
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
@@ -80,6 +81,7 @@ const navigation = [
   { name: 'Prescriptions', to: '/pharmacy/prescriptions', icon: ClipboardDocumentCheckIcon },
   { name: 'Statistics', to: '/pharmacy/statistics', icon: ChartBarIcon },
   { name: 'Payments', to: '/pharmacy/payments', icon: CurrencyDollarIcon },
+  { name: 'Assignments', to: '/pharmacy/assignments', icon: QueueListIcon },
   { name: 'Settings', to: '/pharmacy/settings', icon: CogIcon }
 ];
 

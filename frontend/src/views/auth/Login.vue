@@ -19,9 +19,8 @@
               <label for="email" class="form-label">Email Address</label>
               <input
                 id="email"
-                v-model="form.email"
+                v-model="email"
                 type="email"
-                required
                 autocomplete="email"
                 :class="['input', { 'input-error': errors.email }]"
                 placeholder="you@example.com"
@@ -36,9 +35,8 @@
               <div class="relative">
                 <input
                   id="password"
-                  v-model="form.password"
+                  v-model="password"
                   :type="showPassword ? 'text' : 'password'"
-                  required
                   autocomplete="current-password"
                   :class="['input pr-10', { 'input-error': errors.password }]"
                   placeholder="Patient@123"
@@ -67,7 +65,7 @@
               <div class="flex items-center">
                 <input
                   id="remember-me"
-                  v-model="form.rememberMe"
+                  v-model="rememberMe"
                   type="checkbox"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
@@ -117,10 +115,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
+import { useForm, useField } from 'vee-validate';
+import * as yup from 'yup';
 
 const router = useRouter();
 const route = useRoute();
@@ -130,38 +130,27 @@ const { success, error: showError } = useToast();
 const loading = ref(false);
 const showPassword = ref(false);
 
-const form = reactive({
-  email: '',
-  password: '',
-  rememberMe: false
+// Yup validation schema
+const loginSchema = yup.object({
+  email: yup.string().required('Email is required').email('Please enter a valid email'),
+  password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
 });
 
-const errors = reactive({
-  email: '',
-  password: ''
+const { handleSubmit, errors } = useForm({
+  validationSchema: loginSchema,
 });
 
-const handleLogin = async () => {
-  // Reset errors
-  errors.email = '';
-  errors.password = '';
+const { value: email } = useField('email');
+const { value: password } = useField('password');
+const rememberMe = ref(false);
 
-  // Validate
-  if (!form.email) {
-    errors.email = 'Email is required';
-    return;
-  }
-  if (!form.password) {
-    errors.password = 'Password is required';
-    return;
-  }
-
+const handleLogin = handleSubmit(async (values) => {
   loading.value = true;
 
   try {
     await authStore.login({
-      email: form.email,
-      password: form.password
+      email: values.email,
+      password: values.password
     });
 
     success(`Welcome back, ${authStore.user?.first_name || 'User'}!`);
@@ -184,8 +173,6 @@ const handleLogin = async () => {
   } catch (error) {
     console.error('Login failed:', error);
     if (error.response?.status === 401) {
-      errors.email = 'Invalid email or password';
-      errors.password = 'Invalid email or password';
       showError('Invalid email or password. Please try again.');
     } else if (error.response?.status === 403) {
       showError('Your account is not verified. Please check your email.');
@@ -195,5 +182,5 @@ const handleLogin = async () => {
   } finally {
     loading.value = false;
   }
-};
+});
 </script>

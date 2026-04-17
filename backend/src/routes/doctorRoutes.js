@@ -13,6 +13,7 @@ import {
   updateVerificationStatusSchema,
   updateRatingSchema,
 } from '../validation/providerSchemas.js';
+import { auditMedicalRecord, auditProvider } from '../middleware/auditLog.js';
 
 const router = express.Router();
 
@@ -70,6 +71,13 @@ router.put(
 router.get('/consultations', authenticate, checkRole('doctor'), doctorController.getConsultations);
 
 /**
+ * @route   GET /api/doctors/consultations/:consultationId
+ * @desc    Get consultation by ID
+ * @access  Private (Doctor)
+ */
+router.get('/consultations/:consultationId', authenticate, checkRole('doctor'), doctorController.getConsultationById);
+
+/**
  * @route   POST /api/doctors/consultations
  * @desc    Create consultation
  * @access  Private (Doctor)
@@ -79,6 +87,7 @@ router.post(
   authenticate,
   checkRole('doctor'),
   validate(createConsultationSchema),
+  auditMedicalRecord('create'),
   doctorController.createConsultation
 );
 
@@ -92,6 +101,7 @@ router.put(
   authenticate,
   checkRole('doctor'),
   validate(updateConsultationSchema),
+  auditMedicalRecord('update'),
   doctorController.updateConsultation
 );
 
@@ -112,6 +122,7 @@ router.post(
   authenticate,
   checkRole('doctor'),
   validate(createPrescriptionSchema),
+  auditMedicalRecord('prescribe'),
   doctorController.createPrescription
 );
 
@@ -184,6 +195,7 @@ router.put(
   authenticate,
   checkRole('admin'),
   validate(updateVerificationStatusSchema),
+  auditProvider('verify'),
   doctorController.updateVerificationStatus
 );
 

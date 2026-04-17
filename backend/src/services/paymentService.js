@@ -5,6 +5,8 @@ import * as userRepository from '../models/userRepository.js';
 import * as doctorRepository from '../models/doctorRepository.js';
 import * as pharmacyRepository from '../models/pharmacyRepository.js';
 import * as hospitalRepository from '../models/hospitalRepository.js';
+import PDFDocument from 'pdfkit';
+import paystack from '../utils/paystack.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js';
 
@@ -67,13 +69,20 @@ export const initializePayment = async (userId, paymentData) => {
       paymentType,
     });
 
-    // In production, integrate with payment gateway (Paystack/Flutterwave)
-    // const gatewayResponse = await paymentGateway.initialize(payment);
+    // Initialize with Paystack gateway (returns mock when not enabled)
+    const user = await userRepository.findById(userId);
+    const gatewayResponse = await paystack.initializeTransaction({
+      email: user.email,
+      amount,
+      reference: paymentReference,
+      metadata: { paymentId: payment.id, patientId: patient.id, paymentType },
+    });
 
     return {
       payment,
       paymentReference,
-      // authorizationUrl: gatewayResponse.authorization_url, // From gateway
+      authorizationUrl: gatewayResponse.authorization_url,
+      accessCode: gatewayResponse.access_code,
     };
   } catch (error) {
     logger.error('Initialize payment error', {
@@ -95,15 +104,14 @@ export const verifyPayment = async (paymentReference) => {
       throw new NotFoundError('Payment');
     }
 
-    // In production, verify with payment gateway
-    // const gatewayVerification = await paymentGateway.verify(paymentReference);
+    // Verify with Paystack gateway (returns mock success when not enabled)
+    const gatewayVerification = await paystack.verifyTransaction(paymentReference);
 
-    // For now, simulate verification
-    const verified = true; // gatewayVerification.status === 'success'
+    const verified = gatewayVerification.status === 'success';
 
     if (verified) {
       await paymentRepository.updatePaymentStatus(payment.id, 'completed', {
-        // gatewayResponse: gatewayVerification
+        gatewayResponse: gatewayVerification,
       });
 
       logger.info('Payment verified successfully', {
@@ -117,7 +125,7 @@ export const verifyPayment = async (paymentReference) => {
       };
     } else {
       await paymentRepository.updatePaymentStatus(payment.id, 'failed', {
-        // gatewayResponse: gatewayVerification
+        gatewayResponse: gatewayVerification,
       });
 
       logger.warn('Payment verification failed', {
@@ -193,7 +201,7 @@ export const processServicePayment = async (serviceData) => {
  * Handle payment webhook
  */
 export const handleWebhook = async (webhookData) => {
-  const { gateway, event, payload } = webhookData;
+  const { gateway, event, payload, eventId = null } = webhookData;
 
   try {
     // Log webhook
@@ -202,6 +210,7 @@ export const handleWebhook = async (webhookData) => {
       event,
       payload,
       processingStatus: 'pending',
+      eventId,
     });
 
     // Process based on event type
@@ -574,6 +583,105 @@ export const processRefund = async (paymentId, refundData) => {
   }
 };
 
+/**
+ * Generate PDF for a monthly statement
+ * Returns a Buffer containing the PDF
+ */
+export const generateStatementPdf = async (statementId) => {
+  try {
+    const statement = await paymentRepository.findStatementById(statementId);
+    if (!statement) {
+      throw new NotFoundError('Statement');
+    }
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Header
+      doc.fontSize(20).font('Helvetica-Bold').text('LIFELINE-Pro', { align: 'center' });
+      doc.fontSize(12).font('Helvetica').text('Healthcare Management Platform', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(16).font('Helvetica-Bold').text('Monthly Statement', { align: 'center' });
+      doc.moveDown(1);
+
+      // Divider
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+      doc.moveDown(0.5);
+
+      // Statement Info
+      doc.fontSize(11).font('Helvetica');
+      doc.text(`Statement ID: ${statement.id}`);
+      doc.text(`Period: ${monthNames[statement.month - 1]} ${statement.year}`);
+      doc.text(`Provider Type: ${statement.provider_type?.charAt(0).toUpperCase()}${statement.provider_type?.slice(1)}`);
+      doc.text(`Status: ${statement.status?.toUpperCase()}`);
+      doc.text(`Generated: ${new Date(statement.created_at).toLocaleDateString()}`);
+      if (statement.email) doc.text(`Email: ${statement.email}`);
+      if (statement.lifeline_id) doc.text(`Lifeline ID: ${statement.lifeline_id}`);
+      doc.moveDown(1);
+
+      // Divider
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+      doc.moveDown(0.5);
+
+      // Financial Summary
+      doc.fontSize(14).font('Helvetica-Bold').text('Financial Summary');
+      doc.moveDown(0.5);
+
+      const formatCurrency = (amount) => `₦${parseFloat(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      doc.fontSize(11).font('Helvetica');
+
+      const summaryY = doc.y;
+      const col1 = 70;
+      const col2 = 350;
+
+      doc.text('Total Transactions:', col1, summaryY);
+      doc.text(`${statement.transaction_count || 0}`, col2, summaryY);
+
+      doc.text('Gross Amount:', col1);
+      doc.text(formatCurrency(statement.total_amount), col2, doc.y - 14);
+
+      doc.text('Platform Fee (10%):', col1);
+      doc.text(formatCurrency(statement.platform_fee), col2, doc.y - 14);
+
+      doc.moveDown(0.3);
+      doc.moveTo(col1, doc.y).lineTo(480, doc.y).stroke();
+      doc.moveDown(0.3);
+
+      doc.font('Helvetica-Bold');
+      doc.text('Net Amount (Payable):', col1);
+      doc.text(formatCurrency(statement.net_amount), col2, doc.y - 14);
+
+      doc.moveDown(1.5);
+
+      // Footer
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+      doc.moveDown(0.5);
+      doc.fontSize(9).font('Helvetica').fillColor('#666666');
+      doc.text('This is a system-generated statement from LIFELINE-Pro.', { align: 'center' });
+      doc.text('For questions, contact support@lifeline-pro.com', { align: 'center' });
+
+      doc.end();
+    });
+  } catch (error) {
+    logger.error('Generate statement PDF error', {
+      error: error.message,
+      statementId,
+    });
+    throw error;
+  }
+};
+
 export default {
   initializePayment,
   verifyPayment,
@@ -584,6 +692,7 @@ export default {
   generateMonthlyStatement,
   getProviderStatements,
   getStatementById,
+  generateStatementPdf,
   approveStatement,
   rejectStatement,
   getPendingStatements,

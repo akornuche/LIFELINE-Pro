@@ -78,6 +78,8 @@ class DatabaseInitializer {
         '14_monthly_statements.sql',
         '15_patient_payments.sql',
         '16_audit_logs.sql',
+        '17_service_requests.sql',
+        '18_beds.sql',
       ];
 
       // Import database dynamically to avoid circular dependency
@@ -86,6 +88,27 @@ class DatabaseInitializer {
       // Ensure database is connected
       if (!database.isConnected()) {
         await database.connect();
+      }
+
+      // Pre-schema migrations: fix tables that need restructuring before CREATE TABLE IF NOT EXISTS
+      try {
+        // Check if monthly_statements exists with old patient-oriented schema
+        const result = await database.query(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='monthly_statements'"
+        );
+        if (result.rows.length > 0) {
+          // Table exists — check if it has the NEW provider_id column (positive check avoids error log noise)
+          try {
+            await database.query('SELECT provider_id FROM monthly_statements LIMIT 0');
+            // New schema already in place — no action needed
+          } catch (_) {
+            // provider_id column missing — old schema, drop it so new schema takes effect
+            await database.query('DROP TABLE IF EXISTS monthly_statements');
+            logger.info('Pre-migration: dropped old patient-oriented monthly_statements table');
+          }
+        }
+      } catch (error) {
+        // Table doesn't exist yet — no migration needed
       }
 
       for (const file of schemaFiles) {
@@ -132,9 +155,44 @@ class DatabaseInitializer {
       }
 
       logger.info('All schemas executed successfully');
+
+      // Run safe migrations for existing databases (ALTER TABLE IF NOT EXISTS equivalents)
+      await this.runMigrations(database);
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Run safe column migrations for existing databases
+   * SQLite doesn't support ALTER TABLE IF NOT EXISTS, so we check pragma first
+   */
+  async runMigrations(database) {
+    const migrations = [
+      { table: 'doctors', column: 'rejection_reason', type: 'TEXT' },
+      { table: 'pharmacies', column: 'rejection_reason', type: 'TEXT' },
+      { table: 'hospitals', column: 'rejection_reason', type: 'TEXT' },
+      { table: 'consultations', column: 'referral_needed', type: 'BOOLEAN DEFAULT FALSE' },
+      { table: 'consultations', column: 'referral_to', type: 'VARCHAR(255)' },
+    ];
+
+    for (const { table, column, type } of migrations) {
+      try {
+        // Use SELECT to check column existence since PRAGMA goes through db.run which discards rows
+        try {
+          await database.query(`SELECT ${column} FROM ${table} LIMIT 0`);
+          // Column already exists — skip
+        } catch (_) {
+          // Column doesn't exist — add it
+          await database.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+          logger.info(`Migration: added ${column} to ${table}`);
+        }
+      } catch (error) {
+        logger.warn(`Migration skipped: ${table}.${column}`, { error: error.message });
+      }
+    }
+
+    // monthly_statements migration handled in pre-schema step (runSchemas)
   }
 
   /**

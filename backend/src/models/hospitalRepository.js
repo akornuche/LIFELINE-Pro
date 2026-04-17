@@ -24,14 +24,16 @@ export const createHospital = async (userId, hospitalData) => {
   try {
     const result = await database.query(
       `INSERT INTO hospitals (
-        id, user_id, hospital_name, address, license_number
-      ) VALUES ($1, $2, $3, $4, $5)`,
+        id, user_id, hospital_name, address, hospital_type, license_number, bed_capacity
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         id,
         userId,
         hospitalName,
         address,
+        hospitalType,
         licenseNumber,
+        numberOfBeds,
       ]
     );
 

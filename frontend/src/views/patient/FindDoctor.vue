@@ -218,6 +218,7 @@ const { success, error: showError } = useToast();
 const loading = ref(true);
 const searchQuery = ref('');
 const doctors = ref([]);
+const selectedDoctor = ref(null);
 
 const filters = ref({
   specialization: '',
@@ -260,12 +261,10 @@ const resetFilters = () => {
 };
 
 const bookConsultation = (doctor) => {
-  // TODO: Navigate to consultation booking
   router.push(`/patient/consultation/book?doctor=${doctor.id}`);
 };
 
 const viewProfile = (doctor) => {
-  // TODO: Show doctor profile modal
-  console.log('View profile:', doctor);
+  selectedDoctor.value = doctor;
 };
 </script>

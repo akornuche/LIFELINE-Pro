@@ -112,6 +112,18 @@ router.get(
 );
 
 /**
+ * @route   GET /api/payments/statements/:statementId/download
+ * @desc    Download statement as PDF
+ * @access  Private (Provider, Admin)
+ */
+router.get(
+  '/statements/:statementId/download',
+  authenticate,
+  isAdminOrProvider,
+  paymentController.downloadStatement
+);
+
+/**
  * @route   POST /api/payments/statements/:statementId/approve
  * @desc    Approve statement
  * @access  Private (Admin)

@@ -44,7 +44,7 @@ const handlePageChange = (page) => { pagination.value.currentPage = page; loadPh
 const resetFilters = () => { filters.value = { search: '', verified: '' }; pagination.value.currentPage = 1; loadPharmacies(); };
 const verifyPharmacy = async (id) => {
   try {
-    await adminStore.verifyProvider(id, { provider_type: 'pharmacy' });
+    await adminStore.verifyProvider(id, { providerType: 'pharmacy' });
     success('Pharmacy verified successfully');
     loadPharmacies();
   } catch (error) {

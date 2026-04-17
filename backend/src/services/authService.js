@@ -8,6 +8,7 @@ import { generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshTo
 import { generateLifelineId } from '../utils/idGenerator.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, UnauthorizedError, NotFoundError } from '../middleware/errorHandler.js';
+import { sendEmail } from './emailService.js';
 
 /**
  * Authentication Service
@@ -28,7 +29,24 @@ export const register = async (userData) => {
     dateOfBirth = null,
     gender = null,
     address = null,
+    city = null,
+    state = null,
     emergencyContact = null,
+    // Doctor fields
+    specialization = null,
+    licenseNumber = null,
+    licenseExpiryDate = null,
+    yearsOfExperience = 0,
+    qualifications = [],
+    consultationFee = 0,
+    // Pharmacy fields
+    pharmacyName = null,
+    operatingHours = null,
+    // Hospital fields
+    hospitalName = null,
+    hospitalType = 'general',
+    numberOfBeds = 0,
+    departments = [],
   } = userData;
 
   try {
@@ -62,6 +80,8 @@ export const register = async (userData) => {
       phone,
       role: userType,
       dateOfBirth,
+      city,
+      state,
     });
 
     // Create role-specific records
@@ -78,27 +98,29 @@ export const register = async (userData) => {
       });
     } else if (userType === 'doctor') {
       await doctorRepository.createDoctor(user.id, {
-        specialization: 'General Practice', // Default value
-        licenseNumber: `PENDING-${lifelineId}`,
-        licenseExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-        yearsOfExperience: 0,
-        consultationFee: 0,
+        specialization: specialization || 'General Practice',
+        licenseNumber: licenseNumber || `PENDING-${lifelineId}`,
+        licenseExpiryDate: licenseExpiryDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        yearsOfExperience: yearsOfExperience || 0,
+        consultationFee: consultationFee || 0,
       });
     } else if (userType === 'pharmacy') {
       await pharmacyRepository.createPharmacy(user.id, {
-        pharmacyName: `${firstName} ${lastName} Pharmacy`,
+        pharmacyName: pharmacyName || `${firstName} ${lastName} Pharmacy`,
         address: address || 'Pending Address',
-        licenseNumber: `PHARM-PENDING-${lifelineId}`,
-        licenseExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        licenseNumber: licenseNumber || `PHARM-PENDING-${lifelineId}`,
+        licenseExpiryDate: licenseExpiryDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        operatingHours: operatingHours || null,
       });
     } else if (userType === 'hospital') {
       await hospitalRepository.createHospital(user.id, {
-        hospitalName: `${firstName} ${lastName} Hospital`,
+        hospitalName: hospitalName || `${firstName} ${lastName} Hospital`,
         address: address || 'Pending Address',
-        hospitalType: 'General',
-        licenseNumber: `HOSP-PENDING-${lifelineId}`,
-        licenseExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-        numberOfBeds: 0,
+        hospitalType: hospitalType || 'general',
+        licenseNumber: licenseNumber || `HOSP-PENDING-${lifelineId}`,
+        licenseExpiryDate: licenseExpiryDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        numberOfBeds: numberOfBeds || 0,
+        departments: departments || [],
       });
     }
 
@@ -120,6 +142,19 @@ export const register = async (userData) => {
 
     // Return user data without password
     const { password: _, ...userWithoutPassword } = user;
+
+    // Send welcome email (non-blocking)
+    sendEmail({
+      to: email,
+      subject: 'Welcome to LifeLine Pro!',
+      template: 'welcome',
+      data: {
+        name: firstName || email,
+        lifelineId,
+        role: userType,
+        loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`,
+      },
+    }).catch(err => logger.warn('Welcome email failed', { error: err.message }));
 
     return {
       user: userWithoutPassword,
@@ -285,15 +320,17 @@ export const requestPasswordReset = async (email) => {
     );
 
     // TODO: Send email with reset link
-    // For now, just log it
-    logger.info('Password reset token generated', {
-      userId: user.id,
-      email: user.email,
-      resetToken,
-    });
-
-    // In production, send email here
-    // await emailService.sendPasswordResetEmail(user.email, resetToken);
+    // Send password reset email (non-blocking)
+    sendEmail({
+      to: user.email,
+      subject: 'LifeLine Pro - Password Reset',
+      template: 'password_reset',
+      data: {
+        name: user.first_name || user.email,
+        resetLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`,
+        expiresIn: '1 hour',
+      },
+    }).catch(err => logger.warn('Password reset email failed', { error: err.message }));
 
     return {
       message: 'If the email exists, a reset link has been sent',

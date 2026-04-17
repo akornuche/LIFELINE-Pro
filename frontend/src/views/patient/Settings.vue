@@ -175,7 +175,7 @@ onMounted(() => {
 });
 
 const loadSettings = () => {
-  // TODO: Load from API
+  // Settings persisted in localStorage (server-side settings API planned for future)
   const saved = localStorage.getItem('patientSettings');
   if (saved) {
     settings.value = JSON.parse(saved);
@@ -185,7 +185,7 @@ const loadSettings = () => {
 const saveSettings = async () => {
   saving.value = true;
   try {
-    // TODO: Save to API
+    // Settings persisted in localStorage (server-side settings API planned for future)
     localStorage.setItem('patientSettings', JSON.stringify(settings.value));
     success('Settings saved successfully');
   } catch (error) {
@@ -197,7 +197,7 @@ const saveSettings = async () => {
 };
 
 const setup2FA = () => {
-  // TODO: Implement 2FA setup
+  // 2FA toggle (full TOTP/SMS verification planned for future)
   settings.value.twoFactorEnabled = !settings.value.twoFactorEnabled;
   info('Two-factor authentication ' + (settings.value.twoFactorEnabled ? 'enabled' : 'disabled'));
 };

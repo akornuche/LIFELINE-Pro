@@ -1,5 +1,7 @@
 import * as paymentService from '../services/paymentService.js';
 import { successResponse } from '../utils/response.js';
+import paystack from '../utils/paystack.js';
+import logger from '../utils/logger.js';
 
 /**
  * Payment Controller
@@ -46,10 +48,21 @@ export const handleWebhook = async (req, res, next) => {
   try {
     const { gateway } = req.params;
 
+    // Verify Paystack HMAC signature
+    if (gateway === 'paystack') {
+      const signature = req.headers['x-paystack-signature'];
+      const rawBody = req.rawBody || JSON.stringify(req.body);
+      if (signature && !paystack.verifyWebhookSignature(rawBody, signature)) {
+        logger.warn('Invalid Paystack webhook signature received');
+        return res.status(401).json({ success: false, message: 'Invalid signature' });
+      }
+    }
+
     const result = await paymentService.handleWebhook({
       gateway,
       event: req.body.event || req.body.type,
       payload: req.body,
+      eventId: req.body.data?.id ? String(req.body.data.id) : null,
     });
 
     return successResponse(res, result, 'Webhook processed');
@@ -157,6 +170,28 @@ export const getStatementById = async (req, res, next) => {
     const statement = await paymentService.getStatementById(statementId);
 
     return successResponse(res, statement, 'Statement retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Download statement as PDF
+ * GET /api/payments/statements/:statementId/download
+ */
+export const downloadStatement = async (req, res, next) => {
+  try {
+    const { statementId } = req.params;
+
+    const pdfBuffer = await paymentService.generateStatementPdf(statementId);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="statement-${statementId}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    return res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }
@@ -327,6 +362,7 @@ export default {
   generateStatement,
   getStatements,
   getStatementById,
+  downloadStatement,
   approveStatement,
   rejectStatement,
   getPendingStatements,

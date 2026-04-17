@@ -117,7 +117,8 @@ import {
   CurrencyDollarIcon,
   CogIcon,
   LockClosedIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  QueueListIcon
 } from '@heroicons/vue/24/outline';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
 
@@ -134,6 +135,7 @@ const navigation = [
   { name: 'Find Doctor', to: '/patient/find-doctor', icon: MagnifyingGlassIcon, always: false },
   { name: 'Find Pharmacy', to: '/patient/find-pharmacy', icon: MagnifyingGlassIcon, always: false },
   { name: 'Find Hospital', to: '/patient/find-hospital', icon: MagnifyingGlassIcon, always: false },
+  { name: 'Service Requests', to: '/patient/service-requests', icon: QueueListIcon, always: false },
   { name: 'Payments', to: '/patient/payments', icon: CurrencyDollarIcon, always: false },
   { name: 'Settings', to: '/patient/settings', icon: CogIcon, always: true }
 ];

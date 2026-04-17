@@ -97,6 +97,23 @@ export const getConsultations = async (req, res, next) => {
 };
 
 /**
+ * Get consultation by ID
+ * GET /api/doctors/consultations/:consultationId
+ */
+export const getConsultationById = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { consultationId } = req.params;
+
+    const consultation = await doctorService.getConsultationById(userId, consultationId);
+
+    return successResponse(res, consultation, 'Consultation retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Create consultation
  * POST /api/doctors/consultations
  */

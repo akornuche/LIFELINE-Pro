@@ -125,6 +125,27 @@
           :rows="3"
         />
 
+        <!-- Referral Section -->
+        <div class="border-t pt-4">
+          <div class="flex items-center gap-3 mb-3">
+            <input
+              id="referral_needed"
+              v-model="form.referral_needed"
+              type="checkbox"
+              class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label for="referral_needed" class="form-label mb-0">Referral Needed</label>
+          </div>
+          <div v-if="form.referral_needed">
+            <BaseInput
+              v-model="form.referral_to"
+              label="Refer To (Specialist / Facility)"
+              placeholder="e.g. Cardiologist, Lagos University Teaching Hospital"
+              required
+            />
+          </div>
+        </div>
+
         <BaseInput
           v-model.number="form.fee"
           label="Consultation Fee (₦)"
@@ -178,6 +199,8 @@ const form = ref({
   diagnosis: '',
   treatment_plan: '',
   notes: '',
+  referral_needed: false,
+  referral_to: '',
   fee: 0
 });
 
@@ -227,6 +250,8 @@ const submitConsultation = async () => {
       diagnosis: form.value.diagnosis,
       treatment_plan: form.value.treatment_plan,
       notes: form.value.notes,
+      referral_needed: form.value.referral_needed,
+      referral_to: form.value.referral_needed ? form.value.referral_to : null,
       fee: form.value.fee
     };
     

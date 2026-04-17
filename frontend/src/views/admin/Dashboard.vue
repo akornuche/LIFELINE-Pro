@@ -34,7 +34,10 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2">
           <BaseCard title="Recent Activities">
-            <div class="space-y-3">
+            <div v-if="recentActivities.length === 0" class="text-center py-6 text-gray-400">
+              <p class="text-sm">No recent activities yet</p>
+            </div>
+            <div v-else class="space-y-3">
               <div v-for="activity in recentActivities" :key="activity.id" class="flex items-start gap-3 pb-3 border-b last:border-0">
                 <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                   <component :is="getActivityIcon(activity.type)" class="h-5 w-5 text-blue-600" />
@@ -85,7 +88,10 @@ const recentActivities = ref([]);
 onMounted(async () => {
   try {
     const data = await adminStore.getStatistics();
-    if (data) stats.value = { ...stats.value, ...data };
+    if (data) {
+      stats.value = { ...stats.value, ...data };
+      recentActivities.value = data.recentActivities || [];
+    }
   } catch (error) {
     console.error('Failed to load admin dashboard:', error);
     // Keep fallback data so dashboard still renders

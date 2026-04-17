@@ -146,9 +146,9 @@ export const useAdminStore = defineStore('admin', {
       }
     },
 
-    async rejectVerification(id, reason) {
+    async rejectVerification(id, reason, providerType) {
       try {
-        const response = await apiClient.post(`/admin/verifications/${id}/reject`, { reason });
+        const response = await apiClient.post(`/admin/verifications/${id}/reject`, { reason, providerType });
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;
@@ -232,6 +232,28 @@ export const useAdminStore = defineStore('admin', {
     async updateSettings(settings) {
       try {
         const response = await apiClient.put('/admin/settings', settings);
+        return response.data;
+      } catch (error) {
+        this.error = error.response?.data?.message || error.message;
+        throw error;
+      }
+    },
+
+    // Analytics time-series
+    async getTimeSeries(params = {}) {
+      try {
+        const response = await apiClient.get('/admin/analytics/time-series', { params });
+        return response.data;
+      } catch (error) {
+        this.error = error.response?.data?.message || error.message;
+        throw error;
+      }
+    },
+
+    // Patient export
+    async exportPatient(id) {
+      try {
+        const response = await apiClient.get(`/admin/patients/${id}/export`);
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || error.message;

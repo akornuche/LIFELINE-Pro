@@ -214,6 +214,7 @@ const payments = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = 10;
 const totalPayments = ref(0);
+const selectedReceipt = ref(null);
 
 const filters = ref({
   status: '',
@@ -269,21 +270,35 @@ const goToSubscription = () => {
 };
 
 const renewSubscription = () => {
-  // TODO: Implement renewal
-  console.log('Renew subscription');
+  router.push('/patient/subscription');
 };
 
 const viewReceipt = (payment) => {
-  // TODO: Show receipt modal
-  console.log('View receipt:', payment);
+  selectedReceipt.value = payment;
 };
 
 const downloadReceipt = (payment) => {
-  // TODO: Generate and download PDF receipt
   info('Generating receipt...');
-  console.log('Download receipt:', payment);
-  setTimeout(() => {
-    success('Receipt downloaded successfully!');
-  }, 1000);
+  const receiptContent = [
+    'LIFELINE-Pro Payment Receipt',
+    '================================',
+    `Reference: ${payment.payment_reference || payment.id}`,
+    `Date: ${formatDate(payment.created_at)}`,
+    `Amount: ₦${payment.amount?.toLocaleString()}`,
+    `Status: ${payment.status}`,
+    `Type: ${payment.payment_type || payment.payment_for || 'Payment'}`,
+    `Method: ${payment.payment_method || 'N/A'}`,
+    '================================',
+    'Thank you for your payment.',
+  ].join('\n');
+
+  const blob = new Blob([receiptContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `receipt-${payment.payment_reference || payment.id}.txt`;
+  link.click();
+  URL.revokeObjectURL(url);
+  success('Receipt downloaded successfully!');
 };
 </script>

@@ -3,6 +3,7 @@ import * as hospitalController from '../controllers/hospitalController.js';
 import { authenticate } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
+import upload from '../middleware/upload.js';
 import {
   updateHospitalProfileSchema,
   updateBedAvailabilitySchema,
@@ -15,6 +16,19 @@ import {
 } from '../validation/providerSchemas.js';
 
 const router = express.Router();
+
+/**
+ * @route   POST /api/hospitals/logo
+ * @desc    Upload hospital logo
+ * @access  Private (Hospital)
+ */
+router.post(
+  '/logo',
+  authenticate,
+  checkRole('hospital'),
+  upload.single('logo'),
+  hospitalController.uploadLogo
+);
 
 /**
  * @route   GET /api/hospitals/profile
@@ -37,17 +51,45 @@ router.put(
 );
 
 /**
- * @route   PUT /api/hospitals/beds
- * @desc    Update bed availability
+ * @route   GET /api/hospitals/beds
+ * @desc    Get individual beds list
+ * @access  Private (Hospital)
+ */
+router.get('/beds', authenticate, checkRole('hospital'), hospitalController.getBeds);
+
+/**
+ * @route   POST /api/hospitals/beds
+ * @desc    Create a bed
+ * @access  Private (Hospital)
+ */
+router.post('/beds', authenticate, checkRole('hospital'), hospitalController.createBed);
+
+/**
+ * @route   PUT /api/hospitals/beds/availability
+ * @desc    Update aggregate bed availability
  * @access  Private (Hospital)
  */
 router.put(
-  '/beds',
+  '/beds/availability',
   authenticate,
   checkRole('hospital'),
   validate(updateBedAvailabilitySchema),
   hospitalController.updateBedAvailability
 );
+
+/**
+ * @route   PUT /api/hospitals/beds/:bedId
+ * @desc    Update individual bed
+ * @access  Private (Hospital)
+ */
+router.put('/beds/:bedId', authenticate, checkRole('hospital'), hospitalController.updateBed);
+
+/**
+ * @route   DELETE /api/hospitals/beds/:bedId
+ * @desc    Delete a bed
+ * @access  Private (Hospital)
+ */
+router.delete('/beds/:bedId', authenticate, checkRole('hospital'), hospitalController.deleteBed);
 
 /**
  * @route   PUT /api/hospitals/license
@@ -68,6 +110,13 @@ router.put(
  * @access  Private (Hospital)
  */
 router.get('/surgeries', authenticate, checkRole('hospital'), hospitalController.getSurgeries);
+
+/**
+ * @route   GET /api/hospitals/surgeries/:surgeryId
+ * @desc    Get surgery by ID
+ * @access  Private (Hospital)
+ */
+router.get('/surgeries/:surgeryId', authenticate, checkRole('hospital'), hospitalController.getSurgeryById);
 
 /**
  * @route   POST /api/hospitals/surgeries

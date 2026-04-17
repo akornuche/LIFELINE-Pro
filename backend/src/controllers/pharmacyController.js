@@ -96,6 +96,23 @@ export const getPrescriptions = async (req, res, next) => {
 };
 
 /**
+ * Get prescription by ID
+ * GET /api/pharmacies/prescriptions/:prescriptionId
+ */
+export const getPrescriptionById = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { prescriptionId } = req.params;
+
+    const prescription = await pharmacyService.getPrescriptionById(userId, prescriptionId);
+
+    return successResponse(res, prescription, 'Prescription retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Dispense prescription
  * POST /api/pharmacies/prescriptions/:prescriptionId/dispense
  */

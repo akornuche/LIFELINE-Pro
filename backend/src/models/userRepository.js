@@ -21,6 +21,8 @@ export const createUser = async (userData) => {
     firstName,
     lastName,
     phone,
+    city = null,
+    state = null,
     isActive = true,
     isEmailVerified = true,
   } = userData;
@@ -33,8 +35,9 @@ export const createUser = async (userData) => {
       `INSERT INTO users (
         id, lifeline_id, email, password_hash, role,
         first_name, last_name, phone,
+        city, state,
         status, email_verified
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         id,
         lifelineId,
@@ -44,6 +47,8 @@ export const createUser = async (userData) => {
         firstName,
         lastName,
         phone,
+        city,
+        state,
         isActive ? 'active' : 'inactive',
         isEmailVerified ? 1 : 0,
       ]

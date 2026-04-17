@@ -43,7 +43,7 @@ const handlePageChange = (page) => { pagination.value.currentPage = page; loadHo
 const resetFilters = () => { filters.value = { search: '', verified: '' }; pagination.value.currentPage = 1; loadHospitals(); };
 const verifyHospital = async (id) => {
   try {
-    await adminStore.verifyProvider(id, { provider_type: 'hospital' });
+    await adminStore.verifyProvider(id, { providerType: 'hospital' });
     success('Hospital verified successfully');
     loadHospitals();
   } catch (error) {

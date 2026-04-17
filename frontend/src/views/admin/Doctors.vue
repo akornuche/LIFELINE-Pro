@@ -44,7 +44,7 @@ const handlePageChange = (page) => { pagination.value.currentPage = page; loadDo
 const resetFilters = () => { filters.value = { search: '', specialization: '', verified: '' }; pagination.value.currentPage = 1; loadDoctors(); };
 const verifyDoctor = async (id) => {
   try {
-    await adminStore.verifyProvider(id, { provider_type: 'doctor' });
+    await adminStore.verifyProvider(id, { providerType: 'doctor' });
     success('Doctor verified successfully');
     loadDoctors();
   } catch (error) {

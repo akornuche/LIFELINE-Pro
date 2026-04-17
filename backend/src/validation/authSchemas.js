@@ -69,7 +69,9 @@ export const registerPatientSchema = Joi.object({
   }),
   gender: Joi.string().valid('male', 'female', 'other').required(),
   address: Joi.string().trim().min(10).max(500).required(),
-  packageType: Joi.string().valid('basic', 'medium', 'advanced').default('basic'),
+  city: Joi.string().trim().max(100).required(),
+  state: Joi.string().trim().max(100).required(),
+  packageType: Joi.string().valid('general', 'basic', 'standard', 'premium').default('general'),
   emergencyContact: Joi.object({
     name: Joi.string().trim().min(2).max(100).required(),
     phone: phoneRule,
@@ -344,7 +346,9 @@ export const registerSchema = Joi.object({
     then: Joi.required(),
     otherwise: Joi.optional()
   }),
-  packageType: Joi.string().valid('basic', 'medium', 'advanced').default('basic'),
+  city: Joi.string().trim().max(100).optional(),
+  state: Joi.string().trim().max(100).optional(),
+  packageType: Joi.string().valid('general', 'basic', 'standard', 'premium').default('general'),
   emergencyContact: Joi.object({
     name: Joi.string().trim().min(2).max(100).required(),
     phone: phoneRule,
@@ -355,16 +359,44 @@ export const registerSchema = Joi.object({
     otherwise: Joi.optional()
   }),
   // Doctor specific fields
-  specialization: Joi.string().trim().min(2).max(100).optional(),
-  licenseNumber: Joi.string().trim().min(5).max(50).optional(),
-  licenseExpiryDate: Joi.date().min('now').optional(),
-  yearsOfExperience: Joi.number().integer().min(0).max(70).optional(),
-  qualifications: Joi.array().items(Joi.string().trim().max(200)).optional(),
+  specialization: Joi.string().trim().min(2).max(100).when('userType', {
+    is: 'doctor',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  licenseNumber: Joi.string().trim().min(5).max(50).when('userType', {
+    is: Joi.valid('doctor', 'pharmacy', 'hospital'),
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  licenseExpiryDate: Joi.date().min('now').when('userType', {
+    is: Joi.valid('doctor', 'pharmacy', 'hospital'),
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  yearsOfExperience: Joi.number().integer().min(0).max(70).when('userType', {
+    is: 'doctor',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  qualifications: Joi.array().items(Joi.string().trim().max(200)).when('userType', {
+    is: 'doctor',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
   hospitalAffiliations: Joi.array().items(Joi.string().trim().max(200)).optional(),
-  consultationFee: Joi.number().positive().precision(2).optional(),
+  consultationFee: Joi.number().min(0).precision(2).when('userType', {
+    is: 'doctor',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
   bio: Joi.string().trim().max(1000).optional(),
   // Pharmacy specific fields
-  pharmacyName: Joi.string().trim().min(2).max(200).optional(),
+  pharmacyName: Joi.string().trim().min(2).max(200).when('userType', {
+    is: 'pharmacy',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
   operatingHours: Joi.object({
     monday: Joi.string().trim(),
     tuesday: Joi.string().trim(),
@@ -381,12 +413,28 @@ export const registerSchema = Joi.object({
     otherwise: Joi.optional()
   }),
   // Hospital specific fields
-  hospitalName: Joi.string().trim().min(2).max(200).optional(),
-  hospitalType: Joi.string().valid('general', 'specialized', 'teaching', 'clinic').optional(),
-  numberOfBeds: Joi.number().integer().positive().optional(),
+  hospitalName: Joi.string().trim().min(2).max(200).when('userType', {
+    is: 'hospital',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  hospitalType: Joi.string().valid('general', 'specialized', 'teaching', 'clinic').when('userType', {
+    is: 'hospital',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
+  numberOfBeds: Joi.number().integer().positive().when('userType', {
+    is: 'hospital',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
   hasEmergency: Joi.boolean().default(false),
   hasICU: Joi.boolean().default(false),
-  departments: Joi.array().items(Joi.string().trim().max(100)).optional(),
+  departments: Joi.array().items(Joi.string().trim().max(100)).when('userType', {
+    is: 'hospital',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  }),
   accreditation: Joi.string().trim().max(200).optional(),
 });
 

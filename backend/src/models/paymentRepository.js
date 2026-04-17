@@ -317,15 +317,15 @@ export const calculateRevenue = async (filters = {}) => {
  * Create webhook log
  */
 export const createWebhookLog = async (webhookData) => {
-  const { gateway, event, payload, processingStatus = 'pending', paymentReference = null } = webhookData;
+  const { gateway, event, payload, processingStatus = 'pending', paymentId = null, eventId = null } = webhookData;
 
   try {
     const result = await database.query(
       `INSERT INTO payment_webhooks (
-        gateway, event, payload, processing_status, payment_reference
-      ) VALUES ($1, $2, $3, $4, $5)
+        payment_id, webhook_type, provider, event_id, payload, status
+      ) VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *`,
-      [gateway, event, JSON.stringify(payload), processingStatus, paymentReference]
+      [paymentId, event || 'unknown', gateway || 'paystack', eventId, JSON.stringify(payload), processingStatus]
     );
 
     logger.info('Webhook log created', {
@@ -350,7 +350,7 @@ export const updateWebhookStatus = async (webhookId, status, errorMessage = null
   try {
     const result = await database.query(
       `UPDATE payment_webhooks
-       SET processing_status = $1,
+       SET status = $1,
            error_message = $2,
            processed_at = CURRENT_TIMESTAMP
        WHERE id = $3

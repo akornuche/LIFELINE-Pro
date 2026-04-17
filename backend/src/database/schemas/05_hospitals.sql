@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS hospitals (
     emergency_services BOOLEAN DEFAULT false,
     verification_status VARCHAR(50) DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
     verification_documents TEXT,
+    rejection_reason TEXT,
     average_rating DECIMAL(3,2) DEFAULT 0.00,
     total_reviews INTEGER DEFAULT 0,
     total_surgeries INTEGER DEFAULT 0,

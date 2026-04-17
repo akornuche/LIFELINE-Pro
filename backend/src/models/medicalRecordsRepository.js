@@ -22,14 +22,17 @@ export const createConsultation = async (consultationData) => {
     reasonForVisit,
     appointmentDate,
     status = 'scheduled',
+    referralNeeded = false,
+    referralTo = null,
   } = consultationData;
 
   try {
     const result = await database.query(
       `INSERT INTO consultations (
         patient_id, doctor_id, hospital_id, dependent_id,
-        consultation_type, reason_for_visit, appointment_date, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        consultation_type, reason_for_visit, appointment_date, status,
+        referral_needed, referral_to
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         patientId,
@@ -40,6 +43,8 @@ export const createConsultation = async (consultationData) => {
         reasonForVisit,
         appointmentDate,
         status,
+        referralNeeded ? 1 : 0,
+        referralTo,
       ]
     );
 

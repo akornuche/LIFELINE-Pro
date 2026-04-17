@@ -2,6 +2,7 @@ import * as hospitalRepository from '../models/hospitalRepository.js';
 import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import * as bedsRepository from '../models/bedsRepository.js';
 import entitlementChecker from '../utils/entitlementChecker.js';
 import { SERVICE_TYPES } from '../constants/packages.js';
 import * as paymentService from './paymentService.js';
@@ -143,6 +144,29 @@ export const updateHospitalProfile = async (userId, updateData) => {
 };
 
 /**
+ * Upload hospital logo
+ */
+export const uploadHospitalLogo = async (userId, file) => {
+  try {
+    const apiUrl = process.env.API_URL || 'http://localhost:5002';
+    const logoUrl = `/uploads/${file.filename}`;
+    const absoluteLogoUrl = `${apiUrl}${logoUrl}`;
+
+    await userRepository.updateProfile(userId, {
+      profilePicture: logoUrl,
+    });
+
+    return absoluteLogoUrl;
+  } catch (error) {
+    logger.error('Upload hospital logo error', {
+      error: error.message,
+      userId,
+    });
+    throw error;
+  }
+};
+
+/**
  * Update bed availability
  */
 export const updateBedAvailability = async (userId, bedData) => {
@@ -226,6 +250,30 @@ export const getSurgeries = async (userId, options = {}) => {
     logger.error('Get hospital surgeries error', {
       error: error.message,
       userId,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Get surgery by ID
+ */
+export const getSurgeryById = async (userId, surgeryId) => {
+  try {
+    const hospital = await ensureHospitalProfile(userId);
+
+    const surgery = await medicalRecordsRepository.findSurgeryById(surgeryId);
+
+    if (surgery.hospital_id !== hospital.id) {
+      throw new BusinessLogicError('Unauthorized to view this surgery');
+    }
+
+    return surgery;
+  } catch (error) {
+    logger.error('Get surgery by ID error', {
+      error: error.message,
+      userId,
+      surgeryId,
     });
     throw error;
   }
@@ -657,12 +705,107 @@ export const updateRating = async (hospitalId, rating) => {
   }
 };
 
+// ============= BEDS MANAGEMENT =============
+
+/**
+ * Get hospital beds
+ */
+export const getBeds = async (userId, options = {}) => {
+  try {
+    const hospital = await ensureHospitalProfile(userId);
+    const beds = await bedsRepository.findByHospitalId(hospital.id, options);
+    return { beds, counts: await bedsRepository.getCounts(hospital.id) };
+  } catch (error) {
+    logger.error('Get beds error', { error: error.message, userId });
+    throw error;
+  }
+};
+
+/**
+ * Create a bed
+ */
+export const createBed = async (userId, bedData) => {
+  try {
+    const hospital = await ensureHospitalProfile(userId);
+    const bed = await bedsRepository.create({
+      hospitalId: hospital.id,
+      bedNumber: bedData.bed_number || bedData.bedNumber,
+      ward: bedData.ward,
+      status: bedData.status || 'available',
+      patientName: bedData.patient_name || bedData.patientName || null,
+      notes: bedData.notes || null,
+    });
+
+    logger.info('Bed created', { userId, hospitalId: hospital.id, bedId: bed.id });
+    return bed;
+  } catch (error) {
+    logger.error('Create bed error', { error: error.message, userId });
+    throw error;
+  }
+};
+
+/**
+ * Update a bed
+ */
+export const updateBed = async (userId, bedId, updateData) => {
+  try {
+    const hospital = await ensureHospitalProfile(userId);
+
+    // Verify bed belongs to hospital
+    const bed = await bedsRepository.findById(bedId);
+    if (bed.hospital_id !== hospital.id) {
+      throw new BusinessLogicError('Unauthorized to update this bed');
+    }
+
+    const updated = await bedsRepository.update(bedId, {
+      status: updateData.status,
+      patientName: updateData.patient_name || updateData.patientName,
+      ward: updateData.ward,
+      notes: updateData.notes,
+    });
+
+    logger.info('Bed updated', { userId, bedId, status: updateData.status });
+    return updated;
+  } catch (error) {
+    logger.error('Update bed error', { error: error.message, userId, bedId });
+    throw error;
+  }
+};
+
+/**
+ * Delete a bed
+ */
+export const deleteBed = async (userId, bedId) => {
+  try {
+    const hospital = await ensureHospitalProfile(userId);
+
+    const bed = await bedsRepository.findById(bedId);
+    if (bed.hospital_id !== hospital.id) {
+      throw new BusinessLogicError('Unauthorized to delete this bed');
+    }
+
+    if (bed.status === 'occupied') {
+      throw new BusinessLogicError('Cannot delete an occupied bed');
+    }
+
+    await bedsRepository.remove(bedId);
+
+    logger.info('Bed deleted', { userId, bedId });
+    return { success: true };
+  } catch (error) {
+    logger.error('Delete bed error', { error: error.message, userId, bedId });
+    throw error;
+  }
+};
+
 export default {
   getHospitalProfile,
   updateHospitalProfile,
+  uploadHospitalLogo,
   updateBedAvailability,
   updateLicense,
   getSurgeries,
+  getSurgeryById,
   scheduleSurgery,
   updateSurgery,
   completeSurgery,
@@ -677,4 +820,8 @@ export default {
   getPendingVerifications,
   getExpiringLicenses,
   updateRating,
+  getBeds,
+  createBed,
+  updateBed,
+  deleteBed,
 };

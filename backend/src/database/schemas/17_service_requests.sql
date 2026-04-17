@@ -1,35 +1,5 @@
--- ===================================
--- LIFELINE PRO - Logging, Audit & Operational Tables
--- ===================================
--- Tables: Audit Logs, Service Requests, Provider Assignment Counters, Beds
--- Version: 2.0.0  (aligned with runtime schemas)
--- Database: SQLite
--- ===================================
-
--- 1. AUDIT LOGS TABLE
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT,
-    user_role TEXT DEFAULT 'anonymous',
-    event_type TEXT NOT NULL,
-    event_category TEXT DEFAULT 'general',
-    resource_type TEXT,
-    resource_id TEXT,
-    action TEXT,
-    changes TEXT,
-    ip_address TEXT,
-    user_agent TEXT,
-    metadata TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
-CREATE INDEX IF NOT EXISTS idx_audit_event_type ON audit_logs(event_type);
-CREATE INDEX IF NOT EXISTS idx_audit_event_category ON audit_logs(event_category);
-CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_logs(created_at);
-
--- 2. SERVICE REQUESTS TABLE (queue/matching system)
+-- Service Requests table (queue/matching system)
+-- Patients request services, system assigns providers by city via round-robin
 CREATE TABLE IF NOT EXISTS service_requests (
     id TEXT PRIMARY KEY,
     patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
@@ -68,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_service_requests_city ON service_requests(city);
 CREATE INDEX IF NOT EXISTS idx_service_requests_type ON service_requests(service_type);
 CREATE INDEX IF NOT EXISTS idx_service_requests_provider_type ON service_requests(provider_type);
 
--- 3. PROVIDER ASSIGNMENT COUNTERS (round-robin tracking)
+-- Provider assignment tracking for round-robin
 CREATE TABLE IF NOT EXISTS provider_assignment_counters (
     id TEXT PRIMARY KEY,
     provider_id TEXT NOT NULL,
@@ -82,21 +52,3 @@ CREATE TABLE IF NOT EXISTS provider_assignment_counters (
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_counters_city ON provider_assignment_counters(city, provider_type);
-
--- 4. HOSPITAL BEDS TABLE (individual bed management)
-CREATE TABLE IF NOT EXISTS beds (
-    id TEXT PRIMARY KEY,
-    hospital_id TEXT NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
-    bed_number VARCHAR(20) NOT NULL,
-    ward VARCHAR(50) NOT NULL DEFAULT 'General Ward',
-    status VARCHAR(20) NOT NULL DEFAULT 'available' CHECK(status IN ('available', 'occupied', 'maintenance')),
-    patient_name VARCHAR(100),
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(hospital_id, bed_number)
-);
-
-CREATE INDEX IF NOT EXISTS idx_beds_hospital ON beds(hospital_id);
-CREATE INDEX IF NOT EXISTS idx_beds_status ON beds(status);
-CREATE INDEX IF NOT EXISTS idx_beds_ward ON beds(ward);

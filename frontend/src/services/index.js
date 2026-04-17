@@ -363,7 +363,7 @@ export const hospitalService = {
   },
 
   updateBedAvailability(data) {
-    return apiClient.put('/hospitals/beds', data);
+    return apiClient.put('/hospitals/beds/availability', data);
   },
 
   updateLicense(data) {
@@ -523,4 +523,56 @@ export const paymentService = {
   processRefund(id, data) {
     return apiClient.post(`/payments/${id}/refund`, data);
   }
+};
+
+/**
+ * Queue / Service Request Service
+ */
+export const queueService = {
+  // Patient: create a service request
+  createRequest(data) {
+    return apiClient.post('/queue/request', data);
+  },
+
+  // Patient: get my service requests
+  getMyRequests(status = null) {
+    const params = status ? { status } : {};
+    return apiClient.get('/queue/my-requests', { params });
+  },
+
+  // Patient: cancel a service request
+  cancelRequest(id, reason) {
+    return apiClient.delete(`/queue/request/${id}`, { data: { reason } });
+  },
+
+  // Provider: get assigned requests
+  getAssignments(status = null) {
+    const params = status ? { status } : {};
+    return apiClient.get('/queue/assignments', { params });
+  },
+
+  // Provider: accept assignment
+  acceptAssignment(id) {
+    return apiClient.post(`/queue/assignments/${id}/accept`);
+  },
+
+  // Provider: reject assignment
+  rejectAssignment(id, reason) {
+    return apiClient.post(`/queue/assignments/${id}/reject`, { reason });
+  },
+
+  // Provider: start working on assignment
+  startAssignment(id) {
+    return apiClient.post(`/queue/assignments/${id}/start`);
+  },
+
+  // Provider: complete assignment
+  completeAssignment(id, consultationId = null) {
+    return apiClient.post(`/queue/assignments/${id}/complete`, { consultationId });
+  },
+
+  // Admin: queue statistics
+  getQueueStats() {
+    return apiClient.get('/queue/stats');
+  },
 };

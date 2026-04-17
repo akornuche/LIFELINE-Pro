@@ -7,6 +7,26 @@ import { successResponse } from '../utils/response.js';
  */
 
 /**
+ * Upload hospital logo
+ * POST /api/hospitals/logo
+ */
+export const uploadLogo = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const logoUrl = await hospitalService.uploadHospitalLogo(userId, req.file);
+
+    return successResponse(res, { logo_url: logoUrl }, 'Logo uploaded successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get hospital profile
  * GET /api/hospitals/profile
  */
@@ -88,6 +108,23 @@ export const getSurgeries = async (req, res, next) => {
     });
 
     return successResponse(res, surgeries, 'Surgeries retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get surgery by ID
+ * GET /api/hospitals/surgeries/:surgeryId
+ */
+export const getSurgeryById = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { surgeryId } = req.params;
+
+    const surgery = await hospitalService.getSurgeryById(userId, surgeryId);
+
+    return successResponse(res, surgery, 'Surgery retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -347,12 +384,89 @@ export const updateRating = async (req, res, next) => {
   }
 };
 
+// ============= BEDS MANAGEMENT =============
+
+/**
+ * Get beds
+ * GET /api/hospitals/beds
+ */
+export const getBeds = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { ward, status, search, limit, offset } = req.query;
+
+    const result = await hospitalService.getBeds(userId, {
+      ward,
+      status,
+      search,
+      limit: parseInt(limit) || 100,
+      offset: parseInt(offset) || 0,
+    });
+
+    return successResponse(res, result, 'Beds retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create bed
+ * POST /api/hospitals/beds
+ */
+export const createBed = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    const bed = await hospitalService.createBed(userId, req.body);
+
+    return successResponse(res, bed, 'Bed created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update bed
+ * PUT /api/hospitals/beds/:bedId
+ */
+export const updateBed = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { bedId } = req.params;
+
+    const bed = await hospitalService.updateBed(userId, bedId, req.body);
+
+    return successResponse(res, bed, 'Bed updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete bed
+ * DELETE /api/hospitals/beds/:bedId
+ */
+export const deleteBed = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { bedId } = req.params;
+
+    await hospitalService.deleteBed(userId, bedId);
+
+    return successResponse(res, null, 'Bed deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
+  uploadLogo,
   getProfile,
   updateProfile,
   updateBedAvailability,
   updateLicense,
   getSurgeries,
+  getSurgeryById,
   scheduleSurgery,
   updateSurgery,
   completeSurgery,
@@ -367,4 +481,8 @@ export default {
   getPendingVerifications,
   getExpiringLicenses,
   updateRating,
+  getBeds,
+  createBed,
+  updateBed,
+  deleteBed,
 };

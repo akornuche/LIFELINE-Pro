@@ -195,6 +195,30 @@ export const getConsultations = async (userId, options = {}) => {
 };
 
 /**
+ * Get consultation by ID
+ */
+export const getConsultationById = async (userId, consultationId) => {
+  try {
+    const doctor = await ensureDoctorProfile(userId);
+
+    const consultation = await medicalRecordsRepository.findConsultationById(consultationId);
+
+    if (consultation.doctor_id !== doctor.id) {
+      throw new BusinessLogicError('Unauthorized to view this consultation');
+    }
+
+    return consultation;
+  } catch (error) {
+    logger.error('Get consultation by ID error', {
+      error: error.message,
+      userId,
+      consultationId,
+    });
+    throw error;
+  }
+};
+
+/**
  * Create consultation
  */
 export const createConsultation = async (userId, consultationData) => {
@@ -206,6 +230,8 @@ export const createConsultation = async (userId, consultationData) => {
     diagnosis,
     notes,
     followUpDate = null,
+    referralNeeded = false,
+    referralTo = null,
   } = consultationData;
 
   try {
@@ -249,6 +275,8 @@ export const createConsultation = async (userId, consultationData) => {
       diagnosis,
       notes,
       followUpDate,
+      referralNeeded,
+      referralTo,
     });
 
     // Increment consultation count
@@ -591,6 +619,7 @@ export default {
   updateDoctorProfile,
   updateLicense,
   getConsultations,
+  getConsultationById,
   createConsultation,
   updateConsultation,
   createPrescription,

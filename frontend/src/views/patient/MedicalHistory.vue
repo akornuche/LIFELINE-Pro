@@ -132,6 +132,67 @@
         </button>
       </div>
     </div>
+
+    <!-- Detail Modal -->
+    <div v-if="selectedRecord" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="selectedRecord = null">
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900">{{ selectedRecord.title || getTitle(selectedRecord) }}</h2>
+            <button @click="selectedRecord = null" class="text-gray-400 hover:text-gray-600">
+              <XMarkIcon class="h-6 w-6" />
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <div class="flex items-center gap-2">
+              <span class="badge" :class="{
+                'badge-success': selectedRecord.status === 'completed',
+                'badge-warning': selectedRecord.status === 'pending',
+                'badge-danger': selectedRecord.status === 'cancelled',
+                'badge-info': selectedRecord.status === 'dispensed'
+              }">
+                {{ selectedRecord.status }}
+              </span>
+              <span class="text-sm text-gray-500">{{ formatDate(selectedRecord.date || selectedRecord.created_at) }}</span>
+            </div>
+
+            <div v-if="selectedRecord.provider" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Provider</p>
+              <p class="font-medium">{{ selectedRecord.provider }}</p>
+            </div>
+            <div v-if="selectedRecord.diagnosis" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Diagnosis</p>
+              <p class="font-medium">{{ selectedRecord.diagnosis }}</p>
+            </div>
+            <div v-if="selectedRecord.treatment" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Treatment</p>
+              <p class="font-medium">{{ selectedRecord.treatment }}</p>
+            </div>
+            <div v-if="selectedRecord.medication" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Medication</p>
+              <p class="font-medium">{{ selectedRecord.medication }}</p>
+            </div>
+            <div v-if="selectedRecord.notes" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Notes</p>
+              <p class="text-gray-700">{{ selectedRecord.notes }}</p>
+            </div>
+            <div v-if="selectedRecord.amount" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Amount</p>
+              <p class="font-medium text-primary-600">₦{{ selectedRecord.amount.toLocaleString() }}</p>
+            </div>
+            <div v-if="selectedRecord.follow_up_date" class="border-t pt-3">
+              <p class="text-sm text-gray-500">Follow-up Date</p>
+              <p class="font-medium">{{ formatDate(selectedRecord.follow_up_date) }}</p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button @click="selectedRecord = null" class="btn btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -142,7 +203,8 @@ import {
   DocumentTextIcon,
   ClipboardDocumentListIcon,
   BeakerIcon,
-  DocumentCheckIcon
+  DocumentCheckIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline';
 import { format } from 'date-fns';
 import { useToast } from '@/composables/useToast';
@@ -156,6 +218,7 @@ const activeTab = ref('all');
 const searchQuery = ref('');
 const filterStatus = ref('');
 const currentPage = ref(1);
+const selectedRecord = ref(null);
 const itemsPerPage = 10;
 
 const tabs = [
@@ -238,7 +301,6 @@ const getTitle = (record) => {
 };
 
 const viewDetails = (record) => {
-  // TODO: Implement detail modal
-  console.log('View details:', record);
+  selectedRecord.value = record;
 };
 </script>

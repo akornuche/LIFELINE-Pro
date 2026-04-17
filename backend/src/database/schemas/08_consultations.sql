@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS consultations (
     follow_up_date DATE,
     notes TEXT,
     total_cost DECIMAL(10,2),
+    referral_needed BOOLEAN DEFAULT FALSE,
+    referral_to VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

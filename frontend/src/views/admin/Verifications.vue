@@ -40,8 +40,10 @@ const loadVerifications = async () => {
 const handlePageChange = (page) => { pagination.value.currentPage = page; loadVerifications(); };
 const resetFilters = () => { filters.value = { provider_type: '', status: '' }; pagination.value.currentPage = 1; loadVerifications(); };
 const approveVerification = async (id) => {
+  const row = verifications.value.find(v => v.id === id);
+  if (!row) return;
   try {
-    await adminStore.verifyProvider(id, { status: 'approved' });
+    await adminStore.verifyProvider(id, { providerType: row.provider_type });
     success('Verification approved');
     loadVerifications();
   } catch (error) {
@@ -51,8 +53,10 @@ const approveVerification = async (id) => {
 const rejectVerification = async (id) => {
   const reason = prompt('Reason for rejection:');
   if (!reason) return;
+  const row = verifications.value.find(v => v.id === id);
+  if (!row) return;
   try {
-    await adminStore.rejectVerification(id, reason);
+    await adminStore.rejectVerification(id, reason, row.provider_type);
     success('Verification rejected');
     loadVerifications();
   } catch (error) {
