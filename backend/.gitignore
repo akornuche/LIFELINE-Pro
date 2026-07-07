@@ -16,6 +16,21 @@ test-registration-direct.js
 test-returning.js
 test-exists.js
 
+# One-off dev utility scripts (DO NOT COMMIT — may contain hardcoded credentials)
+update_admin_pw.mjs
+patch-test-accounts.js
+fix-dev-data.cjs
+diag.cjs
+simulate-registrations.js
+simulate-registrations-5002.js
+check-id.js
+check-patient.js
+check-seed.js
+check-tables.js
+check_db.js
+check_db_detailed.js
+check_db_status.js
+
 # Database files
 *.db
 *.sqlite
