@@ -56,17 +56,7 @@ app.get('/ping', (req, res) => {
 
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https:', 'http://localhost:5002'],
-        connectSrc: ["'self'", 'http://localhost:5002'],
-        frameAncestors: ["'self'"],
-      },
-    },
+    contentSecurityPolicy: false, // CSP is handled by the frontend (Vercel headers)
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     crossOriginEmbedderPolicy: false,
     xssFilter: false,
@@ -90,17 +80,40 @@ app.use((req, res, next) => {
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || [
+// CORS_ORIGIN env var can be a comma-separated list for multiple allowed origins
+// e.g. "https://lifeline-pro-frontend.vercel.app,http://localhost:3000"
+const buildCorsOrigin = () => {
+  const raw = process.env.CORS_ORIGIN || process.env.CLIENT_URL || '';
+  if (!raw) {
+    // Development fallback — allow all localhost ports
+    return [
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
       'http://localhost:3003',
-    ],
+      'http://localhost:5173',
+    ];
+  }
+  const origins = raw.split(',').map(o => o.trim()).filter(Boolean);
+  return origins.length === 1 ? origins[0] : origins;
+};
+
+app.use(
+  cors({
+    origin: buildCorsOrigin(),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
+
+// Ensure OPTIONS preflight is handled before any other middleware
+app.options('*', cors({
+  origin: buildCorsOrigin(),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
 
 // ── Body parsing (rawBody captured for Paystack HMAC) ─────────────────────────
 
