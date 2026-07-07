@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS consultations (
     dependent_id TEXT REFERENCES dependents(id),
     consultation_type VARCHAR(50) NOT NULL,
     reason_for_visit TEXT NOT NULL,
-    appointment_date DATETIME NOT NULL,
+    appointment_date TIMESTAMP NOT NULL,
     status VARCHAR(20) DEFAULT 'scheduled',
     diagnosis TEXT,
     symptoms TEXT,
@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS consultations (
     total_cost DECIMAL(10,2),
     referral_needed BOOLEAN DEFAULT FALSE,
     referral_to VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);

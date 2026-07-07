@@ -6,10 +6,10 @@ CREATE TABLE IF NOT EXISTS patient_payments (
     amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     payment_reference VARCHAR(200),
-    payment_date DATETIME NOT NULL,
+    payment_date TIMESTAMP NOT NULL,
     status VARCHAR(20) DEFAULT 'completed',
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_patient_payments_patient ON patient_payments(patient_id);

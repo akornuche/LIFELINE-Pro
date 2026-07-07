@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS payment_records (
     status VARCHAR(20) DEFAULT 'pending',
     description TEXT,
     metadata TEXT,
-    processed_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    processed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_records_patient ON payment_records(patient_id);

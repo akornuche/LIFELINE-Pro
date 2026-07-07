@@ -12,10 +12,10 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     refills_used INTEGER DEFAULT 0,
     expiry_date DATE,
     status VARCHAR(20) DEFAULT 'pending',
-    dispensed_at DATETIME,
+    dispensed_at TIMESTAMP,
     dispensed_by TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_prescriptions_patient ON prescriptions(patient_id);

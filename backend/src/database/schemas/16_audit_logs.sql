@@ -1,6 +1,6 @@
 -- Audit Logs Table
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id TEXT,
     user_role TEXT DEFAULT 'anonymous',
     event_type TEXT NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     ip_address TEXT,
     user_agent TEXT,
     metadata TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_logs(user_id);

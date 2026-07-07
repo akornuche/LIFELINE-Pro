@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS monthly_statements (
     net_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     status VARCHAR(20) DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'paid')),
     approved_by TEXT,
-    approved_at DATETIME,
+    approved_at TIMESTAMP,
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(provider_id, provider_type, month, year)
 );
 

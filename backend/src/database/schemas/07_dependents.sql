@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS dependents (
     chronic_conditions TEXT,
     emergency_contact TEXT,
     is_active BOOLEAN DEFAULT true,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_dependents_patient ON dependents(patient_id);

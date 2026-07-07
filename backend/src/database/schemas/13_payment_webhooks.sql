@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS payment_webhooks (
     event_id VARCHAR(200),
     payload TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
-    processed_at DATETIME,
+    processed_at TIMESTAMP,
     error_message TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_webhooks_payment ON payment_webhooks(payment_id);

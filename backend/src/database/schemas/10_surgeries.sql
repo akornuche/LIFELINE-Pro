@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS surgeries (
     hospital_id TEXT NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
     surgery_type VARCHAR(200) NOT NULL,
     description TEXT,
-    scheduled_date DATETIME NOT NULL,
+    scheduled_date TIMESTAMP NOT NULL,
     duration_minutes INTEGER,
     status VARCHAR(20) DEFAULT 'scheduled',
     pre_op_notes TEXT,
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS surgeries (
     outcome TEXT,
     estimated_cost DECIMAL(10,2),
     actual_cost DECIMAL(10,2),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_surgeries_patient ON surgeries(patient_id);

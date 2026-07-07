@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS patients (
     subscription_start_date DATE,
     subscription_end_date DATE,
     auto_renew BOOLEAN DEFAULT false,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_patients_user ON patients(user_id);

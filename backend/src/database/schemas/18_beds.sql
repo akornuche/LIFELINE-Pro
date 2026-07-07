@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS beds (
     status VARCHAR(20) NOT NULL DEFAULT 'available' CHECK(status IN ('available', 'occupied', 'maintenance')),
     patient_name VARCHAR(100),
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(hospital_id, bed_number)
 );
 

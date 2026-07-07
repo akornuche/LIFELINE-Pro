@@ -18,17 +18,17 @@ CREATE TABLE IF NOT EXISTS service_requests (
     )),
     priority VARCHAR(20) DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'emergency')),
     description TEXT,
-    preferred_date DATETIME,
-    assigned_at DATETIME,
-    accepted_at DATETIME,
-    completed_at DATETIME,
-    cancelled_at DATETIME,
+    preferred_date TIMESTAMP,
+    assigned_at TIMESTAMP,
+    accepted_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    cancelled_at TIMESTAMP,
     cancellation_reason TEXT,
     rejection_reason TEXT,
     consultation_id TEXT REFERENCES consultations(id),
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_service_requests_patient ON service_requests(patient_id);
@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS provider_assignment_counters (
     provider_type VARCHAR(20) NOT NULL CHECK (provider_type IN ('doctor', 'pharmacy', 'hospital')),
     city VARCHAR(100) NOT NULL,
     assignment_count INTEGER DEFAULT 0,
-    last_assigned_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_assigned_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(provider_id, provider_type, city)
 );
 

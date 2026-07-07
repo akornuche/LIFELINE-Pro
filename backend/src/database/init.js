@@ -91,24 +91,26 @@ class DatabaseInitializer {
       }
 
       // Pre-schema migrations: fix tables that need restructuring before CREATE TABLE IF NOT EXISTS
-      try {
-        // Check if monthly_statements exists with old patient-oriented schema
-        const result = await database.query(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='monthly_statements'"
-        );
-        if (result.rows.length > 0) {
-          // Table exists — check if it has the NEW provider_id column (positive check avoids error log noise)
-          try {
-            await database.query('SELECT provider_id FROM monthly_statements LIMIT 0');
-            // New schema already in place — no action needed
-          } catch (_) {
-            // provider_id column missing — old schema, drop it so new schema takes effect
-            await database.query('DROP TABLE IF EXISTS monthly_statements');
-            logger.info('Pre-migration: dropped old patient-oriented monthly_statements table');
+      if (this.dbType === 'sqlite') {
+        try {
+          // Check if monthly_statements exists with old patient-oriented schema
+          const result = await database.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='monthly_statements'"
+          );
+          if (result.rows.length > 0) {
+            // Table exists — check if it has the NEW provider_id column (positive check avoids error log noise)
+            try {
+              await database.query('SELECT provider_id FROM monthly_statements LIMIT 0');
+              // New schema already in place — no action needed
+            } catch (_) {
+              // provider_id column missing — old schema, drop it so new schema takes effect
+              await database.query('DROP TABLE IF EXISTS monthly_statements');
+              logger.info('Pre-migration: dropped old patient-oriented monthly_statements table');
+            }
           }
+        } catch (error) {
+          // Table doesn't exist yet — no migration needed
         }
-      } catch (error) {
-        // Table doesn't exist yet — no migration needed
       }
 
       for (const file of schemaFiles) {
