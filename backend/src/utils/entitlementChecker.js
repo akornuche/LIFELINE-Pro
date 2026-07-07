@@ -12,9 +12,9 @@ class EntitlementChecker {
    */
   isServiceEntitled(packageType, serviceType, serviceDetails = {}) {
     try {
-      const entitlements = PACKAGE_ENTITLEMENTS[packageType];
+      const packageConfig = PACKAGE_ENTITLEMENTS[packageType];
 
-      if (!entitlements) {
+      if (!packageConfig) {
         logger.error('Invalid package type', { packageType });
         return {
           entitled: false,
@@ -22,11 +22,20 @@ class EntitlementChecker {
         };
       }
 
+      // The per-service data lives under packageConfig.entitlements (nested object).
+      const entitlements = packageConfig.entitlements;
+      if (!entitlements) {
+        logger.error('Package config missing entitlements sub-object', { packageType });
+        return { entitled: false, reason: 'Invalid package configuration' };
+      }
+
       switch (serviceType) {
         case SERVICE_TYPES.CONSULTATION:
           return this.checkConsultationEntitlement(entitlements, serviceDetails);
 
         case SERVICE_TYPES.PRESCRIPTION:
+          return this.checkPrescriptionEntitlement(entitlements, serviceDetails);
+
         case SERVICE_TYPES.DRUG_DISPENSING:
           return this.checkDrugEntitlement(entitlements, serviceDetails);
 
@@ -47,6 +56,59 @@ class EntitlementChecker {
 
         case SERVICE_TYPES.EMERGENCY:
           return this.checkEmergencyEntitlement(entitlements, serviceDetails);
+
+        // ── Tier 1: available to all plans ──────────────────────────────
+        case SERVICE_TYPES.VACCINATION:
+          return { entitled: true, reason: 'Vaccination is covered by all plans' };
+
+        // ── Tier 2: Basic Insurance & above ─────────────────────────────
+        case SERVICE_TYPES.ANTENATAL_CARE:
+          if (!entitlements.admissions?.allowed) {
+            return { entitled: false, reason: 'Antenatal care requires Basic Insurance or above. Please upgrade your plan.' };
+          }
+          return { entitled: true, reason: 'Antenatal care is covered by your plan' };
+
+        // ── Tier 3: Standard Insurance & above ──────────────────────────
+        case SERVICE_TYPES.SPECIALIST_CONSULTATION:
+          if (!entitlements.specialists?.allowed) {
+            return { entitled: false, reason: 'Specialist consultations require Standard Insurance or above. Please upgrade.' };
+          }
+          return { entitled: true, reason: 'Specialist consultation is covered by your plan' };
+
+        case SERVICE_TYPES.ADVANCED_LAB_TEST:
+          if (!entitlements.laboratoryTests?.allowed ||
+              (Array.isArray(entitlements.laboratoryTests.types) &&
+               !entitlements.laboratoryTests.types.includes('lipid_profile'))) {
+            return { entitled: false, reason: 'Advanced lab tests require Standard Insurance or above. Please upgrade.' };
+          }
+          return { entitled: true, reason: 'Advanced lab test is covered by your plan' };
+
+        case SERVICE_TYPES.PHYSIOTHERAPY:
+        case SERVICE_TYPES.MENTAL_HEALTH:
+        case SERVICE_TYPES.DENTAL_CARE:
+        case SERVICE_TYPES.CHRONIC_DISEASE_MANAGEMENT:
+          if (!entitlements.specialists?.allowed) {
+            return { entitled: false, reason: 'This service requires Standard Insurance or above. Please upgrade.' };
+          }
+          return { entitled: true, reason: 'Service is covered by your Standard plan' };
+
+        // ── Tier 4: Premium Insurance only ──────────────────────────────
+        case SERVICE_TYPES.ADVANCED_IMAGING:
+          if (!entitlements.imaging?.allowed ||
+              (Array.isArray(entitlements.imaging.types) &&
+               !entitlements.imaging.types.includes('ct_scan'))) {
+            return { entitled: false, reason: 'Advanced imaging (CT Scan, MRI, Mammography) requires Premium Insurance. Please upgrade.' };
+          }
+          return { entitled: true, reason: 'Advanced imaging is covered by your Premium plan' };
+
+        case SERVICE_TYPES.MATERNITY_CARE:
+        case SERVICE_TYPES.HOME_VISIT:
+        case SERVICE_TYPES.AMBULANCE:
+        case SERVICE_TYPES.SECOND_OPINION:
+          if (!entitlements.priorityCare) {
+            return { entitled: false, reason: 'This service is exclusive to Premium Insurance. Please upgrade your plan.' };
+          }
+          return { entitled: true, reason: 'Service is covered by your Premium plan' };
 
         default:
           return {
@@ -141,7 +203,34 @@ class EntitlementChecker {
   }
 
   /**
-   * Check drug dispensing entitlement
+   * Check prescription entitlement (doctor-written script, not pharmacy dispensing)
+   */
+  checkPrescriptionEntitlement(entitlements, details) {
+    if (!entitlements.prescriptions?.allowed) {
+      return {
+        entitled: false,
+        reason: 'Prescriptions are not covered by your package. Please upgrade.',
+      };
+    }
+
+    // Check drug category if provided
+    if (details.drugCategory && entitlements.prescriptions.drugCategories) {
+      if (!entitlements.prescriptions.drugCategories.includes(details.drugCategory)) {
+        return {
+          entitled: false,
+          reason: `This drug category (${details.drugCategory}) is not covered by your prescription plan. Upgrade your package.`,
+        };
+      }
+    }
+
+    return {
+      entitled: true,
+      reason: 'Prescription is covered by your package',
+    };
+  }
+
+  /**
+   * Check drug dispensing entitlement (pharmacy fulfilment of a prescription)
    */
   checkDrugEntitlement(entitlements, details) {
     if (!entitlements.drugDispensing.allowed) {

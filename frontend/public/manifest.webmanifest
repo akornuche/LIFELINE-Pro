@@ -1,12 +1,12 @@
-{
-  "name": "LifeLine Pro - Health Insurance Platform",
-  "short_name": "LifeLine Pro",
+﻿{
+  "name": "LifeLine - Health Insurance Platform",
+  "short_name": "LifeLine",
   "description": "Comprehensive HMO & Health Insurance Management Platform",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#10b981",
+  "theme_color": "#75c44c",
   "background_color": "#ffffff",
   "categories": ["health", "medical", "lifestyle"],
   "lang": "en-US",

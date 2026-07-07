@@ -306,18 +306,20 @@ class SQLiteAdapter extends DatabaseAdapter {
     const start = Date.now();
     try {
       // Convert PostgreSQL placeholders ($1, $2, etc.) to SQLite placeholders (?)
+      // Also expand params to match each occurrence (e.g. $1 used 4 times → 4 entries)
       let sqliteQuery = text;
+      const expandedParams = [];
       if (params.length > 0) {
-        // Replace $1, $2, $3, etc. with ?
-        for (let i = params.length; i >= 1; i--) {
-          sqliteQuery = sqliteQuery.replace(new RegExp(`\\$${i}\\b`, 'g'), '?');
-        }
+        sqliteQuery = text.replace(/\$(\d+)/g, (match, num) => {
+          expandedParams.push(params[parseInt(num, 10) - 1]);
+          return '?';
+        });
       }
 
       // For SELECT queries or queries with RETURNING, use all() to get the results
       const upperQuery = sqliteQuery.trim().toUpperCase();
       if (upperQuery.startsWith('SELECT') || upperQuery.includes('RETURNING')) {
-        const result = await this.db.all(sqliteQuery, params);
+        const result = await this.db.all(sqliteQuery, expandedParams);
         const duration = Date.now() - start;
 
         if (duration > 1000) {
@@ -334,7 +336,7 @@ class SQLiteAdapter extends DatabaseAdapter {
         };
       } else {
         // For INSERT, UPDATE, DELETE
-        const result = await this.db.run(sqliteQuery, params);
+        const result = await this.db.run(sqliteQuery, expandedParams);
         const duration = Date.now() - start;
 
         if (duration > 1000) {
@@ -383,7 +385,9 @@ class SQLiteAdapter extends DatabaseAdapter {
 
   async transaction(callback) {
     try {
-      await this.db.exec('BEGIN TRANSACTION');
+      // BEGIN IMMEDIATE acquires a write lock upfront, preventing concurrent
+      // transactions from reading stale data before we write (round-robin safety).
+      await this.db.exec('BEGIN IMMEDIATE TRANSACTION');
       const result = await callback(this.db);
       await this.db.exec('COMMIT');
       return result;

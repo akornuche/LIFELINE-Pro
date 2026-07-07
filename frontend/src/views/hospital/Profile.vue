@@ -4,12 +4,12 @@
     <LoadingSpinner v-if="loading" />
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-1">
-        <BaseCard><div class="text-center"><div class="mb-4"><img v-if="profile.logo" :src="profile.logo" alt="Logo" class="h-32 w-32 rounded-lg mx-auto object-cover" /><div v-else class="h-32 w-32 rounded-lg mx-auto bg-red-500 flex items-center justify-center"><BuildingOffice2Icon class="h-16 w-16 text-white" /></div></div><h3 class="text-xl font-semibold text-gray-900">{{ profile.name }}</h3><p class="text-sm text-gray-500 mt-1">{{ profile.license_number }}</p><div class="mt-4"><input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleLogoUpload" /><BaseButton variant="outline" size="sm" fullWidth @click="$refs.fileInput.click()" :loading="uploading">Change Logo</BaseButton></div></div></BaseCard>
+        <BaseCard><div class="text-center"><div class="mb-4"><img v-if="logoSrc" :src="logoSrc" alt="Logo" class="h-32 w-32 rounded-lg mx-auto object-cover" /><div v-else class="h-32 w-32 rounded-lg mx-auto bg-red-500 flex items-center justify-center"><BuildingOffice2Icon class="h-16 w-16 text-white" /></div></div><h3 class="text-xl font-semibold text-gray-900">{{ profile.name }}</h3><p class="text-sm text-gray-500 mt-1">{{ profile.license_number }}</p><div class="mt-4"><input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleLogoUpload" /><BaseButton variant="outline" size="sm" fullWidth @click="$refs.fileInput.click()" :loading="uploading">Change Logo</BaseButton></div></div></BaseCard>
         <BaseCard class="mt-6" title="Verification"><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-gray-600">License</span><CheckCircleIcon v-if="profile.is_verified" class="h-5 w-5 text-green-500" /><XCircleIcon v-else class="h-5 w-5 text-gray-400" /></div><div class="flex items-center justify-between"><span class="text-sm text-gray-600">Emergency Services</span><CheckCircleIcon v-if="profile.emergency_services" class="h-5 w-5 text-green-500" /><XCircleIcon v-else class="h-5 w-5 text-gray-400" /></div></div></BaseCard>
       </div>
 
       <div class="lg:col-span-2 space-y-6">
-        <BaseCard title="Facility Information"><form @submit.prevent="updateProfile" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><BaseInput v-model="form.name" label="Hospital Name" required /><BaseInput v-model="form.license_number" label="License Number" readonly /><BaseInput v-model="form.email" label="Email" type="email" required /><BaseInput v-model="form.phone" label="Phone Number" required /></div><BaseInput v-model="form.address" label="Address" required /><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><BaseInput v-model="form.city" label="City" required /><BaseInput v-model="form.state" label="State" required /><BaseInput v-model="form.postal_code" label="Postal Code" /></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><BaseInput v-model.number="form.total_beds" label="Total Beds" type="number" required /><BaseInput v-model="form.hospital_type" label="Hospital Type" required /></div><div class="flex items-center"><input type="checkbox" v-model="form.emergency_services" class="mr-2" /><label class="text-sm font-medium text-gray-700">Emergency Services Available</label></div><div class="flex justify-end"><BaseButton type="submit" :loading="saving">Save Changes</BaseButton></div></form></BaseCard>
+        <BaseCard title="Facility Information"><form @submit.prevent="updateProfile" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><BaseInput v-model="form.name" label="Hospital Name" required /><BaseInput v-model="form.license_number" label="License Number" readonly /><BaseInput v-model="form.email" label="Email" type="email" required /><BaseInput v-model="form.phone" label="Phone Number" required /></div><BaseInput v-model="form.address" label="Address" required /><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><BaseInput v-model="form.city" label="City" /><BaseInput v-model="form.state" label="State" /><BaseInput v-model="form.postal_code" label="Postal Code" /></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><BaseInput v-model.number="form.total_beds" label="Total Beds" type="number" required /><BaseInput v-model="form.hospital_type" label="Hospital Type" required /></div><div class="flex items-center"><input type="checkbox" v-model="form.emergency_services" class="mr-2" /><label class="text-sm font-medium text-gray-700">Emergency Services Available</label></div><div class="flex justify-end"><BaseButton type="submit" :loading="saving">Save Changes</BaseButton></div></form></BaseCard>
 
         <BaseCard title="Change Password"><form @submit.prevent="changePassword" class="space-y-4"><BaseInput v-model="passwordForm.current_password" label="Current Password" type="password" required /><BaseInput v-model="passwordForm.new_password" label="New Password" type="password" required /><BaseInput v-model="passwordForm.confirm_password" label="Confirm New Password" type="password" required /><div class="flex justify-end"><BaseButton type="submit" :loading="changingPassword">Update Password</BaseButton></div></form></BaseCard>
       </div>
@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useHospitalStore } from '@/stores/hospital';
 import { useAuthStore } from '@/stores/auth';
@@ -37,13 +37,30 @@ const fileInput = ref(null);
 const form = ref({ name: '', license_number: '', email: '', phone: '', address: '', city: '', state: '', postal_code: '', total_beds: 0, hospital_type: '', emergency_services: false });
 const passwordForm = ref({ current_password: '', new_password: '', confirm_password: '' });
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002';
+const logoSrc = computed(() => {
+  const src = profile.value?.logo;
+  if (!src) return null;
+  return src.startsWith('http') ? src : `${API_URL}${src}`;
+});
+
 onMounted(async () => {
   profile.value = await hospitalStore.getProfile();
   form.value = { ...profile.value };
   loading.value = false;
 });
 
+const normalizePhone = (value) => String(value || '').replace(/[\s()\-]/g, '');
+const nigerianPhoneRegex = /^(?:0\d{10}|(?:\+?234)\d{10})$/;
+
 const updateProfile = async () => {
+  const rawPhone = form.value.phone;
+  if (rawPhone) {
+    if (!nigerianPhoneRegex.test(normalizePhone(rawPhone))) {
+      showError('Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)');
+      return;
+    }
+  }
   saving.value = true;
   try {
     await hospitalStore.updateProfile(form.value);

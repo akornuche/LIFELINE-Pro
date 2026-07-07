@@ -65,7 +65,10 @@ export const createHospital = async (userId, hospitalData) => {
 export const findByUserId = async (userId) => {
   try {
     const result = await database.query(
-      `SELECT h.*, u.lifeline_id, u.email, u.phone, u.profile_image_url as logo,
+      `SELECT h.*, h.bed_capacity AS total_beds, u.lifeline_id,
+              COALESCE(h.email, u.email) AS email,
+              COALESCE(h.phone, u.phone) AS phone,
+              u.profile_image_url as logo,
               h.hospital_name as name
        FROM hospitals h
        JOIN users u ON h.user_id = u.id
@@ -78,7 +81,13 @@ export const findByUserId = async (userId) => {
     }
 
     const hospital = result.rows[0];
-    hospital.departments = hospital.departments || [];
+    hospital.specialties = hospital.specialties
+      ? (typeof hospital.specialties === 'string' ? JSON.parse(hospital.specialties) : hospital.specialties)
+      : [];
+    hospital.departments = hospital.specialties; // alias for frontend compatibility
+    if (hospital.operating_hours && typeof hospital.operating_hours === 'string') {
+      try { hospital.operating_hours = JSON.parse(hospital.operating_hours); } catch { hospital.operating_hours = null; }
+    }
 
     return hospital;
   } catch (error) {
@@ -97,7 +106,10 @@ export const findByUserId = async (userId) => {
 export const findById = async (hospitalId) => {
   try {
     const result = await database.query(
-      `SELECT h.*, u.lifeline_id, u.email, u.phone, u.profile_image_url as logo,
+      `SELECT h.*, h.bed_capacity AS total_beds, u.lifeline_id,
+              COALESCE(h.email, u.email) AS email,
+              COALESCE(h.phone, u.phone) AS phone,
+              u.profile_image_url as logo,
               h.hospital_name as name
        FROM hospitals h
        JOIN users u ON h.user_id = u.id
@@ -110,7 +122,13 @@ export const findById = async (hospitalId) => {
     }
 
     const hospital = result.rows[0];
-    hospital.departments = hospital.departments || [];
+    hospital.specialties = hospital.specialties
+      ? (typeof hospital.specialties === 'string' ? JSON.parse(hospital.specialties) : hospital.specialties)
+      : [];
+    hospital.departments = hospital.specialties; // alias for frontend compatibility
+    if (hospital.operating_hours && typeof hospital.operating_hours === 'string') {
+      try { hospital.operating_hours = JSON.parse(hospital.operating_hours); } catch { hospital.operating_hours = null; }
+    }
 
     return hospital;
   } catch (error) {
@@ -129,14 +147,21 @@ export const findById = async (hospitalId) => {
 export const updateProfile = async (hospitalId, updates) => {
   const allowedFields = [
     'hospital_name',
-    'address',
     'hospital_type',
-    'number_of_beds',
+    'address',
+    'city',
+    'state',
+    'postal_code',
+    'phone',
+    'email',
+    'website',
+    'description',
+    'bed_capacity',
     'available_beds',
-    'has_emergency',
-    'has_icu',
-    'departments',
+    'emergency_services',
+    'specialties',
     'accreditation',
+    'operating_hours',
   ];
 
   const mappedUpdates = {};
@@ -145,10 +170,32 @@ export const updateProfile = async (hospitalId, updates) => {
     hospital_name: 'hospital_name',
     name: 'hospital_name',
     address: 'address',
+    city: 'city',
+    state: 'state',
+    postalCode: 'postal_code',
+    postal_code: 'postal_code',
     phone: 'phone',
+    email: 'email',
+    website: 'website',
+    description: 'description',
+    // hospital type — both naming conventions
+    hospitalType: 'hospital_type',
+    hospital_type: 'hospital_type',
     availableBeds: 'available_beds',
-    hasEmergency: 'has_emergency',
-    hasICU: 'has_icu',
+    available_beds: 'available_beds',
+    hasEmergency: 'emergency_services',
+    emergency_services: 'emergency_services',
+    // bed count — all aliases map to bed_capacity
+    numberOfBeds: 'bed_capacity',
+    totalBeds: 'bed_capacity',
+    total_beds: 'bed_capacity',
+    number_of_beds: 'bed_capacity',
+    // settings blob
+    operatingHours: 'operating_hours',
+    operating_hours: 'operating_hours',
+    accreditation: 'accreditation',
+    departments: 'specialties',
+    specialties: 'specialties',
   };
 
   Object.keys(updates).forEach((key) => {
@@ -166,8 +213,8 @@ export const updateProfile = async (hospitalId, updates) => {
     fields.push(`${key} = $${paramCount}`);
     
     // Handle JSON fields
-    if (key === 'departments') {
-      values.push(JSON.stringify(mappedUpdates[key]));
+    if (key === 'specialties' || key === 'operating_hours') {
+      values.push(mappedUpdates[key] != null ? JSON.stringify(mappedUpdates[key]) : null);
     } else {
       values.push(mappedUpdates[key]);
     }
@@ -185,18 +232,20 @@ export const updateProfile = async (hospitalId, updates) => {
     const result = await database.query(
       `UPDATE hospitals
        SET ${fields.join(', ')}
-       WHERE id = $${paramCount}
-       RETURNING *`,
+       WHERE id = $${paramCount}`,
       values
     );
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       throw new NotFoundError('Hospital');
     }
 
+    // Manual fetch — SQLite-safe pattern (matches doctor/pharmacy repositories)
+    const updated = await findById(hospitalId);
+
     logger.info('Hospital profile updated', { hospitalId });
 
-    return result.rows[0];
+    return updated;
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
     logger.error('Error updating hospital profile', {
@@ -423,25 +472,71 @@ export const findAll = async (options = {}) => {
  * Search hospitals
  */
 export const searchHospitals = async (searchTerm = '', options = {}) => {
-  const { limit = 50, offset = 0, verificationStatus = 'verified' } = options;
+  const {
+    limit = 50,
+    offset = 0,
+    type = '',
+    minRating = 0,
+    emergencyServices = false,
+    hasAvailableBeds = false,
+    verifiedOnly = false,
+    patientCity = null,
+  } = options;
 
   try {
     const searchPattern = searchTerm ? `%${searchTerm}%` : '%';
+    const params = [searchPattern];
+    let paramCount = 1;
+
+    let whereClause = `u.status = 'active'
+         AND (
+           LOWER(h.hospital_name) LIKE LOWER($1) OR
+           LOWER(h.address) LIKE LOWER($1) OR
+           LOWER(h.hospital_type) LIKE LOWER($1) OR
+           u.lifeline_id LIKE $1
+         )`;
+
+    if (verifiedOnly) {
+      paramCount++;
+      whereClause += ` AND h.verification_status = $${paramCount}`;
+      params.push('verified');
+    }
+
+    if (type) {
+      paramCount++;
+      whereClause += ` AND LOWER(h.hospital_type) LIKE LOWER($${paramCount})`;
+      params.push(`%${type}%`);
+    }
+
+    if (minRating > 0) {
+      paramCount++;
+      whereClause += ` AND COALESCE(h.average_rating, 0) >= $${paramCount}`;
+      params.push(minRating);
+    }
+
+    if (emergencyServices) {
+      whereClause += ` AND h.emergency_services = 1`;
+    }
+
+    if (hasAvailableBeds) {
+      whereClause += ` AND COALESCE(h.available_beds, 0) > 0`;
+    }
+
+    const cityScore = patientCity
+      ? `CASE WHEN LOWER(u.city) = LOWER('${patientCity.replace(/'/g, "''")}') THEN 50 ELSE 0 END`
+      : '0';
+
+    params.push(limit, offset);
+
     const result = await database.query(
-      `SELECT h.*, u.lifeline_id, u.email, u.phone
+      `SELECT h.*, u.lifeline_id, u.email, u.phone, u.city,
+              (${cityScore} + COALESCE(h.average_rating, 0) * 10) AS match_score
        FROM hospitals h
        JOIN users u ON h.user_id = u.id
-       WHERE h.verification_status = $1
-         AND u.status = 'active'
-         AND (
-           LOWER(h.hospital_name) LIKE LOWER($2) OR
-           LOWER(h.address) LIKE LOWER($2) OR
-           LOWER(h.hospital_type) LIKE LOWER($2) OR
-           u.lifeline_id LIKE $2
-         )
-       ORDER BY h.average_rating DESC, h.created_at DESC
-       LIMIT $3 OFFSET $4`,
-      [verificationStatus, searchPattern, limit, offset]
+       WHERE ${whereClause}
+       ORDER BY match_score DESC, h.average_rating DESC, h.created_at DESC
+       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
+      params
     );
 
     return result.rows || result || [];
@@ -450,7 +545,6 @@ export const searchHospitals = async (searchTerm = '', options = {}) => {
       error: error.message,
       searchTerm,
     });
-    // Return empty array instead of throwing
     return [];
   }
 };
@@ -602,7 +696,7 @@ export const getStatistics = async (hospitalId, startDate, endDate) => {
          WHERE hospital_id = $1 AND created_at BETWEEN $2 AND $3) as consultations,
         (SELECT COUNT(DISTINCT patient_id) FROM surgeries 
          WHERE hospital_id = $1 AND created_at BETWEEN $2 AND $3) as unique_patients,
-        (SELECT COALESCE(SUM(total_amount), 0) FROM payment_records 
+        (SELECT COALESCE(SUM(amount), 0) FROM payment_records 
          WHERE provider_id = (SELECT user_id FROM hospitals WHERE id = $1)
          AND created_at BETWEEN $2 AND $3) as total_earnings`,
       [hospitalId, startDate, endDate]

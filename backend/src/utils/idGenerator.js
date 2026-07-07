@@ -73,19 +73,19 @@ class IDGenerator {
           break;
         case 'LLDOC':
           tableName = 'users';
-          query = `SELECT lifeline_id FROM users WHERE role = 'doctor' ORDER BY lifeline_id DESC LIMIT 1`;
+          query = `SELECT lifeline_id FROM users WHERE role = 'doctor' AND lifeline_id LIKE 'LLDOC-%' ORDER BY CAST(SUBSTR(lifeline_id, 7) AS INTEGER) DESC LIMIT 1`;
           break;
         case 'LLPHA':
           tableName = 'users';
-          query = `SELECT lifeline_id FROM users WHERE role = 'pharmacy' ORDER BY lifeline_id DESC LIMIT 1`;
+          query = `SELECT lifeline_id FROM users WHERE role = 'pharmacy' AND lifeline_id LIKE 'LLPHA-%' ORDER BY CAST(SUBSTR(lifeline_id, 7) AS INTEGER) DESC LIMIT 1`;
           break;
         case 'LLHOS':
           tableName = 'users';
-          query = `SELECT lifeline_id FROM users WHERE role = 'hospital' ORDER BY lifeline_id DESC LIMIT 1`;
+          query = `SELECT lifeline_id FROM users WHERE role = 'hospital' AND lifeline_id LIKE 'LLHOS-%' ORDER BY CAST(SUBSTR(lifeline_id, 7) AS INTEGER) DESC LIMIT 1`;
           break;
         case 'LLADM':
           tableName = 'users';
-          query = `SELECT lifeline_id FROM users WHERE role = 'admin' ORDER BY lifeline_id DESC LIMIT 1`;
+          query = `SELECT lifeline_id FROM users WHERE role = 'admin' AND lifeline_id LIKE 'LLADM-%' ORDER BY CAST(SUBSTR(lifeline_id, 7) AS INTEGER) DESC LIMIT 1`;
           break;
         default:
           return 1;

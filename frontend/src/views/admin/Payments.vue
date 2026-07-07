@@ -61,6 +61,10 @@ const viewPaymentDetails = async (id) => {
   }
 };
 const formatMoney = (amount) => new Intl.NumberFormat('en-NG').format(Number(amount) || 0);
-const formatDate = (dateString) => format(new Date(dateString), 'MMM d, yyyy h:mm a');
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const d = new Date(dateString);
+  return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMM d, yyyy h:mm a');
+};
 const getStatusBadge = (status) => ({ completed: 'badge badge-success', pending: 'badge badge-warning', failed: 'badge badge-error' }[status] || 'badge');
 </script>

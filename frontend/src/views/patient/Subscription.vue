@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="page-container">
     <div class="mb-8 flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 animate-fade-in">Subscription</h1>
-        <p class="text-gray-600 mt-2">Manage your LifeLine Pro plan and benefits</p>
+        <p class="text-gray-600 mt-2">Manage your LifeLine plan and benefits</p>
       </div>
       <div v-if="patientStore.hasActiveSubscription" class="text-right">
         <div class="inline-flex items-center px-4 py-2 bg-primary-50 rounded-full border border-primary-100 shadow-sm animate-pulse">
@@ -15,16 +15,39 @@
       </div>
     </div>
 
-    <!-- Alert for Inactive Subscription -->
-    <div v-if="!patientStore.hasActiveSubscription" class="mb-8 p-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm animate-bounce-in">
+    <!-- Step 1: Email Verification Gate -->
+    <div v-if="!authStore.isEmailVerified" class="mb-8 p-6 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg shadow-sm">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <ExclamationTriangleIcon class="h-6 w-6 text-amber-500" />
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-lg font-bold text-amber-800">Step 1 of 2 — Verify your email address</h3>
+          <p class="mt-1 text-sm text-amber-700">A verification link was sent to <strong>{{ authStore.user?.email }}</strong>. Click the link in that email, then come back here to select a plan.</p>
+          <div class="mt-3 flex items-center gap-4">
+            <button
+              @click="handleResendVerification"
+              :disabled="resendingVerification || verificationResent"
+              class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ verificationResent ? 'Email sent ✓' : (resendingVerification ? 'Sending…' : 'Resend verification email') }}
+            </button>
+            <span class="text-xs text-amber-600">Check your spam folder if you don't see it.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 / Alert for Inactive Subscription (only show when email is verified) -->
+    <div v-else-if="!patientStore.hasActiveSubscription" class="mb-8 p-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm animate-bounce-in">
       <div class="flex">
         <div class="flex-shrink-0">
           <ExclamationTriangleIcon class="h-6 w-6 text-red-500" />
         </div>
         <div class="ml-3">
-          <h3 class="text-lg font-bold text-red-800">Subscription Required</h3>
+          <h3 class="text-lg font-bold text-red-800">Step 2 of 2 — Choose a subscription plan</h3>
           <div class="mt-2 text-sm text-red-700">
-            <p>Your dashboard is currently locked. Please select a package below to continue using LifeLine Pro services.</p>
+            <p>Your email is verified. Now select a package below to activate your LifeLine account.</p>
           </div>
         </div>
       </div>
@@ -81,7 +104,7 @@
                   stroke-width="8"
                   fill="transparent"
                   :stroke-dasharray="2 * Math.PI * 58"
-                  :stroke-dashoffset="2 * Math.PI * 58 * (1 - patientStore.daysRemaining / 365)"
+                  :stroke-dashoffset="2 * Math.PI * 58 * (1 - patientStore.subscriptionProgress)"
                   :class="patientStore.daysRemaining <= 30 ? 'text-red-500' : 'text-primary-600'"
                   class="transition-all duration-1000 ease-out"
                 />
@@ -91,7 +114,8 @@
                 <span class="text-[10px] font-bold text-gray-400 uppercase">Days Left</span>
               </div>
             </div>
-            <p v-if="patientStore.daysRemaining <= 30" class="text-xs font-bold text-primary-600 animate-pulse">Renewal link now active!</p>
+            <p class="text-xs text-gray-500">of {{ patientStore.subscriptionTotalDays }}-day plan</p>
+            <p v-if="patientStore.daysRemaining <= 30" class="text-xs font-bold text-primary-600 animate-pulse mt-1">Renewal link now active!</p>
           </div>
         </div>
       </div>
@@ -114,7 +138,7 @@
           class="card flex flex-col transition-all duration-300" 
           :class="[
             patientStore.packageType === 'general' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
-            !patientStore.canRenew && patientStore.packageType !== 'general' ? 'opacity-50 grayscale-[0.5]' : ''
+            patientStore.getPlanAction('general').isDowngrade ? 'opacity-40 grayscale-[0.3]' : ''
           ]"
         >
           <div class="p-6 flex-1">
@@ -141,11 +165,14 @@
               @click="selectPlan('general')"
               class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'general' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-gray-600 text-white hover:bg-gray-700 hover:shadow-lg'
+                !authStore.isEmailVerified ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : patientStore.getPlanAction('general').isCurrent ? 'bg-primary-100 text-primary-700 cursor-default'
+                : patientStore.getPlanAction('general').isDowngrade ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-600 text-white hover:bg-gray-700 hover:shadow-lg'
               ]"
-              :disabled="!patientStore.canRenew || patientStore.packageType === 'general'"
+              :disabled="!authStore.isEmailVerified || patientStore.getPlanAction('general').disabled"
             >
-              {{ patientStore.packageType === 'general' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Switch' : 'Select') }}
+              {{ !authStore.isEmailVerified ? 'Verify email first' : patientStore.getPlanAction('general').label }}
             </button>
           </div>
         </div>
@@ -155,7 +182,7 @@
           class="card flex flex-col transition-all duration-300" 
           :class="[
             patientStore.packageType === 'basic' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
-            !patientStore.canRenew && patientStore.packageType !== 'basic' ? 'opacity-50 grayscale-[0.5]' : ''
+            patientStore.getPlanAction('basic').isDowngrade ? 'opacity-40 grayscale-[0.3]' : ''
           ]"
         >
           <div class="p-6 flex-1">
@@ -182,11 +209,14 @@
               @click="selectPlan('basic')"
               class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'basic' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg'
+                !authStore.isEmailVerified ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : patientStore.getPlanAction('basic').isCurrent ? 'bg-primary-100 text-primary-700 cursor-default'
+                : patientStore.getPlanAction('basic').isDowngrade ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg'
               ]"
-              :disabled="!patientStore.canRenew || patientStore.packageType === 'basic'"
+              :disabled="!authStore.isEmailVerified || patientStore.getPlanAction('basic').disabled"
             >
-              {{ patientStore.packageType === 'basic' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Switch' : 'Select') }}
+              {{ !authStore.isEmailVerified ? 'Verify email first' : patientStore.getPlanAction('basic').label }}
             </button>
           </div>
         </div>
@@ -196,7 +226,7 @@
           class="card flex flex-col relative transition-all duration-300" 
           :class="[
             patientStore.packageType === 'standard' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
-            !patientStore.canRenew && patientStore.packageType !== 'standard' ? 'opacity-50 grayscale-[0.5]' : ''
+            patientStore.getPlanAction('standard').isDowngrade ? 'opacity-40 grayscale-[0.3]' : ''
           ]"
         >
           <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-secondary-500 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Most Popular</div>
@@ -224,11 +254,14 @@
               @click="selectPlan('standard')"
               class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'standard' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-lg'
+                !authStore.isEmailVerified ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : patientStore.getPlanAction('standard').isCurrent ? 'bg-primary-100 text-primary-700 cursor-default'
+                : patientStore.getPlanAction('standard').isDowngrade ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-lg'
               ]"
-              :disabled="!patientStore.canRenew || patientStore.packageType === 'standard'"
+              :disabled="!authStore.isEmailVerified || patientStore.getPlanAction('standard').disabled"
             >
-              {{ patientStore.packageType === 'standard' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Upgrade' : 'Select') }}
+              {{ !authStore.isEmailVerified ? 'Verify email first' : patientStore.getPlanAction('standard').label }}
             </button>
           </div>
         </div>
@@ -237,8 +270,7 @@
         <div 
           class="card flex flex-col relative transition-all duration-300" 
           :class="[
-            patientStore.packageType === 'premium' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg',
-            !patientStore.canRenew && patientStore.packageType !== 'premium' ? 'opacity-50 grayscale-[0.5]' : ''
+            patientStore.packageType === 'premium' ? 'ring-4 ring-primary-500 shadow-2xl scale-105 z-10' : 'hover:scale-[1.02] shadow-lg'
           ]"
         >
           <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Premium</div>
@@ -266,11 +298,13 @@
               @click="selectPlan('premium')"
               class="w-full py-3 rounded-xl font-black text-sm transition-all"
               :class="[
-                patientStore.packageType === 'premium' ? 'bg-primary-100 text-primary-700 cursor-default' : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg'
+                !authStore.isEmailVerified ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : patientStore.getPlanAction('premium').isCurrent ? 'bg-primary-100 text-primary-700 cursor-default'
+                : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg'
               ]"
-              :disabled="!patientStore.canRenew || patientStore.packageType === 'premium'"
+              :disabled="!authStore.isEmailVerified || patientStore.getPlanAction('premium').disabled"
             >
-              {{ patientStore.packageType === 'premium' ? 'Currently Active' : (patientStore.hasActiveSubscription ? 'Ultimate Upgrade' : 'Select') }}
+              {{ !authStore.isEmailVerified ? 'Verify email first' : patientStore.getPlanAction('premium').label }}
             </button>
           </div>
         </div>
@@ -282,6 +316,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import { usePatientStore } from '@/stores/patient';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
@@ -295,9 +330,26 @@ import {
 import { format } from 'date-fns';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const patientStore = usePatientStore();
 const { success, error: showError } = useToast();
 const { confirm } = useConfirm();
+
+const resendingVerification = ref(false);
+const verificationResent = ref(false);
+
+const handleResendVerification = async () => {
+  if (resendingVerification.value || verificationResent.value) return;
+  resendingVerification.value = true;
+  try {
+    await authStore.resendVerification();
+    verificationResent.value = true;
+  } catch (e) {
+    showError('Failed to resend verification email. Please try again.');
+  } finally {
+    resendingVerification.value = false;
+  }
+};
 
 const packagePrices = {
   general: 1500,
@@ -355,6 +407,12 @@ const formatDate = (date) => {
 };
 
 const selectPlan = async (packageType) => {
+  // Block payment if email is not verified
+  if (!authStore.isEmailVerified) {
+    showError('Please verify your email address before subscribing. Check your inbox for the verification link.');
+    return;
+  }
+
   const isRenewal = patientStore.hasActiveSubscription;
   const amount = packagePrices[packageType];
   

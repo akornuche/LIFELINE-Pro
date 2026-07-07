@@ -1,9 +1,10 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="flex-1 flex flex-col bg-gradient-to-br from-primary-50 to-secondary-50">
+    <div class="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8 animate-fade-in">
       <!-- Logo and Header -->
       <div class="text-center">
-        <h1 class="text-4xl font-bold text-primary-600 mb-2 animate-bounce-in">LifeLine Pro</h1>
+        <h1 class="text-4xl font-bold text-primary-600 mb-2 animate-bounce-in">LifeLine</h1>
         <h2 class="text-2xl font-semibold text-gray-900 animate-fade-in stagger-1">Welcome Back</h2>
         <p class="mt-2 text-sm text-gray-600 animate-fade-in stagger-2">
           Sign in to access your health dashboard
@@ -111,6 +112,7 @@
         </router-link>
       </p>
     </div>
+    </div>
   </div>
 </template>
 
@@ -151,7 +153,7 @@ const handleLogin = handleSubmit(async (values) => {
     await authStore.login({
       email: values.email,
       password: values.password
-    });
+    }, { rememberMe: rememberMe.value });
 
     success(`Welcome back, ${authStore.user?.first_name || 'User'}!`);
 

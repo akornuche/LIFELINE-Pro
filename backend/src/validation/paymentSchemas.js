@@ -61,7 +61,7 @@ export const initializePaymentSchema = Joi.object({
     )
     .required(),
   description: Joi.string().trim().min(5).max(500).required(),
-  patientId: Joi.string().uuid().required(),
+  patientId: Joi.string().uuid(),
   relatedRecordId: Joi.string().uuid(),
   relatedRecordType: Joi.string().valid(
     'subscription',
@@ -72,10 +72,11 @@ export const initializePaymentSchema = Joi.object({
   ),
   callbackUrl: Joi.string().uri(),
   metadata: Joi.object({
-    packageType: Joi.string().valid('basic', 'medium', 'advanced'),
+    packageType: Joi.string().valid('general', 'basic', 'standard', 'premium'),
     billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual'),
     serviceProviderId: Joi.string().uuid(),
     serviceProviderType: Joi.string().valid('doctor', 'pharmacy', 'hospital'),
+    isRenewal: Joi.boolean(),
   }),
 });
 
@@ -169,14 +170,8 @@ export const createRefundSchema = Joi.object({
 
 // Process refund
 export const processRefundSchema = Joi.object({
-  refundId: Joi.string().uuid().required(),
-  status: Joi.string().valid('approved', 'rejected').required(),
-  approvedBy: Joi.string().uuid().required(),
-  rejectionReason: Joi.string().trim().max(500).when('status', {
-    is: 'rejected',
-    then: Joi.required(),
-  }),
-  notes: Joi.string().trim().max(1000),
+  amount: Joi.number().positive().precision(2).required(),
+  reason: Joi.string().trim().min(10).max(1000).required(),
 });
 
 /**

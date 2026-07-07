@@ -2,6 +2,7 @@ import express from 'express';
 import * as queueService from '../services/queueService.js';
 import { authenticate } from '../middleware/auth.js';
 import { isPatient, checkRole } from '../middleware/rbac.js';
+import entitlementChecker from '../utils/entitlementChecker.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -13,7 +14,7 @@ const router = express.Router();
  */
 router.post('/request', authenticate, isPatient, async (req, res, next) => {
   try {
-    const { serviceType, description, preferredDate, priority } = req.body;
+    const { serviceType, description, preferredDate, priority, preferredProviderId, preferredProviderType } = req.body;
 
     if (!serviceType) {
       return res.status(400).json({
@@ -23,9 +24,17 @@ router.post('/request', authenticate, isPatient, async (req, res, next) => {
     }
 
     const validServiceTypes = [
-      'consultation', 'prescription', 'drug_dispensing',
-      'minor_surgery', 'major_surgery', 'laboratory_test',
-      'imaging', 'admission', 'emergency',
+      // Tier 1 — General & above
+      'consultation', 'prescription', 'laboratory_test', 'vaccination', 'emergency',
+      // Tier 2 — Basic Insurance & above
+      'drug_dispensing', 'admission', 'antenatal_care',
+      // Tier 3 — Standard Insurance & above
+      'specialist_consultation', 'advanced_lab_test', 'imaging',
+      'minor_surgery', 'physiotherapy', 'mental_health', 'dental_care',
+      'chronic_disease_management',
+      // Tier 4 — Premium Insurance only
+      'advanced_imaging', 'major_surgery', 'maternity_care',
+      'ambulance', 'home_visit', 'second_opinion',
     ];
 
     if (!validServiceTypes.includes(serviceType)) {
@@ -49,11 +58,37 @@ router.post('/request', authenticate, isPatient, async (req, res, next) => {
       });
     }
 
+    // Fetch patient's active subscription and check entitlement
+    const subResult = await database.query(
+      `SELECT current_package as package_type FROM patients WHERE id = $1 AND subscription_status = 'active'`,
+      [patientResult.rows[0].id]
+    );
+
+    if (!subResult.rows[0]) {
+      return res.status(403).json({
+        success: false,
+        message: 'You need an active subscription to request services. Please subscribe to a plan.',
+      });
+    }
+
+    const packageType = subResult.rows[0].package_type.toUpperCase();
+    const entitlement = entitlementChecker.isServiceEntitled(packageType, serviceType);
+
+    if (!entitlement.entitled) {
+      return res.status(403).json({
+        success: false,
+        message: entitlement.reason,
+        requiredUpgrade: true,
+      });
+    }
+
     const request = await queueService.createRequest(patientResult.rows[0].id, {
       serviceType,
       description,
       preferredDate,
       priority,
+      preferredProviderId: preferredProviderId || null,
+      preferredProviderType: preferredProviderType || null,
     });
 
     res.status(201).json({

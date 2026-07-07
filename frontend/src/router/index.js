@@ -4,54 +4,77 @@ import { useAuthStore } from '@/stores/auth';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Public Routes
+    // ── Public site (shared navbar + footer via PublicLayout) ──────────────
     {
       path: '/',
-      name: 'landing',
-      component: () => import('@/views/Landing.vue'),
-      meta: { public: true }
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/auth/Login.vue'),
-      meta: { public: true, guest: true }
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('@/views/auth/Register.vue'),
-      meta: { public: true, guest: true }
-    },
-    {
-      path: '/terms-of-service',
-      name: 'terms-of-service',
-      component: () => import('@/views/legal/TermsOfService.vue'),
-      meta: { public: true }
-    },
-    {
-      path: '/privacy-policy',
-      name: 'privacy-policy',
-      component: () => import('@/views/legal/PrivacyPolicy.vue'),
-      meta: { public: true }
-    },
-    {
-      path: '/forgot-password',
-      name: 'forgot-password',
-      component: () => import('@/views/auth/ForgotPassword.vue'),
-      meta: { public: true, guest: true }
-    },
-    {
-      path: '/reset-password',
-      name: 'reset-password',
-      component: () => import('@/views/auth/ResetPassword.vue'),
-      meta: { public: true, guest: true }
-    },
-    {
-      path: '/verify-email/:token',
-      name: 'verify-email',
-      component: () => import('@/views/auth/VerifyEmail.vue'),
-      meta: { public: true }
+      component: () => import('@/layouts/PublicLayout.vue'),
+      meta: { public: true },
+      children: [
+        {
+          path: '',
+          name: 'landing',
+          component: () => import('@/views/Landing.vue'),
+        },
+        {
+          path: 'services',
+          name: 'services',
+          component: () => import('@/views/Services.vue'),
+        },
+        {
+          path: 'about',
+          name: 'about',
+          component: () => import('@/views/About.vue'),
+        },
+        {
+          path: 'pricing',
+          name: 'pricing',
+          component: () => import('@/views/Pricing.vue'),
+        },
+        {
+          path: 'contact',
+          name: 'contact',
+          component: () => import('@/views/Contact.vue'),
+        },
+        {
+          path: 'login',
+          name: 'login',
+          component: () => import('@/views/auth/Login.vue'),
+          meta: { guest: true },
+        },
+        {
+          path: 'register',
+          name: 'register',
+          component: () => import('@/views/auth/Register.vue'),
+          meta: { guest: true },
+        },
+        {
+          path: 'terms-of-service',
+          name: 'terms-of-service',
+          component: () => import('@/views/legal/TermsOfService.vue'),
+        },
+        {
+          path: 'privacy-policy',
+          name: 'privacy-policy',
+          component: () => import('@/views/legal/PrivacyPolicy.vue'),
+        },
+        {
+          path: 'forgot-password',
+          name: 'forgot-password',
+          component: () => import('@/views/auth/ForgotPassword.vue'),
+          meta: { guest: true },
+        },
+        {
+          path: 'reset-password',
+          name: 'reset-password',
+          component: () => import('@/views/auth/ResetPassword.vue'),
+          meta: { guest: true },
+        },
+        {
+          path: 'verify-email/:token',
+          name: 'verify-email',
+          component: () => import('@/views/auth/VerifyEmail.vue'),
+        },
+      ],
     },
 
     // Patient Portal

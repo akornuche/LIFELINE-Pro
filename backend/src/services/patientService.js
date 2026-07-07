@@ -70,6 +70,7 @@ export const getPatientProfile = async (userId) => {
         last_name: user.last_name,
         phone: user.phone,
         date_of_birth: user.date_of_birth,
+        address: user.address,
       },
       subscription,
     };
@@ -110,12 +111,17 @@ export const updatePatientProfile = async (userId, updateData) => {
       await userRepository.updateProfile(userId, identityUpdates);
     }
 
-    const updatedPatient = await patientRepository.updateProfile(patient.id, {
-      bloodGroup,
-      allergies,
-      chronicConditions,
-      emergencyContact,
-    });
+    // Only call patientRepository.updateProfile when there are patient-level fields to update.
+    // Calling it with all-undefined values throws "No valid fields to update".
+    const patientLevelUpdates = {};
+    if (bloodGroup !== undefined) patientLevelUpdates.bloodGroup = bloodGroup;
+    if (allergies !== undefined) patientLevelUpdates.allergies = allergies;
+    if (chronicConditions !== undefined) patientLevelUpdates.chronicConditions = chronicConditions;
+    if (emergencyContact !== undefined) patientLevelUpdates.emergencyContact = emergencyContact;
+
+    if (Object.keys(patientLevelUpdates).length > 0) {
+      await patientRepository.updateProfile(patient.id, patientLevelUpdates);
+    }
 
     // Fetch full profile to return consistent data
     const fullProfile = await getPatientProfile(userId);
@@ -183,11 +189,14 @@ export const createSubscription = async (userId, subscriptionData) => {
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 365);
+    // Store as ISO strings — sqlite3 npm cannot bind JS Date objects (stores NULL).
+    const startISO = startDate.toISOString();
+    const endISO = endDate.toISOString();
 
     const subscription = await patientRepository.updateSubscription(patient.id, {
       packageType: normalizedPackageType,
-      subscriptionStartDate: startDate,
-      subscriptionEndDate: endDate,
+      subscriptionStartDate: startISO,
+      subscriptionEndDate: endISO,
       subscriptionStatus: 'active',
       autoRenew: autoRenew !== undefined ? autoRenew : true,
     });
@@ -229,23 +238,41 @@ export const updateSubscription = async (userId, subscriptionData) => {
       throw new BusinessLogicError(`Invalid package type: ${packageType}`);
     }
 
-    // Calculate new subscription dates (365 days from now for simplicity)
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + 365);
+    // Read existing subscription to preserve dates when the subscription is still active.
+    // Only reset start/end dates when the current subscription has already expired (i.e. genuine renewal).
+    const current = await patientRepository.getActiveSubscription(patient.id);
+    const isExpiredOrMissing =
+      !current?.subscription_end_date ||
+      new Date(current.subscription_end_date) < new Date();
+
+    let startISO, endISO;
+    if (isExpiredOrMissing) {
+      // Renewal after expiry — reset countdown from today
+      const sd = new Date();
+      const ed = new Date();
+      ed.setDate(ed.getDate() + 365);
+      startISO = sd.toISOString();
+      endISO = ed.toISOString();
+    } else {
+      // Plan change while still active — keep the original dates so the countdown continues
+      // Re-serialise as ISO strings to avoid sqlite3 NULL-binding issue
+      startISO = new Date(current.subscription_start_date).toISOString();
+      endISO = new Date(current.subscription_end_date).toISOString();
+    }
 
     const subscription = await patientRepository.updateSubscription(patient.id, {
-      packageType: normalizedPackageType,
-      subscriptionStartDate: startDate,
-      subscriptionEndDate: endDate,
+      packageType: normalizedPackageType || current?.current_package,
+      subscriptionStartDate: startISO,
+      subscriptionEndDate: endISO,
       subscriptionStatus: subscriptionStatus || 'active',
-      autoRenew: autoRenew !== undefined ? autoRenew : true,
+      autoRenew: autoRenew !== undefined ? autoRenew : (current?.auto_renew ?? true),
     });
 
     logger.info('Subscription updated', {
       userId,
       patientId: patient.id,
       packageType: normalizedPackageType,
+      datesReset: isExpiredOrMissing,
     });
 
     return mapSubscription(subscription);

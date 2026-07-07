@@ -4,9 +4,11 @@
     <aside class="w-64 bg-white shadow-sm">
       <div class="h-full flex flex-col">
         <!-- Logo -->
-        <div class="px-6 py-6 border-b">
-          <h1 class="text-2xl font-bold text-primary-600">LifeLine Pro</h1>
-          <p class="text-sm text-gray-600 mt-1">Admin Portal</p>
+        <div class="px-6 py-5 border-b">
+          <RouterLink to="/" class="block mb-1">
+            <img src="/logo-bg.svg" alt="LifeLine" class="h-8 w-auto" />
+          </RouterLink>
+          <p class="text-xs text-gray-500 mt-1">Admin Portal</p>
         </div>
 
         <!-- Navigation -->
@@ -47,13 +49,17 @@
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto">
-      <RouterView />
+      <div class="min-h-full flex flex-col">
+        <div class="flex-1"><RouterView /></div>
+        <SiteFooter />
+      </div>
     </main>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import SiteFooter from '@/components/SiteFooter.vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import {
@@ -94,3 +100,4 @@ const handleLogout = async () => {
   router.push('/login');
 };
 </script>
+

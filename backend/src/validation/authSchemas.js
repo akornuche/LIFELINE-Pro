@@ -33,13 +33,31 @@ const passwordRule = Joi.string()
     'any.required': 'Password is required',
   });
 
+const normalizeAndValidateNigerianPhone = (value, helpers) => {
+  const normalized = String(value || '').replace(/[\s()\-]/g, '');
+  const isValid = /^(?:0\d{10}|(?:\+?234)\d{10})$/.test(normalized);
+
+  if (!isValid) {
+    return helpers.error('string.pattern.base');
+  }
+
+  return normalized;
+};
+
 const phoneRule = Joi.string()
-  .pattern(/^(\+234|0)[78901]\d{9}$/)
+  .custom(normalizeAndValidateNigerianPhone)
   .required()
   .messages({
-    'string.pattern.base': 'Please provide a valid Nigerian phone number (e.g., 08012345678 or +2348012345678)',
+    'string.pattern.base': 'Please provide a valid Nigerian phone number (e.g., 08012345678, 2348012345678, or +2348012345678)',
     'string.empty': 'Phone number is required',
     'any.required': 'Phone number is required',
+  });
+
+const optionalPhoneRule = Joi.string()
+  .custom(normalizeAndValidateNigerianPhone)
+  .optional()
+  .messages({
+    'string.pattern.base': 'Please provide a valid Nigerian phone number',
   });
 
 /**
@@ -454,10 +472,8 @@ export const updateProfileSchema = Joi.object({
   first_name: Joi.string().trim().min(2).max(100),
   lastName: Joi.string().trim().min(2).max(100),
   last_name: Joi.string().trim().min(2).max(100),
-  phone: Joi.string().pattern(/^(\+234|0)[78901]\d{9}$/).messages({
-    'string.pattern.base': 'Please provide a valid Nigerian phone number',
-  }),
-  phone_number: Joi.string().pattern(/^(\+234|0)[78901]\d{9}$/),
+  phone: optionalPhoneRule,
+  phone_number: optionalPhoneRule,
   dateOfBirth: Joi.date().max('now').allow('', null),
   date_of_birth: Joi.date().max('now').allow('', null),
   gender: Joi.string().valid('male', 'female', 'other', '').allow('', null),

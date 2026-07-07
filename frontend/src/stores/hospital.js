@@ -26,6 +26,16 @@ export const useHospitalStore = defineStore('hospital', {
       try {
         const response = await hospitalService.getProfile();
         this.profile = response.data;
+        // Sync name and logo into authStore so sidebar displays correctly
+        const authStore = useAuthStore();
+        const name = this.profile?.hospital_name || this.profile?.name;
+        const logo = this.profile?.logo;
+        if (name || logo) {
+          authStore.patchUser({
+            ...(name ? { full_name: name } : {}),
+            ...(logo ? { profile_picture: logo } : {}),
+          });
+        }
         return this.profile;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to load profile';
@@ -42,7 +52,7 @@ export const useHospitalStore = defineStore('hospital', {
         this.profile = response.data || response;
         const authStore = useAuthStore();
         authStore.patchUser({
-          full_name: profileData.hospitalName || profileData.hospital_name || this.profile?.hospital_name,
+          full_name: profileData.hospitalName || profileData.name || profileData.hospital_name || this.profile?.hospital_name,
         });
         return this.profile;
       } catch (error) {
@@ -112,6 +122,15 @@ export const useHospitalStore = defineStore('hospital', {
       }
     },
 
+    async lookupUser(lifelineId) {
+      try {
+        const response = await hospitalService.lookupUser(lifelineId);
+        return response.data?.data || response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+
     async updateSurgery(id, surgeryData) {
       this.loading = true;
       try {
@@ -149,6 +168,34 @@ export const useHospitalStore = defineStore('hospital', {
         return updatedBed;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to update bed';
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async createBed(bedData) {
+      this.loading = true;
+      try {
+        const response = await hospitalService.createBed(bedData);
+        const newBed = response.data?.bed || response.data;
+        if (newBed) this.beds.push(newBed);
+        return newBed;
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to create bed';
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async deleteBed(id) {
+      this.loading = true;
+      try {
+        await hospitalService.deleteBed(id);
+        this.beds = this.beds.filter(b => b.id !== id);
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to delete bed';
         throw error;
       } finally {
         this.loading = false;
@@ -206,7 +253,7 @@ export const useHospitalStore = defineStore('hospital', {
     async updateSettings(settings) {
       this.loading = true;
       try {
-        const response = await hospitalService.updateSettings(settings);
+        const response = await hospitalService.updateSettings({ operatingHours: settings });
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to update settings';

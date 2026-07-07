@@ -8,6 +8,8 @@ import { successResponse, errorResponse } from '../utils/response.js';
 import database from '../database/connection.js';
 import logger from '../utils/logger.js';
 import { auditAdmin, auditDataAccess } from '../middleware/auditLog.js';
+import cache from '../utils/cacheService.js';
+import { adminRateLimiter } from '../middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,16 +61,39 @@ function saveSettings(settings) {
 
 const router = express.Router();
 
+// Cache key for admin statistics
+const STATS_CACHE_KEY = 'admin:statistics';
+
 // All admin routes require authentication + admin role
+// Apply admin rate limiter (200 requests per 15 minutes for admin users)
+router.use(adminRateLimiter);
 router.use(authenticate, checkRole('admin'));
 
 /**
+ * Invalidate admin statistics cache on data changes
+ */
+const invalidateStatsCache = async () => {
+  try {
+    await cache.delete(STATS_CACHE_KEY);
+  } catch (error) {
+    logger.warn('Failed to invalidate stats cache', { error: error.message });
+  }
+};
+
+/**
  * @route   GET /api/admin/statistics
- * @desc    Get admin dashboard statistics
+ * @desc    Get admin dashboard statistics (cached for 60 seconds)
  * @access  Private (Admin)
  */
 router.get('/statistics', async (req, res, next) => {
     try {
+        // Check cache first
+        const cached = await cache.get(STATS_CACHE_KEY);
+        if (cached) {
+            logger.debug('Admin statistics served from cache');
+            return successResponse(res, cached, 'Statistics retrieved successfully');
+        }
+
         const db = database;
 
         // Get total users count
@@ -165,6 +190,13 @@ router.get('/statistics', async (req, res, next) => {
         // Sort by date descending
         recentActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
         statistics.recentActivities = recentActivities.slice(0, 10);
+
+        // Cache the result for 60 seconds
+        try {
+            await cache.set(STATS_CACHE_KEY, statistics, 60);
+        } catch (cacheError) {
+            logger.warn('Could not cache statistics', { error: cacheError.message });
+        }
 
         return successResponse(res, statistics, 'Statistics retrieved successfully');
     } catch (error) {
@@ -361,6 +393,9 @@ router.put('/users/:id', auditAdmin('user_update'), async (req, res, next) => {
 
         await database.query(query, params);
 
+        // Invalidate statistics cache on user update
+        await invalidateStatsCache();
+
         const updatedUser = await database.query(
             'SELECT id, lifeline_id, email, first_name, last_name, role, status, email_verified FROM users WHERE id = $1',
             [req.params.id]
@@ -384,6 +419,9 @@ router.post('/users/:id/deactivate', auditAdmin('user_deactivate'), async (req, 
             "UPDATE users SET status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
             [req.params.id]
         );
+
+        // Invalidate statistics cache on user status change
+        await invalidateStatsCache();
 
         const result = await database.query(
             'SELECT id, email, status FROM users WHERE id = $1',
@@ -412,6 +450,9 @@ router.post('/users/:id/activate', auditAdmin('user_activate'), async (req, res,
             "UPDATE users SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
             [req.params.id]
         );
+
+        // Invalidate statistics cache on user status change
+        await invalidateStatsCache();
 
         const result = await database.query(
             'SELECT id, email, status FROM users WHERE id = $1',
@@ -865,6 +906,9 @@ router.post('/verifications/:id/verify', auditAdmin('provider_verify'), async (r
 
         logger.info('Provider verified', { providerId, providerType, approvedBy: req.user.userId });
 
+        // Invalidate statistics cache on provider verification
+        await invalidateStatsCache();
+
         return successResponse(res, { id: providerId, verification_status: 'verified' }, 'Provider verified successfully');
     } catch (error) {
         logger.error('Verify provider error', { error: error.message });
@@ -899,6 +943,9 @@ router.post('/verifications/:id/reject', auditAdmin('provider_reject'), async (r
         }
 
         logger.info('Provider rejected', { providerId, providerType, reason, rejectedBy: req.user.userId });
+
+        // Invalidate statistics cache on provider verification change
+        await invalidateStatsCache();
 
         return successResponse(res, { id: providerId, verification_status: 'rejected', reason }, 'Provider verification rejected');
     } catch (error) {

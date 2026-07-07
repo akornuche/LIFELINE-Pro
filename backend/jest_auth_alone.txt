@@ -1,0 +1,165 @@
+﻿[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+(node:30316) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Invalid refresh token
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:50:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Invalid email or password
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:34:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Current password is incorrect
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:124:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Refresh token has been revoked
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:50:5)
+
+FAIL tests/integration/auth.session.test.js (8.501 s)
+  GET /api/auth/me
+    ΓêÜ valid token ΓåÆ 200 with user object (21 ms)
+    ΓêÜ no token ΓåÆ 401 (8 ms)
+    ΓêÜ malformed Bearer token ΓåÆ 401 (9 ms)
+  POST /api/auth/refresh
+    ΓêÜ valid refreshToken ΓåÆ 200 with new accessToken (13 ms)
+    ΓêÜ new accessToken from refresh works on authenticated routes (28 ms)
+    ΓêÜ invalid refreshToken string ΓåÆ 401 (36 ms)
+    ΓêÜ missing refreshToken field ΓåÆ 422 validation error (11 ms)
+  PUT /api/auth/profile
+    ΓêÜ valid update ΓåÆ 200 with updated fields reflected (36 ms)
+    ΓêÜ empty body (no fields) ΓåÆ 422 (14 ms)
+    ΓêÜ no token ΓåÆ 401 (7 ms)
+  POST /api/auth/change-password
+    ΓêÜ correct currentPassword ΓåÆ 200 (718 ms)
+    ΓêÜ old password no longer works after change (409 ms)
+    ΓêÜ new password works for login (377 ms)
+    ΓêÜ wrong currentPassword ΓåÆ 4xx (396 ms)
+    ΓêÜ confirmPassword mismatch ΓåÆ 422 validation error (10 ms)
+  POST /api/auth/logout ΓÇö token blacklisting
+    ΓêÜ logout with valid Bearer + refreshToken ΓåÆ 200 (18 ms)
+    ΓêÜ blacklisted accessToken on GET /api/auth/me ΓåÆ 401 (6 ms)
+    ΓêÜ blacklisted refreshToken on POST /api/auth/refresh ΓåÆ 401 (18 ms)
+    ├ù logout without refreshToken body still succeeds (graceful) (366 ms)
+
+  ΓùÅ POST /api/auth/logout ΓÇö token blacklisting ΓÇ║ logout without refreshToken body still succeeds (graceful)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+    [0m [90m 332 |[39m       [33m.[39msend({})[33m;[39m [90m// no refreshToken in body[39m
+     [90m 333 |[39m
+    [31m[1m>[22m[39m[90m 334 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                        [31m[1m^[22m[39m
+     [90m 335 |[39m   })[33m;[39m
+     [90m 336 |[39m })[33m;[39m
+     [90m 337 |[39m[0m
+
+      at Object.toBe (tests/integration/auth.session.test.js:334:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 18 passed, 19 total
+Snapshots:   0 total
+Time:        8.605 s, estimated 9 s
+Ran all test suites matching /auth.session/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

@@ -225,8 +225,9 @@ export const createConsultation = async (userId, consultationData) => {
   const {
     patientId,
     dependentId = null,
-    consultationDate,
-    chiefComplaint,
+    consultationType,
+    reasonForVisit,
+    appointmentDate,
     diagnosis,
     notes,
     followUpDate = null,
@@ -260,7 +261,7 @@ export const createConsultation = async (userId, consultationData) => {
     const consultationEntitlement = entitlementChecker.isServiceEntitled(
       packageType,
       SERVICE_TYPES.CONSULTATION,
-      { chiefComplaint }
+      { chiefComplaint: reasonForVisit }
     );
     if (!consultationEntitlement.entitled) {
       throw new BusinessLogicError(consultationEntitlement.reason);
@@ -270,8 +271,9 @@ export const createConsultation = async (userId, consultationData) => {
       patientId,
       doctorId: doctor.id,
       dependentId,
-      consultationDate,
-      chiefComplaint,
+      consultationType,
+      reasonForVisit,
+      appointmentDate,
       diagnosis,
       notes,
       followUpDate,
@@ -443,7 +445,6 @@ export const getStatistics = async (userId, options = {}) => {
 export const searchDoctors = async (searchTerm, options = {}) => {
   try {
     const doctors = await doctorRepository.searchDoctors(searchTerm, options);
-
     return doctors;
   } catch (error) {
     logger.error('Search doctors error', {
@@ -476,7 +477,7 @@ export const getDoctorsBySpecialization = async (specialization, options = {}) =
  */
 export const getTopRatedDoctors = async (options = {}) => {
   try {
-    const doctors = await doctorRepository.getTopRated(options);
+    const doctors = await doctorRepository.getTopRated(options.limit);
 
     return doctors;
   } catch (error) {

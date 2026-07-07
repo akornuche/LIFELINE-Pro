@@ -13,6 +13,10 @@
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --watch",
     "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --testPathPattern=tests/unit",
     "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --testPathPattern=tests/integration",
+    "test:sqlite": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test DB_TYPE=sqlite jest --testPathPattern=tests/integration",
+    "test:postgres": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test DB_TYPE=postgresql jest --testPathPattern=tests/integration",
+    "test:contracts": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --testPathPattern=adapter.contract",
+    "test:contracts:pg": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --testPathPattern=adapter.contract.pg",
     "db:init": "node src/database/init.js",
     "db:setup": "npm run db:init && npm run seed && npm run seed:admin",
     "db:setup:sqlite": "DB_TYPE=sqlite npm run db:setup",
@@ -38,6 +42,7 @@
   "author": "LifeLine Pro Team",
   "license": "PROPRIETARY",
   "dependencies": {
+    "@supabase/supabase-js": "^2.104.1",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
@@ -71,7 +76,8 @@
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "prettier": "^3.1.1",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "testcontainers": "^11.14.0"
   },
   "jest": {
     "testEnvironment": "node",

@@ -14,15 +14,17 @@ const getProviderIdByUserId = async (userId) => {
   const user = await userRepository.findById(userId);
   if (!user) throw new NotFoundError('User');
 
+  // Verify the user has a provider profile, then return userId so that
+  // monthly_statements and payment_records use the same user-scoped key.
   if (user.role === 'doctor') {
-    const doc = await doctorRepository.findByUserId(userId);
-    return doc.id;
+    await doctorRepository.findByUserId(userId); // throws NotFoundError if missing
+    return userId;
   } else if (user.role === 'pharmacy') {
-    const pharm = await pharmacyRepository.findByUserId(userId);
-    return pharm.id;
+    await pharmacyRepository.findByUserId(userId);
+    return userId;
   } else if (user.role === 'hospital') {
-    const hosp = await hospitalRepository.findByUserId(userId);
-    return hosp.id;
+    await hospitalRepository.findByUserId(userId);
+    return userId;
   }
   throw new BusinessLogicError('User is not a valid provider');
 };
@@ -202,10 +204,20 @@ export const processServicePayment = async (serviceData) => {
  */
 export const handleWebhook = async (webhookData) => {
   const { gateway, event, payload, eventId = null } = webhookData;
+  let webhook = null;
 
   try {
+    // Idempotency guard — Paystack retries on 5xx; skip if already processed
+    if (eventId) {
+      const alreadyProcessed = await paymentRepository.findProcessedWebhookByEventId(eventId);
+      if (alreadyProcessed) {
+        logger.info('Duplicate webhook ignored', { eventId, webhookId: alreadyProcessed.id });
+        return { status: 'duplicate', webhookId: alreadyProcessed.id };
+      }
+    }
+
     // Log webhook
-    const webhook = await paymentRepository.createWebhookLog({
+    webhook = await paymentRepository.createWebhookLog({
       gateway,
       event,
       payload,
@@ -221,6 +233,16 @@ export const handleWebhook = async (webhookData) => {
         const payment = await paymentRepository.findPaymentByReference(paymentReference);
 
         if (payment) {
+          // Idempotency guard — already completed; don't re-activate
+          if (payment.status === 'completed') {
+            logger.info('Webhook skipped — payment already completed', {
+              webhookId: webhook.id,
+              paymentReference,
+            });
+            await paymentRepository.updateWebhookStatus(webhook.id, 'processed');
+            return { status: 'processed', payment };
+          }
+
           await paymentRepository.updatePaymentStatus(payment.id, 'completed', payload);
 
           await paymentRepository.updateWebhookStatus(webhook.id, 'processed');
@@ -232,6 +254,16 @@ export const handleWebhook = async (webhookData) => {
 
           return { status: 'processed', payment };
         }
+
+        // Payment record not found — could be a race condition where the record
+        // was not yet committed. Mark webhook as pending and throw so the
+        // controller returns 500, triggering Paystack's retry mechanism.
+        logger.warn('Webhook received but payment record not found — will retry', {
+          webhookId: webhook.id,
+          paymentReference,
+        });
+        await paymentRepository.updateWebhookStatus(webhook.id, 'failed', 'payment record not found');
+        throw new Error(`Payment record not found for reference: ${paymentReference}`);
       }
     }
 
@@ -246,9 +278,13 @@ export const handleWebhook = async (webhookData) => {
       event,
     });
 
-    // Update webhook status
-    if (webhookData.webhookId) {
-      await paymentRepository.updateWebhookStatus(webhookData.webhookId, 'failed', error.message);
+    // Mark the webhook log as failed if it was created before the error
+    if (webhook?.id) {
+      try {
+        await paymentRepository.updateWebhookStatus(webhook.id, 'failed', error.message);
+      } catch (updateErr) {
+        logger.error('Failed to mark webhook as failed', { error: updateErr.message });
+      }
     }
 
     throw error;
@@ -309,7 +345,9 @@ export const generateMonthlyStatement = async (userId, providerType, month, year
     });
 
     const exists = existingStatements.some(
-      (s) => s.month === month && s.year === year && s.provider_id === providerId
+      (s) => parseInt(s.month, 10) === parseInt(month, 10) &&
+             parseInt(s.year, 10) === parseInt(year, 10) &&
+             s.provider_id === providerId
     );
 
     if (exists) {
@@ -335,7 +373,7 @@ export const generateMonthlyStatement = async (userId, providerType, month, year
   } catch (error) {
     logger.error('Generate monthly statement error', {
       error: error.message,
-      providerId,
+      userId,
       month,
       year,
     });

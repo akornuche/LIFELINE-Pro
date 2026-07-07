@@ -189,11 +189,10 @@ const loadStats = async () => {
     const data = await doctorStore.getStatistics();
     if (data) {
       stats.value = {
-        ...stats.value,
-        ...data,
-        // Normalize revenue field names from backend
-        monthlyRevenue: data.monthlyEarnings ?? data.monthlyRevenue ?? data.totalEarnings ?? 0,
-        totalRevenue: data.totalEarnings ?? data.totalRevenue ?? 0,
+        todayAppointments: data.todayAppointments ?? data.consultations ?? 0,
+        totalPatients: data.totalPatients ?? data.consultations ?? 0,
+        totalPrescriptions: data.totalPrescriptions ?? data.prescriptions ?? 0,
+        monthlyEarnings: data.monthlyEarnings ?? data.totalEarnings ?? data.monthlyRevenue ?? 0,
       };
     }
   } catch (error) {

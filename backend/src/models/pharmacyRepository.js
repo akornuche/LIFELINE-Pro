@@ -149,6 +149,7 @@ export const updateProfile = async (pharmacyId, updates) => {
     delivery_available: 'delivery_available',
     deliveryRadius: null, // not in schema, ignore
     emergencyService: 'open_24_hours',
+    is_24_7: 'open_24_hours',
     open_24_hours: 'open_24_hours',
     description: 'description',
     servicesOffered: 'services_offered',
@@ -379,24 +380,58 @@ export const findAll = async (options = {}) => {
  * Search pharmacies
  */
 export const searchPharmacies = async (searchTerm = '', options = {}) => {
-  const { limit = 50, offset = 0, verificationStatus = 'verified' } = options;
+  const {
+    limit = 50,
+    offset = 0,
+    minRating = 0,
+    open24h = false,
+    verifiedOnly = false,
+    patientCity = null,
+  } = options;
 
   try {
     const searchPattern = searchTerm ? `%${searchTerm}%` : '%';
+    const params = [searchPattern];
+    let paramCount = 1;
+
+    let whereClause = `u.status = 'active'
+         AND (
+           LOWER(p.pharmacy_name) LIKE LOWER($1) OR
+           LOWER(p.address) LIKE LOWER($1) OR
+           u.lifeline_id LIKE $1
+         )`;
+
+    if (verifiedOnly) {
+      paramCount++;
+      whereClause += ` AND p.verification_status = $${paramCount}`;
+      params.push('verified');
+    }
+
+    if (minRating > 0) {
+      paramCount++;
+      whereClause += ` AND COALESCE(p.average_rating, 0) >= $${paramCount}`;
+      params.push(minRating);
+    }
+
+    if (open24h) {
+      whereClause += ` AND p.operating_hours LIKE '%24%'`;
+    }
+
+    const cityScore = patientCity
+      ? `CASE WHEN LOWER(u.city) = LOWER('${patientCity.replace(/'/g, "''")}') THEN 50 ELSE 0 END`
+      : '0';
+
+    params.push(limit, offset);
+
     const result = await database.query(
-      `SELECT p.*, u.lifeline_id, u.email, u.phone
+      `SELECT p.*, u.lifeline_id, u.email, u.phone, u.city,
+              (${cityScore} + COALESCE(p.average_rating, 0) * 10) AS match_score
        FROM pharmacies p
        JOIN users u ON p.user_id = u.id
-       WHERE p.verification_status = $1
-         AND u.status = 'active'
-         AND (
-           LOWER(p.pharmacy_name) LIKE LOWER($2) OR
-           LOWER(p.address) LIKE LOWER($2) OR
-           u.lifeline_id LIKE $2
-         )
-       ORDER BY p.average_rating DESC, p.created_at DESC
-       LIMIT $3 OFFSET $4`,
-      [verificationStatus, searchPattern, limit, offset]
+       WHERE ${whereClause}
+       ORDER BY match_score DESC, p.average_rating DESC, p.created_at DESC
+       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
+      params
     );
 
     return result.rows || result || [];
@@ -405,7 +440,6 @@ export const searchPharmacies = async (searchTerm = '', options = {}) => {
       error: error.message,
       searchTerm,
     });
-    // Return empty array instead of throwing
     return [];
   }
 };

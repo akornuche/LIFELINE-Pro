@@ -1,0 +1,90 @@
+﻿npx : [baseline-browser-mapping] The data in this module is over two months 
+old.  To ensure accurate Baseline data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+At line:1 char:72
++ ... NV="test" ; npx jest --testPathPattern=doctor.routes --forceExit --ru ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([baseline-brows...ping@latest -D` 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+(node:27020) ExperimentalWarning: VM Modules is an experimental feature and 
+might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.error
+    [GLOBAL ERROR] Handling error: NotFoundError Consultation not found
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/doctorController.js:112:5)
+
+PASS tests/integration/doctor.routes.test.js (6.968 s)
+  RBAC ΓÇö patient cannot access doctor routes
+    ΓêÜ GET /api/doctors/profile ΓåÆ 403 (17 ms)
+    ΓêÜ PUT /api/doctors/profile ΓåÆ 403 (9 ms)
+    ΓêÜ GET /api/doctors/consultations ΓåÆ 403 (10 ms)
+    ΓêÜ POST /api/doctors/consultations ΓåÆ 403 (9 ms)
+    ΓêÜ GET /api/doctors/statistics ΓåÆ 403 (9 ms)
+  Auth guards ΓÇö unauthenticated requests
+    ΓêÜ GET /api/doctors/profile without token ΓåÆ 401 (7 ms)
+    ΓêÜ PUT /api/doctors/profile without token ΓåÆ 401 (7 ms)
+    ΓêÜ POST /api/doctors/consultations without token ΓåÆ 401 (7 ms)
+  GET /api/doctors/profile
+    ΓêÜ verified doctor ΓåÆ 200 with profile data (12 ms)
+    ΓêÜ response includes user sub-object with email (15 ms)
+    ΓêÜ response includes specialization (13 ms)
+  PUT /api/doctors/profile
+    ΓêÜ valid update ΓåÆ 200 (24 ms)
+    ΓêÜ empty body (no fields) ΓåÆ 422 validation error (11 ms)
+    ΓêÜ GET after PUT reflects updated specialization (29 ms)
+  GET /api/doctors/consultations
+    ΓêÜ initially returns empty list ΓåÆ 200 (14 ms)
+  POST /api/doctors/consultations
+    ΓêÜ missing required fields ΓåÆ 422 (14 ms)
+    ΓêÜ valid body ΓåÆ 201 consultation created (36 ms)
+    ΓêÜ GET consultations after create ΓåÆ list has one entry (15 ms)
+  GET /api/doctors/consultations/:consultationId
+    ΓêÜ valid ID ΓåÆ 200 with consultation data
+    ΓêÜ non-existent ID ΓåÆ 404 (32 ms)
+  PUT /api/doctors/consultations/:consultationId
+    ΓêÜ update diagnosis ΓåÆ 200
+    ΓêÜ empty update body ΓåÆ 400 (1 ms)
+  GET /api/doctors/statistics
+    ΓêÜ verified doctor ΓåÆ 200 with stats (8 ms)
+  Public doctor routes (no auth required)
+    ΓêÜ GET /api/doctors/search ΓåÆ 200 (12 ms)
+    ΓêÜ GET /api/doctors/specializations ΓåÆ 200 (12 ms)
+    ΓêÜ GET /api/doctors/top-rated ΓåÆ 200 (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       26 passed, 26 total
+Snapshots:   0 total
+Time:        7.09 s
+Ran all test suites matching /doctor.routes/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect 
+async operations that kept running after all tests finished?

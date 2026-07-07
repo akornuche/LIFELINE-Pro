@@ -86,7 +86,7 @@ export const globalRateLimiter = rateLimit({
  */
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') ? 100 : 5,
   skipSuccessfulRequests: true, // Don't count successful logins
   standardHeaders: true,
   legacyHeaders: false,
@@ -101,7 +101,7 @@ export const authRateLimiter = rateLimit({
  */
 export const registrationRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 registrations per hour
+  max: process.env.NODE_ENV === 'development' ? 100 : 3,
   standardHeaders: true,
   legacyHeaders: false,
   handler: rateLimitHandler,

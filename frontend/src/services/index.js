@@ -362,6 +362,10 @@ export const hospitalService = {
     return apiClient.put('/hospitals/profile', data);
   },
 
+  updateSettings(data) {
+    return apiClient.put('/hospitals/profile', data);
+  },
+
   updateBedAvailability(data) {
     return apiClient.put('/hospitals/beds/availability', data);
   },
@@ -381,6 +385,14 @@ export const hospitalService = {
 
   scheduleSurgery(data) {
     return apiClient.post('/hospitals/surgeries', data);
+  },
+
+  createSurgery(data) {
+    return apiClient.post('/hospitals/surgeries', data);
+  },
+
+  lookupUser(lifelineId) {
+    return apiClient.get(`/hospitals/lookup/${lifelineId.toUpperCase()}`);
   },
 
   updateSurgery(id, data) {
@@ -426,8 +438,16 @@ export const hospitalService = {
     return apiClient.get('/hospitals/beds', { params });
   },
 
+  createBed(data) {
+    return apiClient.post('/hospitals/beds', data);
+  },
+
   updateBed(id, data) {
     return apiClient.put(`/hospitals/beds/${id}`, data);
+  },
+
+  deleteBed(id) {
+    return apiClient.delete(`/hospitals/beds/${id}`);
   },
 
   // Logo upload

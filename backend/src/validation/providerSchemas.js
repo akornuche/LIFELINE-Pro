@@ -161,23 +161,17 @@ export const updateRatingSchema = Joi.object({
 // Update pharmacy profile
 export const updatePharmacyProfileSchema = Joi.object({
   pharmacyName: Joi.string().trim().min(2).max(200),
-  phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/),
-  address: Joi.string().trim().min(10).max(500),
-  operatingHours: Joi.object({
-    monday: Joi.string().trim(),
-    tuesday: Joi.string().trim(),
-    wednesday: Joi.string().trim(),
-    thursday: Joi.string().trim(),
-    friday: Joi.string().trim(),
-    saturday: Joi.string().trim(),
-    sunday: Joi.string().trim(),
-  }),
+  name: Joi.string().trim().min(2).max(200),
+  phone: Joi.string().pattern(/^(?:0\d{10}|(?:\+?234)\d{10})$/).message('Enter a valid Nigerian phone number'),
+  address: Joi.string().trim().min(5).max(500),
+  operatingHours: Joi.object().unknown(true),
   hasDelivery: Joi.boolean(),
-  deliveryRadius: Joi.number().positive().when('hasDelivery', {
-    is: true,
-    then: Joi.required(),
-  }),
+  delivery_available: Joi.boolean(),
+  is_24_7: Joi.boolean(),
+  open_24_hours: Joi.boolean(),
+  deliveryRadius: Joi.number().positive(),
   deliveryFee: Joi.number().min(0).precision(2),
+  description: Joi.string().trim().max(1000).allow('', null),
   emergencyContact: Joi.object({
     name: Joi.string().trim().required(),
     phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
@@ -234,24 +228,32 @@ export const updatePharmacyLicenseSchema = Joi.object({
 
 // Update hospital profile
 export const updateHospitalProfileSchema = Joi.object({
+  // camelCase (from store transformation or direct API calls)
   hospitalName: Joi.string().trim().min(2).max(200),
-  phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/),
-  address: Joi.string().trim().min(10).max(500),
-  hospitalType: Joi.string().valid('general', 'specialized', 'teaching', 'clinic'),
-  numberOfBeds: Joi.number().integer().positive(),
+  hospitalType: Joi.string().trim().max(100),
+  numberOfBeds: Joi.number().integer().min(0),
   hasEmergency: Joi.boolean(),
   hasICU: Joi.boolean(),
-  icuBeds: Joi.number().integer().min(0).when('hasICU', {
-    is: true,
-    then: Joi.required(),
-  }),
-  departments: Joi.array().items(Joi.string().trim().max(100)),
-  accreditation: Joi.string().trim().max(200),
+  // snake_case (from the profile form directly)
+  name: Joi.string().trim().min(2).max(200),
+  hospital_type: Joi.string().trim().max(100),
+  total_beds: Joi.number().integer().min(0),
+  emergency_services: Joi.boolean().truthy(1).falsy(0),
+  // shared fields
+  phone: Joi.string().pattern(/^(?:0\d{10}|(?:\+?234)\d{10})$/).message('Enter a valid Nigerian phone number').allow('', null),
+  email: Joi.string().email({ tlds: { allow: false } }).lowercase().allow('', null),
+  address: Joi.string().trim().min(5).max(500).allow('', null),
+  city: Joi.string().trim().max(100).allow('', null),
+  state: Joi.string().trim().max(100).allow('', null),
+  postal_code: Joi.string().trim().max(20).allow('', null),
+  website: Joi.string().trim().max(500).allow('', null),
+  description: Joi.string().trim().max(1000).allow('', null),
+  departments: Joi.array().items(Joi.string().trim().max(100)).allow(null),
+  accreditation: Joi.string().trim().max(200).allow('', null),
+  operatingHours: Joi.alternatives().try(Joi.object().unknown(true), Joi.string()).allow(null),
+  operating_hours: Joi.alternatives().try(Joi.object().unknown(true), Joi.string()).allow(null),
+  icuBeds: Joi.number().integer().min(0),
   facilities: Joi.array().items(Joi.string().trim().max(100)),
-  emergencyContact: Joi.object({
-    name: Joi.string().trim().required(),
-    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
-  }),
 }).min(1);
 
 // Manage bed availability
@@ -365,25 +367,12 @@ export const completeSurgerySchema = Joi.object({
 export const scheduleSurgerySchema = Joi.object({
   patientId: Joi.string().uuid().required(),
   doctorId: Joi.string().uuid().required(),
-  hospitalId: Joi.string().uuid().required(),
   surgeryType: Joi.string().valid('minor', 'major').required(),
-  surgeryName: Joi.string().trim().min(5).max(200).required(),
-  diagnosis: Joi.string().trim().min(10).max(1000).required(),
-  scheduledDate: Joi.date().min('now').required(),
+  surgeryDate: Joi.date().required(),
+  description: Joi.string().trim().max(2000).allow('', null),
   estimatedDuration: Joi.number().integer().positive().required(),
-  preOpInstructions: Joi.string().trim().max(2000),
-  surgicalTeam: Joi.array().items(
-    Joi.object({
-      role: Joi.string().trim().required(),
-      name: Joi.string().trim().required(),
-    })
-  ),
-  requiredEquipment: Joi.array().items(Joi.string().trim().max(200)),
-  anesthesiaType: Joi.string()
-    .valid('local', 'regional', 'general', 'sedation')
-    .required(),
-  estimatedCost: Joi.number().positive().required(),
-  notes: Joi.string().trim().max(2000),
+  preOpNotes: Joi.string().trim().max(2000).allow('', null),
+  dependentId: Joi.string().uuid().allow(null),
 });
 
 // Update surgery status

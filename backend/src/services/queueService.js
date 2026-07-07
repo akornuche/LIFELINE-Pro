@@ -1,5 +1,8 @@
 import * as serviceRequestRepository from '../models/serviceRequestRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import database from '../database/connection.js';
+import { notifyUser } from './socketService.js';
+import { sendEmail } from './emailService.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js';
 
@@ -14,24 +17,61 @@ import { BusinessLogicError, NotFoundError } from '../middleware/errorHandler.js
  */
 const getProviderTypeForService = (serviceType) => {
   const mapping = {
+    // Doctor-handled
     consultation: 'doctor',
     prescription: 'doctor',
+    vaccination: 'doctor',
+    specialist_consultation: 'doctor',
+    mental_health: 'doctor',
+    chronic_disease_management: 'doctor',
+    home_visit: 'doctor',
+    second_opinion: 'doctor',
+    // Pharmacy-handled
     drug_dispensing: 'pharmacy',
+    // Hospital-handled
     minor_surgery: 'hospital',
     major_surgery: 'hospital',
     laboratory_test: 'hospital',
+    advanced_lab_test: 'hospital',
     imaging: 'hospital',
+    advanced_imaging: 'hospital',
     admission: 'hospital',
     emergency: 'hospital',
+    antenatal_care: 'hospital',
+    maternity_care: 'hospital',
+    physiotherapy: 'hospital',
+    dental_care: 'hospital',
+    ambulance: 'hospital',
   };
   return mapping[serviceType] || 'doctor';
+};
+
+/**
+ * Send an email notification to an assigned provider.
+ * Fire-and-forget — failure is warned but never bubbles up.
+ */
+const notifyProviderByEmail = (email, firstName, { requestId, serviceType, patientCity, priority }) => {
+  if (!email) return;
+  sendEmail({
+    to: email,
+    subject: 'New Service Request — LifeLine Pro',
+    template: 'service_request',
+    data: {
+      providerName: firstName || 'Provider',
+      serviceType,
+      patientCity: patientCity || '',
+      requestId,
+      priority: priority || 'normal',
+      dashboardUrl: `${process.env.FRONTEND_URL || 'http://localhost:3003'}/provider/requests`,
+    },
+  }).catch(err => logger.warn('Service request email failed', { error: err.message, requestId }));
 };
 
 /**
  * Create a service request and auto-assign via round-robin
  */
 export const createRequest = async (patientId, requestData) => {
-  const { serviceType, description, preferredDate, priority } = requestData;
+  const { serviceType, description, preferredDate, priority, preferredProviderId, preferredProviderType } = requestData;
 
   // Get patient's city/state from their user record
   const patient = await patientRepository.findById(patientId);
@@ -65,54 +105,114 @@ export const createRequest = async (patientId, requestData) => {
     priority,
   });
 
-  // Attempt auto-assignment via round-robin
-  const assigned = await assignProviderRoundRobin(request.id, user.city, providerType);
-
-  if (assigned) {
-    logger.info('Service request auto-assigned', {
-      requestId: request.id,
-      providerId: assigned.provider_id,
-      providerType,
+  // Attempt assignment: use preferred provider if specified, otherwise auto-assign via round-robin
+  let assigned = null;
+  if (preferredProviderId) {
+    // Directly assign the chosen provider, bypassing round-robin.
+    // Wrap in transaction so the counter increment is atomic with the status update.
+    await database.transaction(async () => {
+      await serviceRequestRepository.updateStatus(request.id, 'assigned', {
+        assignedProviderId: preferredProviderId,
+      });
+      await serviceRequestRepository.incrementAssignmentCounter(
+        preferredProviderId,
+        preferredProviderType || providerType,
+        user.city
+      );
     });
-    return await serviceRequestRepository.findById(request.id);
+    assigned = { provider_id: preferredProviderId };
+    logger.info('Service request directly assigned to preferred provider', {
+      requestId: request.id,
+      preferredProviderId,
+    });
+    // Notify the preferred provider (socket + email)
+    const providerInfo = await serviceRequestRepository.getProviderUserInfo(
+      preferredProviderId,
+      preferredProviderType || providerType
+    );
+    if (providerInfo) {
+      notifyUser(providerInfo.userId, 'service_request:new', {
+        requestId: request.id,
+        serviceType,
+        priority,
+        patientCity: user.city,
+      });
+      notifyProviderByEmail(providerInfo.email, providerInfo.firstName, {
+        requestId: request.id,
+        serviceType,
+        patientCity: user.city,
+        priority,
+      });
+    }
+  } else {
+    assigned = await assignProviderRoundRobin(request.id, user.city, providerType);
+    if (assigned) {
+      logger.info('Service request auto-assigned', {
+        requestId: request.id,
+        providerId: assigned.provider_id,
+        providerType,
+      });
+      // assigned.user_id / email / first_name are returned by getVerifiedProvidersByCity
+      if (assigned.user_id) {
+        notifyUser(assigned.user_id, 'service_request:new', {
+          requestId: request.id,
+          serviceType,
+          priority,
+          patientCity: user.city,
+        });
+        notifyProviderByEmail(assigned.email, assigned.first_name, {
+          requestId: request.id,
+          serviceType,
+          patientCity: user.city,
+          priority,
+        });
+      }
+    } else {
+      logger.warn('No verified providers available for auto-assignment', {
+        requestId: request.id,
+        city: user.city,
+        providerType,
+      });
+    }
   }
 
-  logger.warn('No verified providers available for auto-assignment', {
-    requestId: request.id,
-    city: user.city,
-    providerType,
-  });
-
-  return request;
+  return await serviceRequestRepository.findById(request.id);
 };
 
 /**
- * Round-robin provider assignment
- * Selects the verified provider in the patient's city with the fewest assignments
+ * Round-robin provider assignment — wrapped in a transaction.
+ *
+ * SQLite: BEGIN IMMEDIATE acquires a write lock before the SELECT, so concurrent
+ * calls block until the first finishes — no two requests can read the same counters
+ * and select the same provider simultaneously.
+ *
+ * PostgreSQL (future): For true serialization, upgrade the query in
+ * getVerifiedProvidersByCity to use SELECT ... FOR UPDATE within the same
+ * pg client passed from the transaction callback.
  */
 const assignProviderRoundRobin = async (requestId, city, providerType) => {
-  const providers = await serviceRequestRepository.getVerifiedProvidersByCity(city, providerType);
+  return await database.transaction(async () => {
+    const providers = await serviceRequestRepository.getVerifiedProvidersByCity(city, providerType);
 
-  if (providers.length === 0) {
-    return null;
-  }
+    if (providers.length === 0) {
+      return null;
+    }
 
-  // First provider has the lowest assignment count (already sorted by query)
-  const selectedProvider = providers[0];
+    // First provider has the lowest assignment count (already sorted by query)
+    const selectedProvider = providers[0];
 
-  // Assign the provider
-  await serviceRequestRepository.updateStatus(requestId, 'assigned', {
-    assignedProviderId: selectedProvider.provider_id,
+    await serviceRequestRepository.updateStatus(requestId, 'assigned', {
+      assignedProviderId: selectedProvider.provider_id,
+    });
+
+    await serviceRequestRepository.incrementAssignmentCounter(
+      selectedProvider.provider_id,
+      providerType,
+      city
+    );
+
+    return selectedProvider;
   });
-
-  // Increment their assignment counter
-  await serviceRequestRepository.incrementAssignmentCounter(
-    selectedProvider.provider_id,
-    providerType,
-    city
-  );
-
-  return selectedProvider;
 };
 
 /**
@@ -161,7 +261,22 @@ export const rejectRequest = async (requestId, providerId, reason) => {
   // Try to reassign (excluding the rejecting provider — they already have incremented counter)
   const reassigned = await assignProviderRoundRobin(requestId, request.city, request.provider_type);
 
-  if (!reassigned) {
+  if (reassigned) {
+    if (reassigned.user_id) {
+      notifyUser(reassigned.user_id, 'service_request:new', {
+        requestId,
+        serviceType: request.service_type,
+        priority: request.priority,
+        patientCity: request.city,
+      });
+      notifyProviderByEmail(reassigned.email, reassigned.first_name, {
+        requestId,
+        serviceType: request.service_type,
+        patientCity: request.city,
+        priority: request.priority,
+      });
+    }
+  } else {
     logger.warn('No alternative provider available after rejection', { requestId });
   }
 

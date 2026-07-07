@@ -78,15 +78,20 @@ export async function sendEmail({ to, subject, template, data, html, text }) {
     if (template) {
       const templateContent = await loadTemplate(template);
       if (templateContent) {
-        emailHtml = replacePlaceholders(templateContent, data);
+        // Always inject {{year}} so templates don't need it in every call
+        const enrichedData = { year: new Date().getFullYear(), ...data };
+        emailHtml = replacePlaceholders(templateContent, enrichedData);
       } else {
         // Fallback to simple HTML
         emailHtml = generateFallbackHtml(subject, data);
       }
     }
 
+    const fromName = process.env.SMTP_FROM_NAME || 'LifeLine Pro';
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@lifelinepro.com',
+      from: `"${fromName}" <${fromEmail}>`,
       to,
       subject,
       html: emailHtml,

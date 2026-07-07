@@ -1,6 +1,6 @@
 import express from 'express';
 import * as hospitalController from '../controllers/hospitalController.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
 import upload from '../middleware/upload.js';
@@ -92,6 +92,13 @@ router.put('/beds/:bedId', authenticate, checkRole('hospital'), hospitalControll
 router.delete('/beds/:bedId', authenticate, checkRole('hospital'), hospitalController.deleteBed);
 
 /**
+ * @route   GET /api/hospitals/lookup/:lifelineId
+ * @desc    Look up a patient or doctor by LifeLine ID (for surgery scheduling)
+ * @access  Private (Hospital)
+ */
+router.get('/lookup/:lifelineId', authenticate, checkRole('hospital'), hospitalController.lookupUser);
+
+/**
  * @route   PUT /api/hospitals/license
  * @desc    Update license
  * @access  Private (Hospital)
@@ -169,7 +176,7 @@ router.get('/statistics', authenticate, checkRole('hospital'), hospitalControlle
  * @desc    Search hospitals
  * @access  Public
  */
-router.get('/search', hospitalController.searchHospitals);
+router.get('/search', optionalAuth, hospitalController.searchHospitals);
 
 /**
  * @route   GET /api/hospitals/location

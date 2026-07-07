@@ -1,160 +1,30 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
 import 'dotenv/config';
 
-// Import middleware
-import { errorHandler } from './middleware/errorHandler.js';
-import { globalLimiter } from './middleware/rateLimiter.js';
-import { auditLog } from './middleware/auditLog.js';
+// Import the configured Express app (middleware + routes, no side effects)
+import app from './app.js';
+import { trackRequest, createMetricsEndpoint } from './utils/monitoring.js';
 
-// Import routes
-import authRoutes from './routes/authRoutes.js';
-import patientRoutes from './routes/patientRoutes.js';
-import doctorRoutes from './routes/doctorRoutes.js';
-import pharmacyRoutes from './routes/pharmacyRoutes.js';
-import hospitalRoutes from './routes/hospitalRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
-import queueRoutes from './routes/queueRoutes.js';
-
-// Import utilities
+// Import utilities for server startup
 import logger from './utils/logger.js';
 import database from './database/connection.js';
 import DatabaseInitializer from './database/init.js';
 import { initializeSocketIO } from './services/socketService.js';
 import paymentReminderService from './services/paymentReminderService.js';
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Test endpoint before middleware
-app.get('/ping', (req, res) => {
-  res.json({ message: 'pong' });
-});
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "http://localhost:5002"],
-      connectSrc: ["'self'", "http://localhost:5002"],
-      frameAncestors: ["'self'"],
-    },
-  },
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginEmbedderPolicy: false,
-  xssFilter: false, // Remove X-XSS-Protection header (deprecated)
-  frameguard: false, // Disable X-Frame-Options (using CSP instead)
-}));
-
-// Cache control middleware - Use Cache-Control instead of Expires
-app.use((req, res, next) => {
-  // Remove Expires header if set
-  res.removeHeader('Expires');
-
-  // Set appropriate Cache-Control based on content type
-  if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
-    // Static assets - cache for 1 year
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  } else if (req.path.startsWith('/api/')) {
-    // API responses - no cache
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  } else {
-    // HTML pages - cache for 1 hour with revalidation
-    res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
-  }
-
-  next();
-});
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
-    credentials: true,
-  })
-);
-
-// Body parsing middleware — capture rawBody for webhook HMAC verification
-app.use(express.json({
-  limit: '10mb',
-  verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); },
-}));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(
-    morgan('combined', {
-      stream: {
-        write: (message) => logger.info(message.trim()),
-      },
-    })
-  );
-}
-
-// Rate limiting
-app.use(globalLimiter);
-
-// Audit logging - logs all mutating requests (POST/PUT/DELETE) to audit_logs table
-app.use(auditLog({ eventType: 'api.request', eventCategory: 'general' }));
-
-// Static files
-app.use('/uploads', express.static('uploads'));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
-  });
-});
-
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/patients', patientRoutes);
-app.use('/api/doctors', doctorRoutes);
-app.use('/api/pharmacies', pharmacyRoutes);
-app.use('/api/hospitals', hospitalRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/queue', queueRoutes);
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-    path: req.originalUrl,
-  });
-});
-
-// Global error handler (must be last)
-app.use(errorHandler);
-
-// Database connection test
 const testDatabaseConnection = async () => {
   try {
-    // Initialize database connection first
     const pool = await database.connect();
-    if (!pool) {
-      return false;
-    }
+    if (!pool) return false;
 
-    // Use appropriate query based on database type
     const config = await import('./config/index.js');
-    const query = config.default.database.type === 'sqlite'
-      ? "SELECT datetime('now') as now"
-      : 'SELECT NOW()';
+    const query =
+      config.default.database.type === 'sqlite'
+        ? "SELECT datetime('now') as now"
+        : 'SELECT NOW()';
 
     const result = await database.query(query);
     logger.info('Database connection successful', {
@@ -163,70 +33,55 @@ const testDatabaseConnection = async () => {
     });
     return true;
   } catch (error) {
-    logger.error('Database connection failed', {
-      error: error.message,
-    });
+    logger.error('Database connection failed', { error: error.message });
     return false;
   }
 };
 
-// Graceful shutdown
+let server;
+
 const gracefulShutdown = async (signal) => {
   logger.info(`${signal} received. Starting graceful shutdown...`);
-
   server.close(async () => {
     logger.info('HTTP server closed');
-
     try {
       await database.disconnect();
       logger.info('Database connection closed');
       process.exit(0);
     } catch (error) {
-      logger.error('Error during shutdown', {
-        error: error.message,
-      });
+      logger.error('Error during shutdown', { error: error.message });
       process.exit(1);
     }
   });
-
-  // Force shutdown after 30 seconds
   setTimeout(() => {
     logger.error('Forced shutdown after timeout');
     process.exit(1);
   }, 30000);
 };
 
-// Start server
-let server;
+// ── Server startup ────────────────────────────────────────────────────────────
 
 const startServer = async () => {
   try {
-    // Initialize database
     const init = new DatabaseInitializer();
     await init.initialize();
 
-    // Test database connection
     const dbConnected = await testDatabaseConnection();
-
     if (!dbConnected) {
       logger.warn('Database connection failed. Server will start but database operations will not work.');
-      logger.warn('Please ensure your database is properly configured.');
     }
 
-    // Start HTTP server
     server = app.listen(PORT, () => {
-      logger.info(`LifeLine Pro API Server started`, {
+      logger.info('LifeLine Pro API Server started', {
         port: PORT,
         environment: process.env.NODE_ENV,
         nodeVersion: process.version,
         databaseConnected: dbConnected,
       });
 
-      // Initialize Socket.IO for real-time notifications
       initializeSocketIO(server);
       logger.info('Socket.IO initialized for real-time notifications');
 
-      // Start payment reminder service
       if (process.env.ENABLE_CRON_JOBS === 'true') {
         paymentReminderService.initialize();
         logger.info('Payment reminder service started');
@@ -237,13 +92,12 @@ const startServer = async () => {
         console.log(`📝 Health check: http://localhost:${PORT}/health`);
         console.log(`📚 API Base: http://localhost:${PORT}/api\n`);
         if (!dbConnected) {
-          console.log(`⚠️  WARNING: Database not connected. Please run: npm run db:setup`);
+          console.log('⚠️  WARNING: Database not connected. Please run: npm run db:setup');
           console.log(`   Database Type: ${process.env.DB_TYPE || 'sqlite'}\n`);
         }
       }
     });
 
-    // Handle server errors
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
         logger.error(`Port ${PORT} is already in use`);
@@ -253,36 +107,28 @@ const startServer = async () => {
       process.exit(1);
     });
 
-    // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled Rejection', {
-        reason: reason,
-        promise: promise,
-      });
+    process.on('unhandledRejection', (reason) => {
+      logger.error('Unhandled Rejection', { reason });
     });
 
-    // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
-      logger.error('Uncaught Exception', {
-        error: error.message,
-        stack: error.stack,
-      });
+      logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
       process.exit(1);
     });
 
-    // Graceful shutdown handlers
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
-    logger.error('Failed to start server', {
-      error: error.message,
-    });
+    logger.error('Failed to start server', { error: error.message });
     process.exit(1);
   }
 };
 
-// Start the server
-startServer();
+// Only auto-start when this file is the direct entry point (node src/server.js).
+// Jest workers that import app.js directly never trigger startServer().
+if (process.env.NODE_ENV !== 'test' && !process.env.LIFELINE_SKIP_SERVER_START) {
+  startServer();
+}
 
 export default app;
- 
+

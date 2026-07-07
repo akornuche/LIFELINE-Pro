@@ -227,7 +227,17 @@ const loadProfile = async () => {
   }
 };
 
+const normalizePhone = (value) => String(value || '').replace(/[\s()\-]/g, '');
+const nigerianPhoneRegex = /^(?:0\d{10}|(?:\+?234)\d{10})$/;
+
 const updateProfile = async () => {
+  const rawPhone = form.value.phone;
+  if (rawPhone) {
+    if (!nigerianPhoneRegex.test(normalizePhone(rawPhone))) {
+      showError('Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)');
+      return;
+    }
+  }
   saving.value = true;
   try {
     const dataToSave = { ...form.value };

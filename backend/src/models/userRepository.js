@@ -24,7 +24,7 @@ export const createUser = async (userData) => {
     city = null,
     state = null,
     isActive = true,
-    isEmailVerified = true,
+    isEmailVerified = false,
   } = userData;
 
   try {
@@ -104,7 +104,7 @@ export const findById = async (userId) => {
   try {
     const result = await database.query(
       `SELECT id, lifeline_id, email, password_hash, role,
-              first_name, last_name, phone, profile_image_url as profile_picture,
+              first_name, last_name, phone, address, profile_image_url as profile_picture,
               status, (status = 'active') as is_active, 
               email_verified, (email_verified = 1) as is_email_verified,
               last_login_at, created_at, updated_at

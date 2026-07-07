@@ -35,15 +35,32 @@ export const PACKAGE_PRICES = {
 
 // Service Types
 export const SERVICE_TYPES = {
+  // ── Tier 1 · General & above ──────────────────────────────
   CONSULTATION: 'consultation',
   PRESCRIPTION: 'prescription',
-  DRUG_DISPENSING: 'drug_dispensing',
-  MINOR_SURGERY: 'minor_surgery',
-  MAJOR_SURGERY: 'major_surgery',
-  LABORATORY_TEST: 'laboratory_test',
-  IMAGING: 'imaging', // X-Ray, Ultrasound, CT, MRI
-  ADMISSION: 'admission',
+  LABORATORY_TEST: 'laboratory_test',   // Basic: blood count, malaria, urinalysis
+  VACCINATION: 'vaccination',
   EMERGENCY: 'emergency',
+  // ── Tier 2 · Basic Insurance & above ──────────────────────
+  DRUG_DISPENSING: 'drug_dispensing',
+  ADMISSION: 'admission',
+  ANTENATAL_CARE: 'antenatal_care',
+  // ── Tier 3 · Standard Insurance & above ───────────────────
+  SPECIALIST_CONSULTATION: 'specialist_consultation',
+  ADVANCED_LAB_TEST: 'advanced_lab_test',  // Lipid, liver/kidney/thyroid, HIV, Hepatitis
+  IMAGING: 'imaging',                      // X-Ray, Ultrasound (basic)
+  MINOR_SURGERY: 'minor_surgery',
+  PHYSIOTHERAPY: 'physiotherapy',
+  MENTAL_HEALTH: 'mental_health',
+  DENTAL_CARE: 'dental_care',
+  CHRONIC_DISEASE_MANAGEMENT: 'chronic_disease_management',
+  // ── Tier 4 · Premium Insurance only ───────────────────────
+  ADVANCED_IMAGING: 'advanced_imaging',    // CT Scan, MRI, Mammography, ECG, Echo
+  MAJOR_SURGERY: 'major_surgery',
+  MATERNITY_CARE: 'maternity_care',
+  AMBULANCE: 'ambulance',
+  HOME_VISIT: 'home_visit',
+  SECOND_OPINION: 'second_opinion',
 };
 
 // Ailment Categories

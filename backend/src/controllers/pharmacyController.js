@@ -175,12 +175,23 @@ export const getStatistics = async (req, res, next) => {
  */
 export const searchPharmacies = async (req, res, next) => {
   try {
-    const { q, limit, offset, verifiedOnly } = req.query;
+    const { q, search, limit, offset, verified, minRating, open24h } = req.query;
+    const searchTerm = q || search || '';
 
-    const pharmacies = await pharmacyService.searchPharmacies(q, {
-      limit: parseInt(limit) || 20,
+    let patientCity = null;
+    if (req.user?.userId) {
+      const { default: database } = await import('../database/connection.js');
+      const result = await database.query('SELECT city FROM users WHERE id = $1', [req.user.userId]);
+      patientCity = result.rows[0]?.city || null;
+    }
+
+    const pharmacies = await pharmacyService.searchPharmacies(searchTerm, {
+      limit: parseInt(limit) || 50,
       offset: parseInt(offset) || 0,
-      verifiedOnly: verifiedOnly === 'true',
+      minRating: parseFloat(minRating) || 0,
+      open24h: open24h === 'true',
+      verifiedOnly: verified === 'true',
+      patientCity,
     });
 
     return successResponse(res, pharmacies, 'Pharmacies retrieved successfully');

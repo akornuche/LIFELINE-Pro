@@ -15,10 +15,10 @@
               type="text"
               placeholder="Search by name, location, services..."
               class="input"
-              @keyup.enter="searchHospitals"
+              @keyup.enter="searchHospitals(1)"
             />
           </div>
-          <button @click="searchHospitals" class="btn btn-primary">
+          <button @click="searchHospitals(1)" class="btn btn-primary">
             <MagnifyingGlassIcon class="h-5 w-5 mr-2" />
             Search
           </button>
@@ -37,7 +37,7 @@
             <!-- Type Filter -->
             <div>
               <label class="form-label">Hospital Type</label>
-              <select v-model="filters.type" class="input" @change="searchHospitals">
+              <select v-model="filters.type" class="input" @change="searchHospitals(1)">
                 <option value="">All Types</option>
                 <option value="general">General Hospital</option>
                 <option value="specialist">Specialist Hospital</option>
@@ -53,7 +53,7 @@
                   v-model="filters.verified"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchHospitals"
+                  @change="searchHospitals(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">Verified Only</span>
               </label>
@@ -66,7 +66,7 @@
                   v-model="filters.emergencyServices"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchHospitals"
+                  @change="searchHospitals(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">Emergency Services</span>
               </label>
@@ -79,7 +79,7 @@
                   v-model="filters.hasAvailableBeds"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchHospitals"
+                  @change="searchHospitals(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">Available Beds</span>
               </label>
@@ -88,7 +88,7 @@
             <!-- Rating Filter -->
             <div>
               <label class="form-label">Minimum Rating</label>
-              <select v-model.number="filters.minRating" class="input" @change="searchHospitals">
+              <select v-model.number="filters.minRating" class="input" @change="searchHospitals(1)">
                 <option :value="0">Any Rating</option>
                 <option :value="3">3+ Stars</option>
                 <option :value="4">4+ Stars</option>
@@ -145,6 +145,9 @@
                           v-if="hospital.verification_status === 'verified'"
                           class="h-5 w-5 text-red-500 inline ml-1"
                         />
+                        <span v-if="hospital.match_score > 40" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                          Near You
+                        </span>
                       </h3>
                       <p class="text-sm text-gray-600 capitalize">{{ hospital.type }}</p>
                     </div>
@@ -192,15 +195,12 @@
                   </p>
 
                   <div class="flex gap-2">
-                    <button @click="viewDetails(hospital)" class="btn btn-primary btn-sm">
-                      View Details
+                    <button @click="bookConsultation(hospital)" class="btn btn-primary btn-sm">
+                      Book Consultation
                     </button>
                     <button @click="viewLocation(hospital)" class="btn btn-secondary btn-sm">
                       <MapPinIcon class="h-4 w-4 mr-1" />
                       Location
-                    </button>
-                    <button @click="contactHospital(hospital)" class="btn btn-secondary btn-sm">
-                      Contact
                     </button>
                   </div>
                 </div>
@@ -210,11 +210,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Pagination -->
+    <div v-if="totalResults > 0" class="mt-6 flex items-center justify-center gap-3">
+      <button
+        @click="changePage(currentPage - 1)"
+        :disabled="currentPage === 1"
+        class="btn btn-secondary btn-sm disabled:opacity-40"
+      >Previous</button>
+      <span class="px-3 py-1.5 text-sm text-gray-700">
+        Page {{ currentPage }} of {{ totalPages }}
+        <span class="text-gray-400">({{ totalResults }} results)</span>
+      </span>
+      <button
+        @click="changePage(currentPage + 1)"
+        :disabled="currentPage >= totalPages"
+        class="btn btn-secondary btn-sm disabled:opacity-40"
+      >Next</button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { hospitalService } from '@/services';
 import {
   MagnifyingGlassIcon,
@@ -227,11 +246,15 @@ import { useToast } from '@/composables/useToast';
 import SkeletonLoader from '@/components/SkeletonLoader.vue';
 
 const { success, error: showError } = useToast();
+const router = useRouter();
 
+const PAGE_SIZE = 20;
 const loading = ref(true);
 const searchQuery = ref('');
 const hospitals = ref([]);
-const selectedHospital = ref(null);
+const currentPage = ref(1);
+const totalResults = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalResults.value / PAGE_SIZE)));
 
 const filters = ref({
   type: '',
@@ -242,24 +265,39 @@ const filters = ref({
 });
 
 onMounted(async () => {
-  await searchHospitals();
+  await searchHospitals(1);
 });
 
-const searchHospitals = async () => {
+const searchHospitals = async (page = 1) => {
+  currentPage.value = page;
   loading.value = true;
   try {
     const params = {
       search: searchQuery.value,
-      ...filters.value
+      type: filters.value.type || undefined,
+      verified: filters.value.verified ? 'true' : undefined,
+      emergencyServices: filters.value.emergencyServices ? 'true' : undefined,
+      hasAvailableBeds: filters.value.hasAvailableBeds ? 'true' : undefined,
+      minRating: filters.value.minRating || undefined,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
     };
     const response = await hospitalService.searchHospitals(params);
-    hospitals.value = response.hospitals || [];
+    const data = response.hospitals || response.data?.data || response.data || [];
+    hospitals.value = data;
+    totalResults.value = response.total || response.data?.total || data.length + (page - 1) * PAGE_SIZE;
   } catch (error) {
     console.error('Failed to search hospitals:', error);
     showError('Failed to search hospitals');
   } finally {
     loading.value = false;
   }
+};
+
+const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return;
+  searchHospitals(page);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const resetFilters = () => {
@@ -272,16 +310,12 @@ const resetFilters = () => {
   };
   searchQuery.value = '';
   success('Filters reset');
-  searchHospitals();
+  searchHospitals(1);
 };
 
 const truncate = (text, length) => {
   if (!text || text.length <= length) return text;
   return text.substring(0, length) + '...';
-};
-
-const viewDetails = (hospital) => {
-  selectedHospital.value = hospital;
 };
 
 const viewLocation = (hospital) => {
@@ -290,7 +324,8 @@ const viewLocation = (hospital) => {
   }
 };
 
-const contactHospital = (hospital) => {
-  window.location.href = `tel:${hospital.phone}`;
+const bookConsultation = (hospital) => {
+  const name = encodeURIComponent(hospital.hospital_name);
+  router.push(`/patient/service-requests?serviceType=admission&providerId=${hospital.id}&providerName=${name}&providerType=hospital`);
 };
 </script>

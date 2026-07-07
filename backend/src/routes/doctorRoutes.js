@@ -1,6 +1,6 @@
 import express from 'express';
 import * as doctorController from '../controllers/doctorController.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
 import upload from '../middleware/upload.js';
@@ -145,7 +145,7 @@ router.get('/specializations', doctorController.getAllSpecializations);
  * @desc    Search doctors
  * @access  Public
  */
-router.get('/search', doctorController.searchDoctors);
+router.get('/search', optionalAuth, doctorController.searchDoctors);
 
 /**
  * @route   GET /api/doctors/specialization/:specialization

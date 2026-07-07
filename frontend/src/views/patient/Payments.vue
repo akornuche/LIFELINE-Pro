@@ -1,37 +1,47 @@
 <template>
   <div class="page-container">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 animate-fade-in">Payments</h1>
-      <p class="text-gray-600 mt-2">View and manage your payment history</p>
+      <h1 class="text-3xl font-bold text-gray-900 animate-fade-in">Provider Charges &amp; Claims</h1>
+      <p class="text-gray-600 mt-2">Track healthcare costs covered by LifeLine Pro on your behalf</p>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="grid md:grid-cols-3 gap-6 mb-8">
+    <!-- Info Banner -->
+    <div class="rounded-lg bg-blue-50 border border-blue-200 p-4 flex gap-3 mb-8">
+      <ShieldCheckIcon class="h-6 w-6 text-blue-500 flex-shrink-0 mt-0.5" />
+      <p class="text-sm text-blue-700">
+        These charges are automatically covered by your LifeLine Pro subscription.
+        <strong>No payment action is required from you.</strong>
+      </p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid md:grid-cols-4 gap-6 mb-8">
       <div class="card">
         <div class="card-body text-center">
-          <CreditCardIcon class="h-12 w-12 text-primary-600 mx-auto mb-3" />
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Subscribe to Plan</h3>
-          <button @click="goToSubscription" class="btn btn-primary btn-sm">
-            View Plans
-          </button>
+          <UserGroupIcon class="h-10 w-10 text-primary-600 mx-auto mb-2" />
+          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Consultations</p>
+          <p class="text-xl font-bold text-gray-900">₦{{ consultationTotal.toLocaleString() }}</p>
         </div>
       </div>
-
       <div class="card">
         <div class="card-body text-center">
-          <ArrowPathIcon class="h-12 w-12 text-blue-600 mx-auto mb-3" />
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Renew Subscription</h3>
-          <button @click="renewSubscription" class="btn btn-secondary btn-sm">
-            Renew Now
-          </button>
+          <BeakerIcon class="h-10 w-10 text-green-600 mx-auto mb-2" />
+          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pharmacy</p>
+          <p class="text-xl font-bold text-gray-900">₦{{ pharmacyTotal.toLocaleString() }}</p>
         </div>
       </div>
-
       <div class="card">
         <div class="card-body text-center">
-          <DocumentTextIcon class="h-12 w-12 text-green-600 mx-auto mb-3" />
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Spent</h3>
-          <p class="text-2xl font-bold text-primary-600">₦{{ totalSpent.toLocaleString() }}</p>
+          <ScissorsIcon class="h-10 w-10 text-purple-600 mx-auto mb-2" />
+          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Surgeries &amp; Labs</p>
+          <p class="text-xl font-bold text-gray-900">₦{{ procedureTotal.toLocaleString() }}</p>
+        </div>
+      </div>
+      <div class="card bg-primary-50 border border-primary-200">
+        <div class="card-body text-center">
+          <ShieldCheckIcon class="h-10 w-10 text-primary-600 mx-auto mb-2" />
+          <p class="text-xs text-primary-600 uppercase tracking-wide mb-1">Total Covered by LifeLine</p>
+          <p class="text-xl font-bold text-primary-700">₦{{ totalCovered.toLocaleString() }}</p>
         </div>
       </div>
     </div>
@@ -54,7 +64,6 @@
             <label class="form-label">Type</label>
             <select v-model="filters.type" class="input" @change="fetchPayments">
               <option value="">All Types</option>
-              <option value="subscription">Subscription</option>
               <option value="consultation">Consultation</option>
               <option value="prescription">Prescription</option>
               <option value="surgery">Surgery</option>
@@ -83,58 +92,54 @@
     <!-- Empty State -->
     <div v-else-if="!payments.length" class="card">
       <div class="card-body text-center py-12">
-        <CreditCardIcon class="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Payments Found</h3>
-        <p class="text-gray-600">You haven't made any payments yet</p>
+        <DocumentTextIcon class="h-16 w-16 text-gray-400 mx-auto mb-4" />
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Provider Charges Yet</h3>
+        <p class="text-gray-600">No provider charges have been recorded for your account yet</p>
       </div>
     </div>
 
-    <!-- Payments Table -->
+    <!-- Charges Table -->
     <div v-else class="card">
       <div class="card-body">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Reference
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">{{ payment.reference }}</div>
+                <td class="px-6 py-4">
+                  <div class="text-sm font-medium text-gray-900">{{ payment.description || payment.reference || '—' }}</div>
+                  <div v-if="payment.provider_type" class="text-xs text-gray-500 capitalize">via {{ payment.provider_type }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 capitalize">{{ payment.type }}</div>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                    :class="{
+                      'bg-blue-100 text-blue-800': payment.payment_type === 'consultation',
+                      'bg-green-100 text-green-800': payment.payment_type === 'prescription',
+                      'bg-purple-100 text-purple-800': payment.payment_type === 'surgery',
+                      'bg-yellow-100 text-yellow-800': payment.payment_type === 'lab_test',
+                      'bg-gray-100 text-gray-800': !['consultation','prescription','surgery','lab_test'].includes(payment.payment_type)
+                    }"
+                  >
+                    {{ (payment.payment_type || 'other').replace('_', ' ') }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">{{ formatDate(payment.created_at) }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-semibold text-gray-900">
-                    ₦{{ payment.amount.toLocaleString() }}
-                  </div>
+                  <div class="text-sm font-semibold text-gray-900">₦{{ (payment.amount || 0).toLocaleString() }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="badge"
+                  <span class="badge"
                     :class="{
                       'badge-success': payment.status === 'completed',
                       'badge-warning': payment.status === 'pending',
@@ -147,18 +152,13 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
-                    @click="viewReceipt(payment)"
-                    class="text-primary-600 hover:text-primary-900 mr-3"
-                  >
-                    View
-                  </button>
-                  <button
                     v-if="payment.status === 'completed'"
                     @click="downloadReceipt(payment)"
                     class="text-blue-600 hover:text-blue-900"
                   >
                     Download
                   </button>
+                  <span v-else class="text-gray-400">—</span>
                 </td>
               </tr>
             </tbody>
@@ -174,20 +174,8 @@
         {{ Math.min(currentPage * itemsPerPage, totalPayments) }} of {{ totalPayments }} results
       </div>
       <div class="flex gap-2">
-        <button
-          @click="goToPage(currentPage - 1)"
-          :disabled="currentPage === 1"
-          class="btn btn-secondary btn-sm"
-        >
-          Previous
-        </button>
-        <button
-          @click="goToPage(currentPage + 1)"
-          :disabled="currentPage === totalPages"
-          class="btn btn-secondary btn-sm"
-        >
-          Next
-        </button>
+        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="btn btn-secondary btn-sm">Previous</button>
+        <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="btn btn-secondary btn-sm">Next</button>
       </div>
     </div>
   </div>
@@ -195,18 +183,18 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { paymentService } from '@/services';
 import { useToast } from '@/composables/useToast';
 import SkeletonLoader from '@/components/SkeletonLoader.vue';
 import {
-  CreditCardIcon,
+  ShieldCheckIcon,
   DocumentTextIcon,
-  ArrowPathIcon
+  UserGroupIcon,
+  BeakerIcon,
+  WrenchScrewdriverIcon as ScissorsIcon
 } from '@heroicons/vue/24/outline';
 import { format } from 'date-fns';
 
-const router = useRouter();
 const { success, error: showError, info } = useToast();
 
 const loading = ref(true);
@@ -214,7 +202,6 @@ const payments = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = 10;
 const totalPayments = ref(0);
-const selectedReceipt = ref(null);
 
 const filters = ref({
   status: '',
@@ -222,15 +209,20 @@ const filters = ref({
   dateRange: 'all'
 });
 
-const totalSpent = computed(() => {
-  return payments.value
-    .filter(p => p.status === 'completed')
-    .reduce((sum, p) => sum + p.amount, 0);
-});
+const consultationTotal = computed(() =>
+  payments.value.filter(p => p.payment_type === 'consultation' && p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
+);
+const pharmacyTotal = computed(() =>
+  payments.value.filter(p => p.payment_type === 'prescription' && p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
+);
+const procedureTotal = computed(() =>
+  payments.value.filter(p => ['surgery', 'lab_test'].includes(p.payment_type) && p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
+);
+const totalCovered = computed(() =>
+  payments.value.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
+);
 
-const totalPages = computed(() => {
-  return Math.ceil(totalPayments.value / itemsPerPage);
-});
+const totalPages = computed(() => Math.ceil(totalPayments.value / itemsPerPage));
 
 onMounted(async () => {
   await fetchPayments();
@@ -244,18 +236,20 @@ const fetchPayments = async () => {
       page: currentPage.value,
       limit: itemsPerPage
     });
-    payments.value = response.payments || [];
-    totalPayments.value = response.total || 0;
+    payments.value = (response.payments || response.data?.payments || []).filter(
+      p => p.payment_type !== 'subscription'
+    );
+    totalPayments.value = response.total || response.data?.total || payments.value.length;
   } catch (error) {
     console.error('Failed to fetch payments:', error);
-    showError('Failed to load payment history. Please try again.');
+    showError('Failed to load provider charges. Please try again.');
   } finally {
     loading.value = false;
   }
 };
 
 const formatDate = (date) => {
-  return format(new Date(date), 'MMM dd, yyyy HH:mm');
+  try { return format(new Date(date), 'MMM dd, yyyy HH:mm'); } catch { return '—'; }
 };
 
 const goToPage = (page) => {
@@ -265,31 +259,19 @@ const goToPage = (page) => {
   }
 };
 
-const goToSubscription = () => {
-  router.push('/patient/subscription');
-};
-
-const renewSubscription = () => {
-  router.push('/patient/subscription');
-};
-
-const viewReceipt = (payment) => {
-  selectedReceipt.value = payment;
-};
-
 const downloadReceipt = (payment) => {
   info('Generating receipt...');
   const receiptContent = [
-    'LIFELINE-Pro Payment Receipt',
-    '================================',
+    'LifeLine Pro — Provider Charge Receipt',
+    '======================================',
     `Reference: ${payment.payment_reference || payment.id}`,
     `Date: ${formatDate(payment.created_at)}`,
-    `Amount: ₦${payment.amount?.toLocaleString()}`,
-    `Status: ${payment.status}`,
-    `Type: ${payment.payment_type || payment.payment_for || 'Payment'}`,
-    `Method: ${payment.payment_method || 'N/A'}`,
-    '================================',
-    'Thank you for your payment.',
+    `Amount Covered: ₦${(payment.amount || 0).toLocaleString()}`,
+    `Type: ${(payment.payment_type || '').replace('_', ' ')}`,
+    `Provider: ${payment.provider_type || 'N/A'}`,
+    `Description: ${payment.description || 'N/A'}`,
+    '======================================',
+    'Covered by your LifeLine Pro subscription.',
   ].join('\n');
 
   const blob = new Blob([receiptContent], { type: 'text/plain' });

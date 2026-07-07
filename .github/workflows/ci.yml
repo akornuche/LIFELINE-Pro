@@ -1,0 +1,296 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ── Job 1: Unit tests + SQLite integration ───────────────────────────────────
+  # No Docker required. Fast. Always runs.
+  unit-and-sqlite:
+    name: Unit & SQLite integration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: SQLite adapter contract tests
+        run: npm run test:contracts -- --testPathPattern=adapter.contract.test
+
+      - name: SQLite integration tests
+        run: npm run test:sqlite
+
+      - name: PG boolean round-trip (soft-skip without Docker)
+        run: NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test npx jest --testPathPattern=pg.boolean.roundtrip --forceExit --runInBand
+        # Docker IS available on ubuntu-latest, so this runs for real in CI.
+        # Locally without Docker it soft-skips with a warning (no failures).
+
+  # ── Job 2: PostgreSQL adapter contract tests ─────────────────────────────────
+  # Requires Docker (available on ubuntu-latest by default).
+  # Uses testcontainers to spin up postgres:16-alpine automatically.
+  # This is the tier that catches SQLite ↔ PostgreSQL divergence.
+  pg-contract:
+    name: PostgreSQL adapter contract
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: PostgreSQL contract tests (testcontainers)
+        run: npm run test:contracts:pg
+        # testcontainers pulls postgres:16-alpine and manages the container.
+        # No external service block needed — Docker is available on ubuntu-latest.
+        # Container startup adds ~5s warm / ~30s cold (first pull).
+
+  # ── Job 3: Full PostgreSQL integration tests ─────────────────────────────────
+  # Runs the full integration suite against a real PostgreSQL service.
+  # Uncomment once P1 integration tests are written (backend/tests/integration/).
+  #
+  # pg-integration:
+  #   name: PostgreSQL integration (full)
+  #   runs-on: ubuntu-latest
+  #   services:
+  #     postgres:
+  #       image: postgres:16-alpine
+  #       env:
+  #         POSTGRES_USER: lifeline
+  #         POSTGRES_PASSWORD: lifeline
+  #         POSTGRES_DB: lifeline_test
+  #       ports:
+  #         - 5432:5432
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 5s
+  #         --health-timeout 5s
+  #         --health-retries 10
+  #   defaults:
+  #     run:
+  #       working-directory: backend
+  #   env:
+  #     DB_TYPE: postgresql
+  #     DB_HOST: localhost
+  #     DB_PORT: 5432
+  #     DB_NAME: lifeline_test
+  #     DB_USER: lifeline
+  #     DB_PASSWORD: lifeline
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: npm
+  #         cache-dependency-path: backend/package-lock.json
+  #     - run: npm ci
+  #     - run: npm run test:postgres
+
+  # ── Job 4: k6 Load Tests ────────────────────────────────────────────────────
+  # Runs queue request endpoint under moderate load (10 VUs).
+  # SQLite: expect 500s under concurrent load (single-writer constraint).
+  # PostgreSQL (prod): should pass with <1% errors.
+  k6-smoke:
+    name: k6 Load Smoke Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg curl
+          curl https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      # ── k6 Load Test (smoke) ───────────────────────────────────────────────
+      - name: Run k6 load smoke test (10 VUs)
+        run: k6 run --vus 10 --duration 30s scripts/k6/queue.load.js
+        # SQLite: expect 500s under concurrent load (single-writer constraint)
+        # PostgreSQL (prod): should pass with <1% errors and p95<500ms
+
+  # ── Job 5: Launch Gate Checks ───────────────────────────────────────────────
+  # Security scan + config validation. Must pass before deploy.
+  launch-gates:
+    name: Launch Gate Checks
+    runs-on: ubuntu-latest
+    needs: [unit-and-sqlite, pg-contract, e2e]
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate production environment configuration
+        run: |
+          echo "Checking required environment variables..."
+          # Check .env.production exists
+          if [ ! -f .env.production ]; then
+            echo "ERROR: .env.production file missing"
+            exit 1
+          fi
+
+          # Check critical variables are set (non-empty)
+          # Note: Production uses DB_HOST/DB_NAME instead of DATABASE_URL
+          missing=0
+          for var in JWT_SECRET DB_HOST DB_NAME DB_USER DB_PASSWORD; do
+            if [ -z "$(grep -E "^${var}=" .env.production | cut -d'=' -f2)" ]; then
+              echo "ERROR: ${var} not set in .env.production"
+              missing=1
+            fi
+          done
+
+          if [ $missing -eq 1 ]; then
+            exit 1
+          fi
+
+          echo "Environment validation passed"
+        shell: bash
+
+      # ── Security: npm audit ────────────────────────────────────────────────
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+        # Exit code 0 = no vulnerabilities, 1 = moderate/high/critical vulns
+        # CI will fail if vulnerabilities are found.
+
+  # ── Job 6: Playwright E2E tests ──────────────────────────────────────────────
+  # Runs the register → login → dashboard flow through a real browser (Chromium).
+  # Backend starts on port 5002 (SQLite), frontend served by Vite on port 3000.
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # ── Clean startup verification ─────────────────────────────────────────
+      # Start backend in test mode, wait for health endpoint, then stop.
+      # This validates seeding, DB setup, and server startup before E2E run.
+      - name: Verify clean backend startup
+        run: |
+          cd backend
+          # Start backend in background
+          node scripts/e2e-server.js &
+          BACKEND_PID=$!
+          # Wait for server to be ready (max 30s)
+          for i in {1..30}; do
+            if curl -s http://localhost:5002/ping > /dev/null 2>&1; then
+              echo "[CI] Backend health check passed"
+              kill $BACKEND_PID 2>/dev/null || true
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "[CI] Backend health check failed after 30s"
+          kill $BACKEND_PID 2>/dev/null || true
+          exit 1
+        shell: bash
+
+      - name: Run Playwright E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ── Job 7: k6 Race Condition Probe ──────────────────────────────────────────
+  # Informational test to check round-robin distribution under load.
+  k6-race-probe:
+    name: k6 Round-Robin Race Probe
+    runs-on: ubuntu-latest
+    needs: [unit-and-sqlite]
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg curl
+          curl https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run k6 round-robin race probe (20 VUs)
+        run: k6 run --vus 20 --duration 10s scripts/k6/round-robin.race.js
+        # This is informational - shows if round-robin gets skewed under load

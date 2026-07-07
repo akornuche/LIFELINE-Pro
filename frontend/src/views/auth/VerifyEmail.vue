@@ -17,13 +17,13 @@
             Email verified successfully!
           </h2>
           <p class="text-gray-600">
-            Your email has been verified. You can now login to your account.
+            Your email has been verified. You can now select a subscription plan.
           </p>
           <RouterLink
-            to="/login"
+            :to="authStore.isAuthenticated ? '/patient/subscription' : '/login'"
             class="btn btn-primary inline-flex"
           >
-            Continue to Login
+            {{ authStore.isAuthenticated ? 'Choose a Plan' : 'Continue to Login' }}
           </RouterLink>
         </div>
 

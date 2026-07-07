@@ -1,6 +1,7 @@
 import database from '../database/connection.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, BusinessLogicError } from '../middleware/errorHandler.js';
+import { randomUUID } from 'crypto';
 
 /**
  * Payment Repository
@@ -13,6 +14,7 @@ import { NotFoundError, BusinessLogicError } from '../middleware/errorHandler.js
  * Create payment record
  */
 export const createPayment = async (paymentData) => {
+  const paymentId = randomUUID();
   const {
     patientId,
     providerId = null,
@@ -28,13 +30,14 @@ export const createPayment = async (paymentData) => {
   } = paymentData;
 
   try {
-    const result = await database.query(
+    await database.query(
       `INSERT INTO payment_records (
-        patient_id, provider_id, provider_type, amount,
+        id, patient_id, provider_id, provider_type, amount,
         payment_method, payment_type, payment_reference,
         gateway_response, status, description, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
+        paymentId,
         patientId,
         providerId,
         providerType,
@@ -178,6 +181,7 @@ export const getPatientPayments = async (patientId, options = {}) => {
     let query = `
       SELECT * FROM payment_records
       WHERE patient_id = $1
+        AND payment_type != 'subscription'
     `;
     const params = [patientId];
     let paramCount = 1;
@@ -317,15 +321,16 @@ export const calculateRevenue = async (filters = {}) => {
  * Create webhook log
  */
 export const createWebhookLog = async (webhookData) => {
+  const webhookId = randomUUID();
   const { gateway, event, payload, processingStatus = 'pending', paymentId = null, eventId = null } = webhookData;
 
   try {
     const result = await database.query(
       `INSERT INTO payment_webhooks (
-        payment_id, webhook_type, provider, event_id, payload, status
-      ) VALUES ($1, $2, $3, $4, $5, $6)
+        id, payment_id, webhook_type, provider, event_id, payload, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`,
-      [paymentId, event || 'unknown', gateway || 'paystack', eventId, JSON.stringify(payload), processingStatus]
+      [webhookId, paymentId, event || 'unknown', gateway || 'paystack', eventId, JSON.stringify(payload), processingStatus]
     );
 
     logger.info('Webhook log created', {
@@ -373,12 +378,32 @@ export const updateWebhookStatus = async (webhookId, status, errorMessage = null
   }
 };
 
+/**
+ * Find a webhook log that has already been processed for a given event ID.
+ * Used for idempotency — Paystack may retry the same event on 5xx responses.
+ */
+export const findProcessedWebhookByEventId = async (eventId) => {
+  try {
+    const result = await database.query(
+      `SELECT * FROM payment_webhooks
+       WHERE event_id = $1 AND status = 'processed'
+       LIMIT 1`,
+      [eventId]
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error finding webhook by event_id', { error: error.message, eventId });
+    throw error;
+  }
+};
+
 // ============= MONTHLY STATEMENTS =============
 
 /**
  * Create monthly statement
  */
 export const createMonthlyStatement = async (statementData) => {
+  const statementId = randomUUID();
   const {
     providerId,
     providerType,
@@ -393,11 +418,11 @@ export const createMonthlyStatement = async (statementData) => {
   try {
     const result = await database.query(
       `INSERT INTO monthly_statements (
-        provider_id, provider_type, month, year,
+        id, provider_id, provider_type, month, year,
         total_amount, transaction_count, platform_fee, net_amount, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
       RETURNING *`,
-      [providerId, providerType, month, year, totalAmount, transactionCount, platformFee, netAmount]
+      [statementId, providerId, providerType, month, year, totalAmount, transactionCount, platformFee, netAmount]
     );
 
     logger.info('Monthly statement created', {
@@ -409,7 +434,8 @@ export const createMonthlyStatement = async (statementData) => {
 
     return result.rows[0];
   } catch (error) {
-    if (error.code === '23505') {
+    // PostgreSQL unique violation: '23505'; SQLite: 'SQLITE_CONSTRAINT'
+    if (error.code === '23505' || (error.code === 'SQLITE_CONSTRAINT' && error.message.includes('UNIQUE'))) {
       throw new BusinessLogicError('Statement already exists for this provider and period');
     }
     logger.error('Error creating monthly statement', {
@@ -615,16 +641,17 @@ export const generateStatement = async (providerId, providerType, month, year) =
  * Record patient payment
  */
 export const recordPatientPayment = async (paymentData) => {
+  const patientPaymentId = randomUUID();
   const { patientId, amount, paymentMethod, paymentFor, paymentReference, dueDate } = paymentData;
 
   try {
     const result = await database.query(
       `INSERT INTO patient_payments (
-        patient_id, amount, payment_method, payment_for,
+        id, patient_id, amount, payment_method, payment_for,
         payment_reference, due_date, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
       RETURNING *`,
-      [patientId, amount, paymentMethod, paymentFor, paymentReference, dueDate]
+      [patientPaymentId, patientId, amount, paymentMethod, paymentFor, paymentReference, dueDate]
     );
 
     logger.info('Patient payment recorded', {
@@ -690,8 +717,7 @@ export const getOverduePayments = async (options = {}) => {
        JOIN patients pat ON pp.patient_id = pat.id
        JOIN users u ON pat.user_id = u.id
        WHERE pp.status = 'pending'
-         AND pp.due_date < CURRENT_TIMESTAMP
-       ORDER BY pp.due_date ASC
+       ORDER BY pp.created_at ASC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
@@ -765,6 +791,7 @@ export default {
   // Webhooks
   createWebhookLog,
   updateWebhookStatus,
+  findProcessedWebhookByEventId,
   
   // Monthly Statements
   createMonthlyStatement,

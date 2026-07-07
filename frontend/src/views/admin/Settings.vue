@@ -17,7 +17,7 @@ import { BaseCard, BaseInput, BaseButton } from '@/components';
 const adminStore = useAdminStore();
 const { success, error: showError, info } = useToast();
 const saving = ref(false);
-const settings = ref({ platform_name: 'LIFELINE Pro', support_email: 'support@lifelinepro.com', support_phone: '+234 800 000 0000', commission_rate: 5.0, paystack_public_key: '', enable_test_mode: true, smtp_host: '', smtp_port: 587, smtp_username: '', smtp_password: '', features: { consultations: true, prescriptions: true, surgeries: true, subscriptions: true } });
+const settings = ref({ platform_name: 'LifeLine', support_email: 'support@lifelinepro.com', support_phone: '+234 800 000 0000', commission_rate: 5.0, paystack_public_key: '', enable_test_mode: true, smtp_host: '', smtp_port: 587, smtp_username: '', smtp_password: '', features: { consultations: true, prescriptions: true, surgeries: true, subscriptions: true } });
 
 onMounted(async () => {
   try {

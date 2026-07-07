@@ -1,0 +1,9 @@
+﻿npx : 'admin.routes' is not recognized as an internal or external command,
+At line:1 char:72
++ ... NV="test" ; npx jest --testPathPattern="auth.session|admin.routes" -- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ('admin.routes' ...ternal command, 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+operable program or batch file.

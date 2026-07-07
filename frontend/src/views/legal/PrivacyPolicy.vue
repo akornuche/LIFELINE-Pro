@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
@@ -18,11 +18,11 @@
       <div class="mb-10">
         <h1 class="text-4xl font-black text-gray-900 mb-3">Privacy Policy</h1>
         <p class="text-gray-500 text-sm">Last updated: April 2026 &nbsp;·&nbsp; Effective Date: April 16, 2026</p>
-        <p class="text-gray-500 text-sm mt-1">LifeLine Pro Health Management Organisation Limited</p>
+        <p class="text-gray-500 text-sm mt-1">LifeLine Health Management Organisation Limited</p>
       </div>
 
       <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-10 text-sm text-blue-900">
-        <strong>Your privacy matters.</strong> This policy explains exactly what personal and health data we collect, why we collect it, how we use it, and your rights under the <strong>Nigeria Data Protection Act 2023 (NDPA)</strong> and the <strong>Nigeria Data Protection Regulation 2019 (NDPR)</strong>. LifeLine Pro is committed to lawful, transparent, and secure handling of your data.
+        <strong>Your privacy matters.</strong> This policy explains exactly what personal and health data we collect, why we collect it, how we use it, and your rights under the <strong>Nigeria Data Protection Act 2023 (NDPA)</strong> and the <strong>Nigeria Data Protection Regulation 2019 (NDPR)</strong>. LifeLine is committed to lawful, transparent, and secure handling of your data.
       </div>
 
       <div class="space-y-10 text-gray-700 leading-relaxed">
@@ -30,7 +30,7 @@
         <!-- 1 -->
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">1. Who We Are (Data Controller)</h2>
-          <p><strong>LifeLine Pro Health Management Organisation Limited</strong> is the Data Controller responsible for your personal data collected through this platform. We are subject to the <strong>Nigeria Data Protection Commission (NDPC)</strong> and operate in compliance with the NDPA 2023.</p>
+          <p><strong>LifeLine Health Management Organisation Limited</strong> is the Data Controller responsible for your personal data collected through this platform. We are subject to the <strong>Nigeria Data Protection Commission (NDPC)</strong> and operate in compliance with the NDPA 2023.</p>
           <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 mt-4 text-sm space-y-1">
             <p><strong>Data Protection Officer (DPO):</strong></p>
             <p>Email: <a href="mailto:dpo@lifelinepro.com" class="text-primary-600 hover:underline">dpo@lifelinepro.com</a></p>
@@ -194,13 +194,13 @@
         <!-- 9 -->
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">9. Cookies and Tracking</h2>
-          <p>LifeLine Pro uses minimal session-based storage (browser localStorage and sessionStorage) solely to maintain your login session and temporary payment state. We do <strong>not</strong> use third-party advertising cookies or cross-site trackers. No data is shared with social media platforms for advertising purposes.</p>
+          <p>LifeLine uses minimal session-based storage (browser localStorage and sessionStorage) solely to maintain your login session and temporary payment state. We do <strong>not</strong> use third-party advertising cookies or cross-site trackers. No data is shared with social media platforms for advertising purposes.</p>
         </section>
 
         <!-- 10 -->
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">10. Children's Privacy</h2>
-          <p>LifeLine Pro does not allow direct registration by individuals under 18. Minors may only be enrolled as <strong>dependants</strong> under an adult primary subscriber. The adult subscriber is responsible for consenting on behalf of their enrolled dependants.</p>
+          <p>LifeLine does not allow direct registration by individuals under 18. Minors may only be enrolled as <strong>dependants</strong> under an adult primary subscriber. The adult subscriber is responsible for consenting on behalf of their enrolled dependants.</p>
         </section>
 
         <!-- 11 -->
@@ -219,7 +219,7 @@
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">13. Contact &amp; Complaints</h2>
           <div class="bg-gray-50 rounded-xl border border-gray-200 p-5 text-sm space-y-1">
-            <p><strong>Data Protection Officer — LifeLine Pro</strong></p>
+            <p><strong>Data Protection Officer — LifeLine</strong></p>
             <p>Email: <a href="mailto:dpo@lifelinepro.com" class="text-primary-600 hover:underline">dpo@lifelinepro.com</a></p>
             <p>General Support: <a href="mailto:support@lifelinepro.com" class="text-primary-600 hover:underline">support@lifelinepro.com</a></p>
             <p>Phone: +234 800 000 0000</p>

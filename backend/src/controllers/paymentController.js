@@ -48,12 +48,12 @@ export const handleWebhook = async (req, res, next) => {
   try {
     const { gateway } = req.params;
 
-    // Verify Paystack HMAC signature
-    if (gateway === 'paystack') {
+    // Verify Paystack HMAC signature — fail closed: missing header is as bad as wrong header
+    if (gateway === 'paystack' && process.env.PAYSTACK_SECRET_KEY) {
       const signature = req.headers['x-paystack-signature'];
       const rawBody = req.rawBody || JSON.stringify(req.body);
-      if (signature && !paystack.verifyWebhookSignature(rawBody, signature)) {
-        logger.warn('Invalid Paystack webhook signature received');
+      if (!signature || !paystack.verifyWebhookSignature(rawBody, signature)) {
+        logger.warn('Invalid or missing Paystack webhook signature');
         return res.status(401).json({ success: false, message: 'Invalid signature' });
       }
     }

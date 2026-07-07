@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue';
+﻿import { ref, computed, onMounted } from 'vue';
 
 export function usePwa() {
   const isInstalled = ref(false);
@@ -70,8 +70,8 @@ export function usePwa() {
 
     try {
       await navigator.share({
-        title: data.title || 'LifeLine Pro',
-        text: data.text || 'Check out LifeLine Pro',
+        title: data.title || 'LifeLine',
+        text: data.text || 'Check out LifeLine',
         url: data.url || window.location.href
       });
       return { success: true };

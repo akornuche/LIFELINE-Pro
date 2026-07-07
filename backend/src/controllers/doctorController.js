@@ -209,12 +209,25 @@ export const getStatistics = async (req, res, next) => {
  */
 export const searchDoctors = async (req, res, next) => {
   try {
-    const { q, limit, offset, verifiedOnly } = req.query;
+    const { q, search, limit, offset, specialization, verified, minExperience, minRating } = req.query;
+    const searchTerm = q || search || '';
 
-    const doctors = await doctorService.searchDoctors(q, {
-      limit: parseInt(limit) || 20,
+    // Get patient city for pairing score (available when authenticated via optionalAuth)
+    let patientCity = null;
+    if (req.user?.userId) {
+      const { default: database } = await import('../database/connection.js');
+      const result = await database.query('SELECT city FROM users WHERE id = $1', [req.user.userId]);
+      patientCity = result.rows[0]?.city || null;
+    }
+
+    const doctors = await doctorService.searchDoctors(searchTerm, {
+      limit: parseInt(limit) || 50,
       offset: parseInt(offset) || 0,
-      verifiedOnly: verifiedOnly === 'true',
+      specialization: specialization || '',
+      minExperience: parseFloat(minExperience) || 0,
+      minRating: parseFloat(minRating) || 0,
+      verifiedOnly: verified === 'true',
+      patientCity,
     });
 
     return successResponse(res, doctors, 'Doctors retrieved successfully');

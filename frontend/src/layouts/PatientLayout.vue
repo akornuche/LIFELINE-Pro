@@ -1,12 +1,14 @@
 <template>
-  <div class="flex h-screen bg-gray-50">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-sm">
+  <div class="min-h-screen bg-gray-50">
+    <!-- Sidebar (fixed) -->
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white shadow-sm z-30 flex flex-col">
       <div class="h-full flex flex-col">
         <!-- Logo -->
-        <div class="px-6 py-6 border-b">
-          <h1 class="text-2xl font-bold text-primary-600">LifeLine Pro</h1>
-          <p class="text-sm text-gray-600 mt-1">Patient Portal</p>
+        <div class="px-6 py-5 border-b">
+          <RouterLink to="/" class="block mb-1">
+            <img src="/logo-bg.svg" alt="LifeLine" class="h-8 w-auto" />
+          </RouterLink>
+          <p class="text-xs text-gray-500 mt-1">Patient Portal</p>
         </div>
 
         <!-- Navigation -->
@@ -55,11 +57,18 @@
       </div>
     </aside>
 
-    <!-- Main Content wrapper -->
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <!-- Top Header -->
-      <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10 flex-shrink-0">
-        <div class="flex-1"></div>
+    <!-- Main area offset by sidebar width -->
+    <div class="ml-64 flex flex-col min-h-screen">
+      <!-- Top Header (sticky) -->
+      <header class="sticky top-0 bg-white shadow-sm h-16 flex items-center justify-between px-6 z-20 flex-shrink-0">
+        <!-- Public site nav links -->
+        <nav class="flex items-center gap-6 text-sm font-medium text-neutral-500">
+          <RouterLink to="/" class="hover:text-primary-500 transition-colors">Home</RouterLink>
+          <RouterLink to="/services" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">Services</RouterLink>
+          <RouterLink to="/about" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">About</RouterLink>
+          <RouterLink to="/pricing" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">Plans</RouterLink>
+          <RouterLink to="/contact" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">Contact</RouterLink>
+        </nav>
         <!-- Profile Dropdown -->
         <Menu as="div" class="relative">
           <MenuButton class="flex items-center hover:opacity-80 transition-opacity focus:outline-none">
@@ -95,15 +104,21 @@
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 overflow-y-auto">
+      <main class="flex-1">
+        <EmailVerificationBanner />
         <RouterView />
       </main>
+
+      <!-- Full-width footer (scrolls with content) -->
+      <SiteFooter />
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import SiteFooter from '@/components/SiteFooter.vue';
+import EmailVerificationBanner from '@/components/EmailVerificationBanner.vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { usePatientStore } from '@/stores/patient';
@@ -128,14 +143,14 @@ const patientStore = usePatientStore();
 
 const navigation = [
   { name: 'Dashboard', to: '/patient', icon: HomeIcon, always: false },
+  { name: 'Service Requests', to: '/patient/service-requests', icon: QueueListIcon, always: false },
+  { name: 'Find Doctor', to: '/patient/find-doctor', icon: MagnifyingGlassIcon, always: false },
+  { name: 'Find Pharmacy', to: '/patient/find-pharmacy', icon: MagnifyingGlassIcon, always: false },
+  { name: 'Find Hospital', to: '/patient/find-hospital', icon: MagnifyingGlassIcon, always: false },
   { name: 'Profile', to: '/patient/profile', icon: UserIcon, always: true },
   { name: 'Subscription', to: '/patient/subscription', icon: CreditCardIcon, always: true },
   { name: 'Dependents', to: '/patient/dependents', icon: UsersIcon, always: false },
   { name: 'Medical History', to: '/patient/medical-history', icon: DocumentTextIcon, always: false },
-  { name: 'Find Doctor', to: '/patient/find-doctor', icon: MagnifyingGlassIcon, always: false },
-  { name: 'Find Pharmacy', to: '/patient/find-pharmacy', icon: MagnifyingGlassIcon, always: false },
-  { name: 'Find Hospital', to: '/patient/find-hospital', icon: MagnifyingGlassIcon, always: false },
-  { name: 'Service Requests', to: '/patient/service-requests', icon: QueueListIcon, always: false },
   { name: 'Payments', to: '/patient/payments', icon: CurrencyDollarIcon, always: false },
   { name: 'Settings', to: '/patient/settings', icon: CogIcon, always: true }
 ];

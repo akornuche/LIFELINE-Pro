@@ -32,7 +32,7 @@ const config = {
     ssl: process.env.DB_SSL === 'true',
     maxPool: parseInt(process.env.DB_MAX_POOL, 10) || 20,
     idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT, 10) || 30000,
-    connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT, 10) || 2000,
+    connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT, 10) || 10000,
     sqlitePath: process.env.DB_SQLITE_PATH || './data/lifeline.db',
   },
 
@@ -153,6 +153,10 @@ const validateConfig = () => {
     }
     if (config.jwt.refreshSecret === 'your-refresh-secret') {
       missing.push('JWT_REFRESH_SECRET');
+    }
+    // Enforce SSL for PostgreSQL in production
+    if (config.database.type === 'postgresql' && !config.database.ssl) {
+      console.warn('WARNING: PostgreSQL without SSL is not recommended for production');
     }
   }
 

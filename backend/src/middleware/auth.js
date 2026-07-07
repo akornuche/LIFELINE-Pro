@@ -53,9 +53,12 @@ export const authenticate = async (req, res, next) => {
       return responseFormatter.forbidden(res, 'Account has been deactivated. Please contact support.');
     }
 
-    // Check if user is verified (optional, depends on requirements)
-    if (!user.email_verified && req.path !== '/api/auth/verify') {
-      return responseFormatter.forbidden(res, 'Account not verified. Please verify your account.');
+    // Block payment initialization if email is not verified
+    const isPaymentInit = req.method === 'POST' && req.originalUrl.includes('/api/payments/initialize');
+    if (!user.email_verified && isPaymentInit) {
+      return responseFormatter.forbidden(res, 'Please verify your email address before making payments.', {
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+      });
     }
 
     // Subscription enforcement for Patients
@@ -73,9 +76,15 @@ export const authenticate = async (req, res, next) => {
       // Allow access to subscription management and profile/me endpoints even if locked
       const allowedPaths = [
         '/api/patients/subscriptions',
+        '/api/patients/subscription-status',
+        '/api/patients/profile',
         '/api/auth/me',
         '/api/auth/profile',
-        '/api/auth/logout'
+        '/api/auth/logout',
+        '/api/auth/change-password',
+        '/api/payments/initialize',
+        '/api/payments/verify',
+        '/api/payments/webhook',
       ];
       
       const isAllowed = allowedPaths.some(path => req.originalUrl.startsWith(path));

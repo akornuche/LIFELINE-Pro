@@ -1,0 +1,72 @@
+﻿npx : [baseline-browser-mapping] The data in this module is over two months 
+old.  To ensure accurate Baseline data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+At line:1 char:72
++ ... NV="test" ; npx jest --testPathPattern=admin.routes --forceExit --run ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([baseline-brows...ping@latest -D` 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+(node:31044) ExperimentalWarning: VM Modules is an experimental feature and 
+might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/integration/admin.routes.test.js (7.11 s)
+  RBAC ΓÇö non-admin cannot access admin routes
+    ΓêÜ patient token ΓåÆ GET /api/admin/statistics ΓåÆ 403 (13 ms)
+    ΓêÜ doctor token ΓåÆ GET /api/admin/users ΓåÆ 403 (10 ms)
+    ΓêÜ patient token ΓåÆ GET /api/admin/doctors ΓåÆ 403 (8 ms)
+  Auth guards ΓÇö unauthenticated requests
+    ΓêÜ GET /api/admin/statistics without token ΓåÆ 401 (7 ms)
+    ΓêÜ GET /api/admin/users without token ΓåÆ 401 (6 ms)
+    ΓêÜ PUT /api/admin/settings without token ΓåÆ 401 (7 ms)
+  GET /api/admin/statistics
+    ΓêÜ admin token ΓåÆ 200 with dashboard stats (13 ms)
+    ΓêÜ response contains totalUsers, totalPatients, totalProviders (18 ms)
+  GET /api/admin/users
+    ΓêÜ admin token ΓåÆ 200 with paginated list (14 ms)
+    ΓêÜ filter by role=patient returns patients only (14 ms)
+    ΓêÜ filter by role=doctor returns doctors only (13 ms)
+  GET /api/admin/users/:id
+    ΓêÜ valid patient ID ΓåÆ 200 with user + profile (13 ms)
+    ΓêÜ non-existent ID ΓåÆ 404 (13 ms)
+  PUT /api/admin/users/:id
+    ΓêÜ update email_verified ΓåÆ 200 (15 ms)
+    ΓêÜ no fields to update ΓåÆ 400 (19 ms)
+  POST /api/admin/users/:id/deactivate + activate
+    ΓêÜ deactivate ΓåÆ 200, status=inactive (16 ms)
+    ΓêÜ activate ΓåÆ 200, status=active (26 ms)
+  GET /api/admin/patients
+    ΓêÜ admin token ΓåÆ 200 with patient list (21 ms)
+  GET /api/admin/doctors
+    ΓêÜ admin token ΓåÆ 200 with doctor list (14 ms)
+    ΓêÜ filter verified=false returns pending doctors (13 ms)
+  GET /api/admin/verifications
+    ΓêÜ admin token ΓåÆ 200 with pending list including our doctor (14 ms)
+    ΓêÜ filter by provider_type=doctor ΓåÆ only doctors (12 ms)
+  POST /api/admin/verifications/:id/verify
+    ΓêÜ missing providerType ΓåÆ 400 (12 ms)
+    ΓêÜ verify doctor ΓåÆ 200, verification_status=verified (15 ms)
+    ΓêÜ doctor no longer in pending list after verify (16 ms)
+  POST /api/admin/verifications/:id/reject
+    ΓêÜ missing providerType ΓåÆ 400 (8 ms)
+    ΓêÜ reject doctor ΓåÆ 200, verification_status=rejected (29 ms)
+  GET + PUT /api/admin/settings
+    ΓêÜ GET settings ΓåÆ 200 with platform_name (15 ms)
+    ΓêÜ PUT settings ΓåÆ 200, updated field returned (33 ms)
+    ΓêÜ GET after PUT reflects new platform_name (42 ms)
+  GET /api/admin/analytics/time-series
+    ΓêÜ admin token ΓåÆ 200 with labels array (81 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        7.219 s
+Ran all test suites matching /admin.routes/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect 
+async operations that kept running after all tests finished?

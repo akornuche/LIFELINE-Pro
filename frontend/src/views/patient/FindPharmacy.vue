@@ -15,10 +15,10 @@
               type="text"
               placeholder="Search by name, location..."
               class="input"
-              @keyup.enter="searchPharmacies"
+              @keyup.enter="searchPharmacies(1)"
             />
           </div>
-          <button @click="searchPharmacies" class="btn btn-primary">
+          <button @click="searchPharmacies(1)" class="btn btn-primary">
             <MagnifyingGlassIcon class="h-5 w-5 mr-2" />
             Search
           </button>
@@ -41,7 +41,7 @@
                   v-model="filters.verified"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchPharmacies"
+                  @change="searchPharmacies(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">Verified Only</span>
               </label>
@@ -54,7 +54,7 @@
                   v-model="filters.open24Hours"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchPharmacies"
+                  @change="searchPharmacies(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">24/7 Service</span>
               </label>
@@ -67,7 +67,7 @@
                   v-model="filters.deliveryAvailable"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchPharmacies"
+                  @change="searchPharmacies(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">Delivery Available</span>
               </label>
@@ -76,7 +76,7 @@
             <!-- Rating Filter -->
             <div>
               <label class="form-label">Minimum Rating</label>
-              <select v-model.number="filters.minRating" class="input" @change="searchPharmacies">
+              <select v-model.number="filters.minRating" class="input" @change="searchPharmacies(1)">
                 <option :value="0">Any Rating</option>
                 <option :value="3">3+ Stars</option>
                 <option :value="4">4+ Stars</option>
@@ -133,6 +133,9 @@
                           v-if="pharmacy.verification_status === 'verified'"
                           class="h-5 w-5 text-green-500 inline ml-1"
                         />
+                        <span v-if="pharmacy.match_score > 40" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                          Near You
+                        </span>
                       </h3>
                       <p class="text-sm text-gray-600">{{ pharmacy.license_number }}</p>
                     </div>
@@ -170,12 +173,12 @@
                   </div>
 
                   <div class="flex gap-2">
+                    <button @click="bookConsultation(pharmacy)" class="btn btn-primary btn-sm">
+                      Book Consultation
+                    </button>
                     <button @click="viewLocation(pharmacy)" class="btn btn-secondary btn-sm">
                       <MapPinIcon class="h-4 w-4 mr-1" />
-                      View Location
-                    </button>
-                    <button @click="contactPharmacy(pharmacy)" class="btn btn-primary btn-sm">
-                      Contact
+                      Location
                     </button>
                   </div>
                 </div>
@@ -185,11 +188,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Pagination -->
+    <div v-if="totalResults > 0" class="mt-6 flex items-center justify-center gap-3">
+      <button
+        @click="changePage(currentPage - 1)"
+        :disabled="currentPage === 1"
+        class="btn btn-secondary btn-sm disabled:opacity-40"
+      >Previous</button>
+      <span class="px-3 py-1.5 text-sm text-gray-700">
+        Page {{ currentPage }} of {{ totalPages }}
+        <span class="text-gray-400">({{ totalResults }} results)</span>
+      </span>
+      <button
+        @click="changePage(currentPage + 1)"
+        :disabled="currentPage >= totalPages"
+        class="btn btn-secondary btn-sm disabled:opacity-40"
+      >Next</button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { pharmacyService } from '@/services';
 import {
   MagnifyingGlassIcon,
@@ -202,10 +224,15 @@ import { useToast } from '@/composables/useToast';
 import SkeletonLoader from '@/components/SkeletonLoader.vue';
 
 const { success, error: showError } = useToast();
+const router = useRouter();
 
+const PAGE_SIZE = 20;
 const loading = ref(true);
 const searchQuery = ref('');
 const pharmacies = ref([]);
+const currentPage = ref(1);
+const totalResults = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalResults.value / PAGE_SIZE)));
 
 const filters = ref({
   verified: false,
@@ -215,24 +242,37 @@ const filters = ref({
 });
 
 onMounted(async () => {
-  await searchPharmacies();
+  await searchPharmacies(1);
 });
 
-const searchPharmacies = async () => {
+const searchPharmacies = async (page = 1) => {
+  currentPage.value = page;
   loading.value = true;
   try {
     const params = {
       search: searchQuery.value,
-      ...filters.value
+      verified: filters.value.verified ? 'true' : undefined,
+      open24h: filters.value.open24Hours ? 'true' : undefined,
+      minRating: filters.value.minRating || undefined,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
     };
     const response = await pharmacyService.searchPharmacies(params);
-    pharmacies.value = response.pharmacies || [];
+    const data = response.pharmacies || response.data?.data || response.data || [];
+    pharmacies.value = data;
+    totalResults.value = response.total || response.data?.total || data.length + (page - 1) * PAGE_SIZE;
   } catch (error) {
     console.error('Failed to search pharmacies:', error);
     showError('Failed to search pharmacies');
   } finally {
     loading.value = false;
   }
+};
+
+const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return;
+  searchPharmacies(page);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const resetFilters = () => {
@@ -244,7 +284,7 @@ const resetFilters = () => {
   };
   searchQuery.value = '';
   success('Filters reset');
-  searchPharmacies();
+  searchPharmacies(1);
 };
 
 const viewLocation = (pharmacy) => {
@@ -253,7 +293,8 @@ const viewLocation = (pharmacy) => {
   }
 };
 
-const contactPharmacy = (pharmacy) => {
-  window.location.href = `tel:${pharmacy.phone}`;
+const bookConsultation = (pharmacy) => {
+  const name = encodeURIComponent(pharmacy.pharmacy_name);
+  router.push(`/patient/service-requests?serviceType=drug_dispensing&providerId=${pharmacy.id}&providerName=${name}&providerType=pharmacy`);
 };
 </script>

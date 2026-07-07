@@ -7,7 +7,7 @@
           <div class="icon-placeholder">📱</div>
         </div>
         <div class="app-info">
-          <h3>Install LifeLine Pro</h3>
+          <h3>Install LifeLine</h3>
           <p>Get quick access to your health services</p>
         </div>
         <button @click="dismiss" class="close-btn" aria-label="Close">

@@ -33,10 +33,10 @@ export const updatePatientProfileSchema = Joi.object({
 // Create subscription
 export const createSubscriptionSchema = Joi.object({
   packageType: Joi.string()
-    .valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED')
+    .valid('general', 'basic', 'standard', 'premium', 'GENERAL', 'BASIC', 'STANDARD', 'PREMIUM')
     .required()
     .messages({
-      'any.only': 'Package type must be basic, medium, or advanced',
+      'any.only': 'Package type must be general, basic, standard, or premium',
       'any.required': 'Package type is required',
     }),
   billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual').default('monthly'),
@@ -50,7 +50,7 @@ export const createSubscriptionSchema = Joi.object({
 // Upgrade subscription
 export const upgradeSubscriptionSchema = Joi.object({
   newPackageType: Joi.string()
-    .valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED')
+    .valid('general', 'basic', 'standard', 'premium', 'GENERAL', 'BASIC', 'STANDARD', 'PREMIUM')
     .required()
     .messages({
       'any.required': 'New package type is required',
@@ -85,14 +85,14 @@ export const cancelSubscriptionSchema = Joi.object({
 
 // Renew subscription
 export const renewSubscriptionSchema = Joi.object({
-  packageType: Joi.string().valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED'),
+  packageType: Joi.string().valid('general', 'basic', 'standard', 'premium', 'GENERAL', 'BASIC', 'STANDARD', 'PREMIUM'),
   billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual'),
   paymentMethod: Joi.string().valid('card', 'bank_transfer', 'wallet'),
 });
 
 // Update subscription
 export const updateSubscriptionSchema = Joi.object({
-  packageType: Joi.string().valid('basic', 'medium', 'advanced', 'BASIC', 'MEDIUM', 'ADVANCED'),
+  packageType: Joi.string().valid('general', 'basic', 'standard', 'premium', 'GENERAL', 'BASIC', 'STANDARD', 'PREMIUM'),
   billingCycle: Joi.string().valid('monthly', 'quarterly', 'annual'),
   paymentMethod: Joi.string().valid('card', 'bank_transfer', 'wallet'),
   autoRenew: Joi.boolean(),

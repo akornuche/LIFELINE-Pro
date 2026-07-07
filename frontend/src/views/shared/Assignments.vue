@@ -66,6 +66,18 @@
               <div class="space-y-1 text-sm text-gray-600">
                 <p><strong>Patient:</strong> {{ assignment.patient_name }}</p>
                 <p v-if="assignment.patient_phone"><strong>Phone:</strong> {{ assignment.patient_phone }}</p>
+
+                <!-- Patient subscription plan + coverage indicator -->
+                <div class="flex items-center gap-2 flex-wrap mt-1">
+                  <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold', planBadgeClass(assignment.patient_plan)]">
+                    {{ planDisplayName(assignment.patient_plan) }}
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
+                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    LifeLine covers this service
+                  </span>
+                </div>
+
                 <p v-if="assignment.description"><strong>Description:</strong> {{ assignment.description }}</p>
                 <p v-if="assignment.preferred_date">
                   <strong>Preferred Date:</strong> {{ formatDate(assignment.preferred_date) }}
@@ -269,6 +281,26 @@ const serviceTypes = {
 };
 
 const formatServiceType = (type) => serviceTypes[type] || type;
+
+const planDisplayName = (plan) => {
+  const names = {
+    general: 'General Plan',
+    basic: 'Basic Insurance',
+    standard: 'Standard Insurance',
+    premium: 'Premium Insurance',
+  };
+  return names[plan?.toLowerCase()] || (plan ? plan : 'No Plan');
+};
+
+const planBadgeClass = (plan) => {
+  const classes = {
+    general: 'bg-gray-100 text-gray-700',
+    basic: 'bg-blue-100 text-blue-700',
+    standard: 'bg-indigo-100 text-indigo-700',
+    premium: 'bg-purple-100 text-purple-700',
+  };
+  return classes[plan?.toLowerCase()] || 'bg-gray-100 text-gray-500';
+};
 
 const formatStatus = (status) => {
   const map = {

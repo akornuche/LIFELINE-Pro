@@ -330,6 +330,40 @@ node src/database/migrate.js status  # View migration status
 
 ---
 
+## ✅ Test Suite — All Phases Complete
+
+### Backend unit + integration (Jest): **68 tests, 0 failures** across 7 suites
+| Suite | Tests | Status |
+|---|---|---|
+| Adapter contract (SQLite + PG) | ✓ | P0 |
+| testcontainers CI (4 jobs) | ✓ | P0 |
+| register→login→profile | 8 | P1 |
+| queue request→DB row+counter | 6 | P1 |
+| pharmacist→403 RBAC | 6 | P1 |
+| Paystack webhook | 5 | P2 |
+| PG boolean round-trip | 11 | P3 |
+
+### Playwright E2E: **4/4 green** (12.7s)
+- Register new patient → redirects to `/login?registered=true`
+- Login → patient dashboard at `/patient`
+- Landing page loads
+- Protected route redirect to login
+
+### k6 Load Test Findings
+**Smoke test** (10 VUs × 30s, `queue.load.js`):
+- p(95) latency for successful requests: **~142ms** ✅ (< 500ms threshold)
+- Error rate: **~76%** on SQLite — all `SQLITE_BUSY` (database locked)
+
+**Race-condition probe** (0→50→50→0 VUs, `round-robin.race.js`):
+- Error rate: **~98%** at 50 VUs — all `SQLITE_BUSY`
+
+**Root cause**: SQLite `BEGIN IMMEDIATE` transactions acquire a write lock.  
+Concurrent requests beyond ~5 VUs block until the 5s `busy_timeout` expires → HTTP 500.  
+WAL mode is already enabled — this is SQLite's fundamental single-writer constraint, not a code bug.  
+**Production requires PostgreSQL** (`DATABASE_URL=postgres://...`). Application logic itself is fast (~142ms).
+
+---
+
 ## 📦 Next Steps (Tasks 11-20)
 
 ### Immediate Tasks:

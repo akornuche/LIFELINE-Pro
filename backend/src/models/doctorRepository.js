@@ -391,25 +391,69 @@ export const findAll = async (options = {}) => {
  * Search doctors
  */
 export const searchDoctors = async (searchTerm = '', options = {}) => {
-  const { limit = 50, offset = 0, verificationStatus = 'verified' } = options;
+  const {
+    limit = 50,
+    offset = 0,
+    specialization = '',
+    minRating = 0,
+    minExperience = 0,
+    verifiedOnly = false,
+    patientCity = null,  // Used for city-match pairing score
+  } = options;
 
   try {
     const searchPattern = searchTerm ? `%${searchTerm}%` : '%';
+    const params = [searchPattern];
+    let paramCount = 1;
+
+    let whereClause = `u.status = 'active'
+         AND (
+           LOWER(u.first_name) LIKE LOWER($1) OR
+           LOWER(u.last_name) LIKE LOWER($1) OR
+           LOWER(d.specialization) LIKE LOWER($1) OR
+           u.lifeline_id LIKE $1
+         )`;
+
+    if (verifiedOnly) {
+      paramCount++;
+      whereClause += ` AND d.verification_status = $${paramCount}`;
+      params.push('verified');
+    }
+
+    if (specialization) {
+      paramCount++;
+      whereClause += ` AND LOWER(d.specialization) LIKE LOWER($${paramCount})`;
+      params.push(`%${specialization}%`);
+    }
+
+    if (minRating > 0) {
+      paramCount++;
+      whereClause += ` AND COALESCE(d.average_rating, 0) >= $${paramCount}`;
+      params.push(minRating);
+    }
+
+    if (minExperience > 0) {
+      paramCount++;
+      whereClause += ` AND COALESCE(d.years_of_experience, 0) >= $${paramCount}`;
+      params.push(minExperience);
+    }
+
+    // Pairing score: city match gets +50 so same-city providers float to top
+    const cityScore = patientCity
+      ? `CASE WHEN LOWER(u.city) = LOWER('${patientCity.replace(/'/g, "''")}') THEN 50 ELSE 0 END`
+      : '0';
+
+    params.push(limit, offset);
+
     const result = await database.query(
-      `SELECT d.*, u.lifeline_id, u.first_name, u.last_name, u.email, u.phone, u.profile_image_url
+      `SELECT d.*, u.lifeline_id, u.first_name, u.last_name, u.email, u.phone, u.profile_image_url, u.city,
+              (${cityScore} + COALESCE(d.average_rating, 0) * 10 + COALESCE(d.years_of_experience, 0) * 2) AS match_score
        FROM doctors d
        JOIN users u ON d.user_id = u.id
-       WHERE d.verification_status = $1
-         AND u.status = 'active'
-         AND (
-           LOWER(u.first_name) LIKE LOWER($2) OR
-           LOWER(u.last_name) LIKE LOWER($2) OR
-           LOWER(d.specialization) LIKE LOWER($2) OR
-           u.lifeline_id LIKE $2
-         )
-       ORDER BY d.average_rating DESC, d.created_at DESC
-       LIMIT $3 OFFSET $4`,
-      [verificationStatus, searchPattern, limit, offset]
+       WHERE ${whereClause}
+       ORDER BY match_score DESC, d.average_rating DESC, d.created_at DESC
+       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
+      params
     );
 
     return result.rows || result || [];
@@ -418,7 +462,6 @@ export const searchDoctors = async (searchTerm = '', options = {}) => {
       error: error.message,
       searchTerm,
     });
-    // Return empty array instead of throwing
     return [];
   }
 };

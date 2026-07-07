@@ -1,4 +1,5 @@
 import * as hospitalService from '../services/hospitalService.js';
+import * as userRepository from '../models/userRepository.js';
 import { successResponse } from '../utils/response.js';
 
 /**
@@ -206,12 +207,25 @@ export const getStatistics = async (req, res, next) => {
  */
 export const searchHospitals = async (req, res, next) => {
   try {
-    const { q, limit, offset, verifiedOnly } = req.query;
+    const { q, search, limit, offset, type, verified, emergencyServices, hasAvailableBeds, minRating } = req.query;
+    const searchTerm = q || search || '';
 
-    const hospitals = await hospitalService.searchHospitals(q, {
-      limit: parseInt(limit) || 20,
+    let patientCity = null;
+    if (req.user?.userId) {
+      const { default: database } = await import('../database/connection.js');
+      const result = await database.query('SELECT city FROM users WHERE id = $1', [req.user.userId]);
+      patientCity = result.rows[0]?.city || null;
+    }
+
+    const hospitals = await hospitalService.searchHospitals(searchTerm, {
+      limit: parseInt(limit) || 50,
       offset: parseInt(offset) || 0,
-      verifiedOnly: verifiedOnly === 'true',
+      type: type || '',
+      minRating: parseFloat(minRating) || 0,
+      emergencyServices: emergencyServices === 'true',
+      hasAvailableBeds: hasAvailableBeds === 'true',
+      verifiedOnly: verified === 'true',
+      patientCity,
     });
 
     return successResponse(res, hospitals, 'Hospitals retrieved successfully');
@@ -459,6 +473,31 @@ export const deleteBed = async (req, res, next) => {
   }
 };
 
+/**
+ * Lookup a patient or doctor by their LifeLine ID
+ * GET /api/hospitals/lookup/:lifelineId
+ */
+export const lookupUser = async (req, res, next) => {
+  try {
+    const { lifelineId } = req.params;
+    const user = await userRepository.findByLifelineId(lifelineId.toUpperCase());
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No user found with that LifeLine ID' });
+    }
+    const name = user.first_name
+      ? `${user.first_name} ${user.last_name || ''}`.trim()
+      : user.email;
+    return successResponse(res, {
+      id: user.id,
+      lifeline_id: user.lifeline_id,
+      role: user.role,
+      name,
+    }, 'User found');
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   uploadLogo,
   getProfile,
@@ -485,4 +524,5 @@ export default {
   createBed,
   updateBed,
   deleteBed,
+  lookupUser,
 };

@@ -56,15 +56,17 @@ export const register = async (userData) => {
       throw new BusinessLogicError('Email already registered');
     }
 
-    // Generate LifeLine ID
-    const lifelineId = await generateLifelineId(userType);
-    logger.info('Generated lifelineId', { lifelineId, userType });
-
-    // Check if LifeLine ID exists (extremely rare collision)
-    const lifelineIdExists = await userRepository.lifelineIdExists(lifelineId);
-    logger.info('Checked lifelineId existence', { lifelineId, exists: lifelineIdExists });
-    if (lifelineIdExists) {
-      throw new BusinessLogicError('ID generation conflict. Please try again.');
+    // Generate LifeLine ID (retry up to 5 times on collision)
+    let lifelineId;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      lifelineId = await generateLifelineId(userType);
+      logger.info('Generated lifelineId', { lifelineId, userType, attempt });
+      const exists = await userRepository.lifelineIdExists(lifelineId);
+      if (!exists) break;
+      logger.warn('LifeLine ID collision, retrying', { lifelineId, attempt });
+      if (attempt === 4) {
+        throw new BusinessLogicError('ID generation failed after multiple attempts. Please try again.');
+      }
     }
 
     // Hash password
@@ -143,7 +145,32 @@ export const register = async (userData) => {
     // Return user data without password
     const { password: _, ...userWithoutPassword } = user;
 
+    // Send verification email (non-blocking)
+    const verificationToken = generateAccessToken(
+      { userId: user.id, purpose: 'email-verification' },
+      '24h'
+    );
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3003'}/verify-email/${verificationToken}`;
+    sendEmail({
+      to: email,
+      subject: 'Verify your LifeLine Pro email address',
+      template: 'emailVerification',
+      data: {
+        name: firstName || email,
+        verificationUrl,
+      },
+    }).catch(err => {
+      logger.warn('Verification email failed', { error: err.message });
+      console.warn(`\n[LIFELINE] Email verification link for ${email}:\n  ${verificationUrl}\n`);
+    });
+
     // Send welcome email (non-blocking)
+    const ROLE_WELCOME_MESSAGES = {
+      patient: 'You\'re all set! You can now browse and request healthcare services across your city.',
+      doctor: 'Welcome, Doctor! Your account is pending admin verification. Once approved, patients in your city will be assigned to you automatically.',
+      pharmacy: 'Welcome! Your pharmacy account is pending admin verification. Once approved, you\'ll start receiving prescription fulfilment requests.',
+      hospital: 'Welcome! Your hospital account is pending admin verification. Once approved, patients in your city will be able to request your services.',
+    };
     sendEmail({
       to: email,
       subject: 'Welcome to LifeLine Pro!',
@@ -152,6 +179,7 @@ export const register = async (userData) => {
         name: firstName || email,
         lifelineId,
         role: userType,
+        roleMessage: ROLE_WELCOME_MESSAGES[userType] || 'Your account has been created successfully.',
         loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`,
       },
     }).catch(err => logger.warn('Welcome email failed', { error: err.message }));
@@ -271,6 +299,12 @@ export const refreshAccessToken = async (refreshToken) => {
     logger.error('Token refresh error', {
       error: error.message,
     });
+    // Plain Errors from verifyRefreshToken (invalid JWT, expired, revoked) must be
+    // mapped to UnauthorizedError so the global error handler returns 401, not 500.
+    const jwtErrorPhrases = ['Invalid refresh token', 'Refresh token has expired', 'Refresh token has been revoked', 'Invalid token type'];
+    if (jwtErrorPhrases.some(p => error.message.includes(p))) {
+      throw new UnauthorizedError(error.message);
+    }
     throw error;
   }
 };
@@ -494,7 +528,7 @@ export const resendEmailVerification = async (userId) => {
     }
 
     if (user.is_email_verified) {
-      throw new BusinessLogicError('Email already verified');
+      return { alreadyVerified: true, message: 'Email address is already verified' };
     }
 
     // Generate verification token (valid for 24 hours)
@@ -503,16 +537,25 @@ export const resendEmailVerification = async (userId) => {
       '24h'
     );
 
-    // TODO: Send email with verification link
-    // For now, just log it
-    logger.info('Email verification token generated', {
-      userId: user.id,
-      email: user.email,
-      verificationToken,
-    });
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
 
-    // In production, send email here
-    // await emailService.sendVerificationEmail(user.email, verificationToken);
+    // Attempt to send verification email
+    const emailResult = await sendEmail({
+      to: user.email,
+      subject: 'Verify your LifeLine Pro email address',
+      template: 'emailVerification',
+      data: {
+        name: user.first_name || user.email,
+        verificationUrl,
+      },
+    }).catch(err => ({ success: false, error: err.message }));
+
+    if (!emailResult?.success) {
+      // SMTP not configured — log the link so it can be used manually
+      logger.warn('Email not sent (SMTP unconfigured). Verification link below:');
+      // eslint-disable-next-line no-console
+      console.warn(`\n[LIFELINE DEV] Email verification link for ${user.email}:\n  ${verificationUrl}\n`);
+    }
 
     return {
       message: 'Verification email sent',

@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center justify-between">
     <div class="text-sm text-gray-700">
-      Showing <span class="font-medium">{{ startItem }}</span> to <span class="font-medium">{{ endItem }}</span> of{' '}
+      Showing <span class="font-medium">{{ startItem }}</span> to <span class="font-medium">{{ endItem }}</span> of
       <span class="font-medium">{{ total }}</span> results
     </div>
     

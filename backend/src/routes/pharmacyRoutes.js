@@ -1,6 +1,6 @@
 import express from 'express';
 import * as pharmacyController from '../controllers/pharmacyController.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { checkRole } from '../middleware/rbac.js';
 import { validate } from '../middleware/validate.js';
 import upload from '../middleware/upload.js';
@@ -132,7 +132,7 @@ router.get('/statistics', authenticate, checkRole('pharmacy'), pharmacyControlle
  * @desc    Search pharmacies
  * @access  Public
  */
-router.get('/search', pharmacyController.searchPharmacies);
+router.get('/search', optionalAuth, pharmacyController.searchPharmacies);
 
 /**
  * @route   GET /api/pharmacies/location

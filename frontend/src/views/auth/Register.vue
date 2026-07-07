@@ -1,12 +1,13 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="flex-1 flex flex-col bg-gradient-to-br from-primary-50 to-secondary-50">
+    <div class="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-2xl w-full space-y-8">
       <!-- Logo and Header -->
       <div class="text-center">
-        <h1 class="text-4xl font-bold text-primary-600 mb-2">LifeLine Pro</h1>
+        <h1 class="text-4xl font-bold text-primary-600 mb-2">LifeLine</h1>
         <h2 class="text-2xl font-semibold text-gray-900">Create Your Account</h2>
         <p class="mt-2 text-sm text-gray-600">
-          Join LifeLine Pro and get access to quality healthcare
+          Join LifeLine and get access to quality healthcare
         </p>
       </div>
 
@@ -135,9 +136,10 @@
                 required
                 rows="2"
                 class="input"
-                placeholder="Enter your full address"
+                placeholder="e.g. 12 Adeola Odeku Street, Victoria Island"
                 :disabled="loading"
               ></textarea>
+              <p class="form-help text-xs text-gray-500 mt-1">Enter your full street address (at least 10 characters)</p>
             </div>
 
             <!-- City & State -->
@@ -197,6 +199,7 @@
                       placeholder="08012345678"
                       :disabled="loading"
                     />
+                    <p class="text-xs text-gray-500 mt-1">11-digit Nigerian number (e.g. 08012345678 or +2348012345678)</p>
                   </div>
                   <div class="form-group">
                     <label for="emergencyRelationship" class="form-label">Relationship</label>
@@ -519,7 +522,24 @@
                     </svg>
                   </button>
                 </div>
-                <p class="form-help">Minimum 8 characters</p>
+                <!-- Live password strength checklist -->
+                <ul class="mt-2 space-y-1 text-xs">
+                  <li :class="form.password.length >= 8 ? 'text-green-600' : 'text-gray-400'">
+                    <span>{{ form.password.length >= 8 ? '✓' : '○' }} At least 8 characters</span>
+                  </li>
+                  <li :class="/[A-Z]/.test(form.password) ? 'text-green-600' : 'text-gray-400'">
+                    <span>{{ /[A-Z]/.test(form.password) ? '✓' : '○' }} One uppercase letter</span>
+                  </li>
+                  <li :class="/[a-z]/.test(form.password) ? 'text-green-600' : 'text-gray-400'">
+                    <span>{{ /[a-z]/.test(form.password) ? '✓' : '○' }} One lowercase letter</span>
+                  </li>
+                  <li :class="/[0-9]/.test(form.password) ? 'text-green-600' : 'text-gray-400'">
+                    <span>{{ /[0-9]/.test(form.password) ? '✓' : '○' }} One number</span>
+                  </li>
+                  <li :class="/[@$!%*?&#]/.test(form.password) ? 'text-green-600' : 'text-gray-400'">
+                    <span>{{ /[@$!%*?&#]/.test(form.password) ? '✓' : '○' }} One special character (@$!%*?&#)</span>
+                  </li>
+                </ul>
               </div>
 
               <div class="form-group">
@@ -621,6 +641,7 @@
         </router-link>
       </p>
     </div>
+    </div>
   </div>
 </template>
 
@@ -707,14 +728,24 @@ const todayDate = computed(() => {
   return new Date().toISOString().split('T')[0];
 });
 
+const normalizePhone = (value) => String(value || '').replace(/[\s()\-]/g, '');
+
 const handleRegister = async () => {
   // Build yup schema dynamically based on user type
   const baseSchema = {
     email: yup.string().required('Email is required').email('Invalid email address'),
-    phone: yup.string().required('Phone number is required'),
-    password: yup.string().required('Password is required').min(8, 'Password must be at least 8 characters'),
+    phone: yup.string().required('Phone number is required')
+      .transform((value) => normalizePhone(value))
+      .matches(/^(?:0\d{10}|(?:\+?234)\d{10})$/, 'Enter a valid Nigerian phone number (e.g. 08012345678, 2348012345678, or +2348012345678)'),
+    password: yup.string().required('Password is required')
+      .min(8, 'Password must be at least 8 characters')
+      .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .matches(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .matches(/[0-9]/, 'Password must contain at least one number')
+      .matches(/[@$!%*?&#]/, 'Password must contain at least one special character (@$!%*?&#)'),
     confirmPassword: yup.string().required('Confirm password is required').oneOf([yup.ref('password')], 'Passwords must match'),
-    address: yup.string().required('Address is required'),
+    address: yup.string().required('Address is required')
+      .min(10, 'Address must be at least 10 characters — please provide your full address'),
     city: yup.string().required('City is required'),
     state: yup.string().required('State is required'),
     acceptTerms: yup.boolean().oneOf([true], 'You must accept the terms'),
@@ -746,6 +777,18 @@ const handleRegister = async () => {
     baseSchema.departmentsText = yup.string().required('Departments are required');
   }
 
+  // Validate emergency contact phone if any EC field is filled (patient only)
+  if (form.userType === 'patient') {
+    const ec = form.emergencyContact;
+    if (ec.name || ec.phone || ec.relationship) {
+      const normalizedEcPhone = normalizePhone(ec.phone || '');
+      if (!normalizedEcPhone || !/^(?:0\d{10}|(?:\+?234)\d{10})$/.test(normalizedEcPhone)) {
+        showError('Emergency contact phone: enter a valid Nigerian number (e.g. 08012345678 or +2348012345678)');
+        return;
+      }
+    }
+  }
+
   try {
     await yup.object(baseSchema).validate(form, { abortEarly: true });
   } catch (validationError) {
@@ -759,7 +802,7 @@ const handleRegister = async () => {
     const registrationData = {
       userType: form.userType,
       email: form.email,
-      phone: form.phone,
+      phone: normalizePhone(form.phone),
       address: form.address,
       city: form.city,
       state: form.state,
@@ -777,11 +820,15 @@ const handleRegister = async () => {
 
     // Add role-specific fields
     if (form.userType === 'patient') {
-      registrationData.emergencyContact = {
-        name: form.emergencyContact.name,
-        phone: form.emergencyContact.phone,
-        relationship: form.emergencyContact.relationship,
-      };
+      // Only send emergencyContact if all three fields are filled (backend rejects empty phone pattern)
+      const ec = form.emergencyContact;
+      if (ec.name && ec.phone && ec.relationship) {
+        registrationData.emergencyContact = {
+          name: ec.name,
+          phone: normalizePhone(ec.phone),
+          relationship: ec.relationship,
+        };
+      }
     } else if (form.userType === 'doctor') {
       registrationData.specialization = form.specialization;
       registrationData.licenseNumber = form.licenseNumber;
@@ -819,7 +866,7 @@ const handleRegister = async () => {
 
     await authStore.register(registrationData);
     
-    success('Registration successful! Please login to select your healthcare package.');
+    success('Registration successful! Please check your email to verify your account before logging in.');
     
     // Redirect to login page
     router.push({
@@ -828,13 +875,18 @@ const handleRegister = async () => {
     });
   } catch (error) {
     console.error('Registration failed:', error);
-    const message = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+    console.error('Server response:', JSON.stringify(error.response?.data, null, 2));
+
+    // Prefer the first specific field error, then the general message
+    const fieldErrors = error.response?.data?.errors;
+    const firstFieldError = Array.isArray(fieldErrors) && fieldErrors.length > 0
+      ? (fieldErrors[0].message || fieldErrors[0])
+      : null;
+    const message = firstFieldError
+      || error.response?.data?.message
+      || error.message
+      || 'Registration failed. Please try again.';
     showError(message);
-    
-    // If there are specific field errors, show the first one
-    if (error.response?.data?.errors && error.response.data.errors.length > 0) {
-      showError(error.response.data.errors[0].message);
-    }
   } finally {
     loading.value = false;
   }

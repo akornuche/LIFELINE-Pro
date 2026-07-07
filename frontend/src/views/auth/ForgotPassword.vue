@@ -3,7 +3,7 @@
     <div class="max-w-md w-full space-y-8">
       <!-- Logo and Header -->
       <div class="text-center">
-        <h1 class="text-4xl font-bold text-primary-600 mb-2">LifeLine Pro</h1>
+        <h1 class="text-4xl font-bold text-primary-600 mb-2">LifeLine</h1>
         <h2 class="text-2xl font-semibold text-gray-900">Reset Your Password</h2>
         <p class="mt-2 text-sm text-gray-600">
           Enter your email address and we'll send you a password reset link

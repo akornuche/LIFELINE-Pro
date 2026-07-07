@@ -1,0 +1,1546 @@
+﻿npx : [baseline-browser-mapping] The data in this module is over two months 
+old.  To ensure accurate Baseline data, please update: `npm i 
+baseline-browser-mapping@latest -D`
+At line:1 char:72
++ ... NV="test" ; npx jest --testPathPattern="tests/integration" --forceExi ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([baseline-brows...ping@latest -D` 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(node:22984) ExperimentalWarning: VM Modules is an experimental feature and 
+might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL tests/integration/adapter.contract.pg.test.js
+  PostgreSQL adapter contract
+    1. Placeholder ΓÇö $N native to PostgreSQL
+      ├ù $1 used twice: ONE param entry suffices (no shim expansion) (1 ms)
+      ├ù out-of-order placeholders ($2 before $1) work correctly
+      ├ù no placeholders ΓÇö literal query executes unchanged
+    2. Boolean type ΓÇö PG returns JS boolean, SQLite returns integer
+      ├ù true stored as BOOLEAN ΓåÆ read back as JS true (not 1)
+      ├ù false stored as BOOLEAN ΓåÆ read back as JS false (not 0)
+      ├ù DEFAULT FALSE column ΓåÆ reads back as JS false when omitted
+      ├ù strict equality to true passes on PG (FAILS on SQLite)
+      ├ù emergency_services: false returned directly ΓÇö no coercion needed
+    3. JSONB column ΓÇö PG returns object, not string
+      ├ù JSON inserted as string ΓåÆ read back as object from JSONB column (1 
+ms)
+      ├ù JSONB inserted as object literal ΓåÆ read back as object
+      ├ù production note: operating_hours is TEXT (not JSONB) in current schema
+    4. RETURNING * ΓÇö native on PG (converges with SQLite 3.35+)
+      ├ù INSERT ... RETURNING * returns the inserted row
+      ├ù UPDATE ... RETURNING * returns the updated row
+    5. Transaction rollback ΓÇö same observable behaviour as SQLite
+      ├ù error inside transaction ΓåÆ row not committed
+      ├ù successful transaction commits the row
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 1. Placeholder ΓÇö $N native to 
+PostgreSQL ΓÇ║ $1 used twice: ONE param entry suffices (no shim expansion)
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 1. Placeholder ΓÇö $N native to 
+PostgreSQL ΓÇ║ out-of-order placeholders ($2 before $1) work correctly
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 1. Placeholder ΓÇö $N native to 
+PostgreSQL ΓÇ║ no placeholders ΓÇö literal query executes unchanged
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 2. Boolean type ΓÇö PG returns JS 
+boolean, SQLite returns integer ΓÇ║ true stored as BOOLEAN ΓåÆ read back as JS 
+true (not 1)
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 2. Boolean type ΓÇö PG returns JS 
+boolean, SQLite returns integer ΓÇ║ false stored as BOOLEAN ΓåÆ read back as 
+JS false (not 0)
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 2. Boolean type ΓÇö PG returns JS 
+boolean, SQLite returns integer ΓÇ║ DEFAULT FALSE column ΓåÆ reads back as JS 
+false when omitted
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 2. Boolean type ΓÇö PG returns JS 
+boolean, SQLite returns integer ΓÇ║ strict equality to true passes on PG 
+(FAILS on SQLite)
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 2. Boolean type ΓÇö PG returns JS 
+boolean, SQLite returns integer ΓÇ║ emergency_services: false returned 
+directly ΓÇö no coercion needed
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 3. JSONB column ΓÇö PG returns object, 
+not string ΓÇ║ JSON inserted as string ΓåÆ read back as object from JSONB 
+column
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 3. JSONB column ΓÇö PG returns object, 
+not string ΓÇ║ JSONB inserted as object literal ΓåÆ read back as object
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 3. JSONB column ΓÇö PG returns object, 
+not string ΓÇ║ production note: operating_hours is TEXT (not JSONB) in current 
+schema
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 4. RETURNING * ΓÇö native on PG 
+(converges with SQLite 3.35+) ΓÇ║ INSERT ... RETURNING * returns the inserted 
+row
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 4. RETURNING * ΓÇö native on PG 
+(converges with SQLite 3.35+) ΓÇ║ UPDATE ... RETURNING * returns the updated 
+row
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 5. Transaction rollback ΓÇö same 
+observable behaviour as SQLite ΓÇ║ error inside transaction ΓåÆ row not 
+committed
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+  ΓùÅ PostgreSQL adapter contract ΓÇ║ 5. Transaction rollback ΓÇö same 
+observable behaviour as SQLite ΓÇ║ successful transaction commits the row
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 42 |[39m (skipAll [33m?[39m describe[33m.[39mskip 
+[33m:[39m describe)([32m'PostgreSQL adapter contract'[39m[33m,[39m () 
+[33m=>[39m {
+     [90m 43 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m     container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 45 |[39m       [33m.[39mwithEnvironment({
+     [90m 46 |[39m         [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'testuser'[39m[33m,[39m
+     [90m 47 |[39m         [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'testpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/adapter.contract.pg.test.js:44:17)
+
+FAIL tests/integration/pg.boolean.roundtrip.test.js
+  PostgreSQL BOOLEAN round-trip divergence
+    true values
+      ├ù auto_renew = TRUE reads back as JS boolean true (not integer 1) (1 ms)
+      ├ù open_24_hours = TRUE reads back as JS boolean true
+      ├ù delivery_available = TRUE reads back as JS boolean true
+      ├ù emergency_services = TRUE reads back as JS boolean true
+      ├ù referral_needed = TRUE reads back as JS boolean true
+      ├ù is_active DEFAULT TRUE reads back as JS boolean true
+    false values
+      ├ù auto_renew = FALSE reads back as JS boolean false (not integer 0)
+      ├ù DEFAULT FALSE columns read back as JS boolean false (1 ms)
+    divergence from SQLite (documentation tests)
+      ├ù PG boolean true !== SQLite integer 1 ΓÇö strict equality differs
+      ├ù safe coercion pattern !! works for both adapters
+      ├ù UPDATE RETURNING preserves boolean type
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ true values ΓÇ║ auto_renew 
+= TRUE reads back as JS boolean true (not integer 1)
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ true values ΓÇ║ 
+open_24_hours = TRUE reads back as JS boolean true
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ true values ΓÇ║ 
+delivery_available = TRUE reads back as JS boolean true
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ true values ΓÇ║ 
+emergency_services = TRUE reads back as JS boolean true
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ true values ΓÇ║ 
+referral_needed = TRUE reads back as JS boolean true
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ true values ΓÇ║ is_active 
+DEFAULT TRUE reads back as JS boolean true
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ false values ΓÇ║ auto_renew 
+= FALSE reads back as JS boolean false (not integer 0)
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ false values ΓÇ║ DEFAULT 
+FALSE columns read back as JS boolean false
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ divergence from SQLite 
+(documentation tests) ΓÇ║ PG boolean true !== SQLite integer 1 ΓÇö strict 
+equality differs
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ divergence from SQLite 
+(documentation tests) ΓÇ║ safe coercion pattern !! works for both adapters
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  ΓùÅ PostgreSQL BOOLEAN round-trip divergence ΓÇ║ divergence from SQLite 
+(documentation tests) ΓÇ║ UPDATE RETURNING preserves boolean type
+
+    TypeError: Cannot read properties of undefined (reading 'FinishedAt')
+
+    [0m [90m 54 |[39m   beforeAll([36masync[39m () [33m=>[39m {
+     [90m 55 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 56 |[39m       container [33m=[39m 
+[36mawait[39m [36mnew[39m 
+[33mGenericContainer[39m([32m'postgres:16-alpine'[39m)
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 57 |[39m         [33m.[39mwithEnvironment({
+     [90m 58 |[39m           [33mPOSTGRES_USER[39m[33m:[39m 
+[32m'pgtest'[39m[33m,[39m
+     [90m 59 |[39m           [33mPOSTGRES_PASSWORD[39m[33m:[39m 
+[32m'pgpass'[39m[33m,[39m[0m
+
+      at mapInspectResult 
+(node_modules/testcontainers/build/utils/map-inspect-result.js:5:53)
+      at GenericContainer.startContainer (node_modules/testcontainers/build/gen
+eric-container/generic-container.js:143:79)
+      at createNewReaper 
+(node_modules/testcontainers/build/reaper/reaper.js:86:30)
+      at node_modules/testcontainers/build/reaper/reaper.js:42:16
+      at withFileLock 
+(node_modules/testcontainers/build/common/file-lock.js:53:16)
+      at getReaper (node_modules/testcontainers/build/reaper/reaper.js:22:14)
+      at GenericContainer.start (node_modules/testcontainers/build/generic-cont
+ainer/generic-container.js:83:28)
+      at Object.<anonymous> 
+(tests/integration/pg.boolean.roundtrip.test.js:56:19)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Invalid refresh token
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:50:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Invalid email or password
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:34:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Current password is incorrect
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:124:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Refresh token has been revoked
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:50:5)
+
+FAIL tests/integration/auth.session.test.js (8.057 s)
+  GET /api/auth/me
+    ΓêÜ valid token ΓåÆ 200 with user object (16 ms)
+    ΓêÜ no token ΓåÆ 401 (8 ms)
+    ΓêÜ malformed Bearer token ΓåÆ 401 (10 ms)
+  POST /api/auth/refresh
+    ΓêÜ valid refreshToken ΓåÆ 200 with new accessToken (14 ms)
+    ΓêÜ new accessToken from refresh works on authenticated routes (25 ms)
+    ΓêÜ invalid refreshToken string ΓåÆ 401 (33 ms)
+    ΓêÜ missing refreshToken field ΓåÆ 422 validation error (9 ms)
+  PUT /api/auth/profile
+    ΓêÜ valid update ΓåÆ 200 with updated fields reflected (26 ms)
+    ΓêÜ empty body (no fields) ΓåÆ 422 (12 ms)
+    ΓêÜ no token ΓåÆ 401 (6 ms)
+  POST /api/auth/change-password
+    ΓêÜ correct currentPassword ΓåÆ 200 (711 ms)
+    ΓêÜ old password no longer works after change (410 ms)
+    ΓêÜ new password works for login (367 ms)
+    ΓêÜ wrong currentPassword ΓåÆ 4xx (389 ms)
+    ΓêÜ confirmPassword mismatch ΓåÆ 422 validation error (9 ms)
+  POST /api/auth/logout ΓÇö token blacklisting
+    ΓêÜ logout with valid Bearer + refreshToken ΓåÆ 200 (18 ms)
+    ΓêÜ blacklisted accessToken on GET /api/auth/me ΓåÆ 401 (6 ms)
+    ΓêÜ blacklisted refreshToken on POST /api/auth/refresh ΓåÆ 401 (20 ms)
+    ├ù logout without refreshToken body still succeeds (graceful) (371 ms)
+
+  ΓùÅ POST /api/auth/logout ΓÇö token blacklisting ΓÇ║ logout without 
+refreshToken body still succeeds (graceful)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+    [0m [90m 332 |[39m       [33m.[39msend({})[33m;[39m [90m// no 
+refreshToken in body[39m
+     [90m 333 |[39m
+    [31m[1m>[22m[39m[90m 334 |[39m     
+expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                        [31m[1m^[22m[39m
+     [90m 335 |[39m   })[33m;[39m
+     [90m 336 |[39m })[33m;[39m
+     [90m 337 |[39m[0m
+
+      at Object.toBe (tests/integration/auth.session.test.js:334:24)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+  console.error
+    [GLOBAL ERROR] Handling error: BusinessLogicError This request is not assigned to you
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/routes/queueRoutes.js:242:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: BusinessLogicError Cannot start a request with status: assigned
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/routes/queueRoutes.js:313:5)
+
+PASS tests/integration/queue.lifecycle.test.js (5.027 s)
+  Queue lifecycle ΓÇö accept ΓåÆ start ΓåÆ complete
+    ΓêÜ POST /api/queue/request auto-assigns to the verified doctor (34 ms)
+    ΓêÜ POST /assignments/:id/accept ΓåÆ status becomes accepted (22 ms)
+    ΓêÜ DB row reflects accepted status (9 ms)
+    ΓêÜ POST /assignments/:id/start ΓåÆ status becomes in_progress (16 ms)
+    ΓêÜ POST /assignments/:id/complete ΓåÆ status becomes completed (20 ms)
+    ΓêÜ DB row reflects completed status (9 ms)
+  Queue lifecycle ΓÇö reject triggers re-assignment
+    ΓêÜ creates a second consultation request ΓÇö assigned to doctor A (lowest 
+counter) (30 ms)
+    ΓêÜ assigned doctor rejects ΓåÆ request gets re-assigned to the other 
+doctor (34 ms)
+  Queue lifecycle ΓÇö patient cancels a request
+    ΓêÜ DELETE /api/queue/request/:id ΓåÆ status becomes cancelled (20 ms)
+    ΓêÜ DB row reflects cancelled status (10 ms)
+  Queue reads ΓÇö patient and provider list views
+    ΓêÜ GET /api/queue/my-requests returns the patient's requests (11 ms)
+    ΓêÜ GET /api/queue/my-requests?status=cancelled filters by status (13 ms)
+    ΓêÜ GET /api/queue/assignments returns doctor's assigned requests (15 ms)
+    ΓêÜ patient cannot access GET /api/queue/assignments ΓåÆ 403 (15 ms)
+  Queue lifecycle ΓÇö error guard cases
+    ΓêÜ wrong provider (doctor B) tries to accept doctor A's request ΓåÆ 4xx 
+(24 ms)
+    ΓêÜ provider cannot start a request that is still in assigned (not 
+accepted) state ΓåÆ 4xx (15 ms)
+    ΓêÜ unauthenticated request to /api/queue/request ΓåÆ 401 (7 ms)
+    ΓêÜ patient with no subscription ΓåÆ 403 (408 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+  console.error
+    [GLOBAL ERROR] Handling error: BusinessLogicError Email already registered
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:20:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Invalid email or password
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:34:5)
+
+  console.error
+    [GLOBAL ERROR] Handling error: AuthenticationError Invalid email or password
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/authController.js:34:5)
+
+PASS tests/integration/auth.flow.test.js
+  POST /api/auth/register (patient)
+    ΓêÜ returns 201 and an access token (502 ms)
+    ΓêÜ duplicate registration returns 400 (21 ms)
+  POST /api/auth/login
+    ΓêÜ valid credentials return 200 and an access token (368 ms)
+    ΓêÜ wrong password returns 401 (543 ms)
+    ΓêÜ unknown email returns 401 or 422 (24 ms)
+  GET /api/patients/profile
+    ΓêÜ valid token returns 200 with correct profile data (12 ms)
+    ΓêÜ missing token returns 401 (7 ms)
+    ΓêÜ malformed token returns 401 (7 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+PASS tests/integration/admin.routes.test.js
+  RBAC ΓÇö non-admin cannot access admin routes
+    ΓêÜ patient token ΓåÆ GET /api/admin/statistics ΓåÆ 403 (12 ms)
+    ΓêÜ doctor token ΓåÆ GET /api/admin/users ΓåÆ 403 (7 ms)
+    ΓêÜ patient token ΓåÆ GET /api/admin/doctors ΓåÆ 403 (8 ms)
+  Auth guards ΓÇö unauthenticated requests
+    ΓêÜ GET /api/admin/statistics without token ΓåÆ 401 (5 ms)
+    ΓêÜ GET /api/admin/users without token ΓåÆ 401 (5 ms)
+    ΓêÜ PUT /api/admin/settings without token ΓåÆ 401 (6 ms)
+  GET /api/admin/statistics
+    ΓêÜ admin token ΓåÆ 200 with dashboard stats (12 ms)
+    ΓêÜ response contains totalUsers, totalPatients, totalProviders (24 ms)
+  GET /api/admin/users
+    ΓêÜ admin token ΓåÆ 200 with paginated list (20 ms)
+    ΓêÜ filter by role=patient returns patients only (21 ms)
+    ΓêÜ filter by role=doctor returns doctors only (21 ms)
+  GET /api/admin/users/:id
+    ΓêÜ valid patient ID ΓåÆ 200 with user + profile (19 ms)
+    ΓêÜ non-existent ID ΓåÆ 404 (19 ms)
+  PUT /api/admin/users/:id
+    ΓêÜ update email_verified ΓåÆ 200 (22 ms)
+    ΓêÜ no fields to update ΓåÆ 400 (31 ms)
+  POST /api/admin/users/:id/deactivate + activate
+    ΓêÜ deactivate ΓåÆ 200, status=inactive (22 ms)
+    ΓêÜ activate ΓåÆ 200, status=active (53 ms)
+  GET /api/admin/patients
+    ΓêÜ admin token ΓåÆ 200 with patient list (45 ms)
+  GET /api/admin/doctors
+    ΓêÜ admin token ΓåÆ 200 with doctor list (23 ms)
+    ΓêÜ filter verified=false returns pending doctors (23 ms)
+  GET /api/admin/verifications
+    ΓêÜ admin token ΓåÆ 200 with pending list including our doctor (21 ms)
+    ΓêÜ filter by provider_type=doctor ΓåÆ only doctors (26 ms)
+  POST /api/admin/verifications/:id/verify
+    ΓêÜ missing providerType ΓåÆ 400 (17 ms)
+    ΓêÜ verify doctor ΓåÆ 200, verification_status=verified (20 ms)
+    ΓêÜ doctor no longer in pending list after verify (25 ms)
+  POST /api/admin/verifications/:id/reject
+    ΓêÜ missing providerType ΓåÆ 400 (7 ms)
+    ΓêÜ reject doctor ΓåÆ 200, verification_status=rejected (19 ms)
+  GET + PUT /api/admin/settings
+    ΓêÜ GET settings ΓåÆ 200 with platform_name (25 ms)
+    ΓêÜ PUT settings ΓåÆ 200, updated field returned (20 ms)
+    ΓêÜ GET after PUT reflects new platform_name (38 ms)
+  GET /api/admin/analytics/time-series
+    ΓêÜ admin token ΓåÆ 200 with labels array (101 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+PASS tests/integration/patient.profile.test.js (6.537 s)
+  GET /api/patients/profile
+    ΓêÜ valid token ΓåÆ 200 with patient profile (16 ms)
+    ΓêÜ no token ΓåÆ 401 (6 ms)
+  PUT /api/patients/profile
+    ΓêÜ valid update ΓåÆ 200 (21 ms)
+    ΓêÜ GET profile reflects updated address (10 ms)
+    ΓêÜ empty body (no fields) ΓåÆ 422 (15 ms)
+    ΓêÜ no token ΓåÆ 401 (11 ms)
+  POST /api/patients/dependents ΓÇö add dependent
+    ΓêÜ valid payload ΓåÆ 201 with dependent data (55 ms)
+    ΓêÜ missing gender ΓåÆ 422 (29 ms)
+    ΓêÜ missing relationship ΓåÆ 422 (24 ms)
+    ΓêÜ invalid relationship value ΓåÆ 422 (25 ms)
+    ΓêÜ no token ΓåÆ 401 (11 ms)
+  GET /api/patients/dependents
+    ΓêÜ returns 200 with list of dependents (27 ms)
+    ΓêÜ list contains the added dependent (23 ms)
+    ΓêÜ no token ΓåÆ 401 (8 ms)
+  PUT /api/patients/dependents/:dependentId
+    ΓêÜ update relationship ΓåÆ 200 with updated data (40 ms)
+    ΓêÜ GET dependents reflects updated relationship (38 ms)
+    ΓêÜ no token ΓåÆ 401 (10 ms)
+  DELETE /api/patients/dependents/:dependentId
+    ΓêÜ no token ΓåÆ 401 (20 ms)
+    ΓêÜ valid delete ΓåÆ 200 (50 ms)
+    ΓêÜ GET dependents after delete ΓÇö list no longer contains removed 
+dependent (17 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+PASS tests/integration/queue.request.test.js
+  POST /api/queue/request ΓÇö service request creation
+    ΓêÜ valid request body returns 201 with pending status (25 ms)
+    ΓêÜ a service_requests row exists in the database after the call (32 ms)
+    ΓêÜ two requests increment the DB row count (45 ms)
+    ΓêÜ missing subscription returns 403 (404 ms)
+    ΓêÜ invalid service type returns 400 (7 ms)
+    ΓêÜ unauthenticated request returns 401 (6 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+PASS tests/integration/subscriptions.crud.test.js
+  GET /api/patients/subscriptions ΓÇö initial state
+    ΓêÜ returns 200 with null or empty data when no subscription exists (18 ms)
+  POST /api/patients/subscriptions ΓÇö create
+    ΓêÜ GENERAL plan ΓåÆ 201 with active subscription (22 ms)
+    ΓêÜ creating again (upsert) ΓåÆ 201 or 200 with BASIC plan (18 ms)
+    ΓêÜ missing packageType ΓåÆ 422 validation error (10 ms)
+    ΓêÜ invalid packageType ΓåÆ 422 validation error (10 ms)
+    ΓêÜ no token ΓåÆ 401 (7 ms)
+  GET /api/patients/subscriptions ΓÇö after creation
+    ΓêÜ returns 200 with subscription data (12 ms)
+    ΓêÜ subscription has expected fields (17 ms)
+    ΓêÜ no token ΓåÆ 401 (10 ms)
+  GET /api/patients/subscription-status
+    ΓêÜ returns 200 with hasActiveSubscription: true after creating one (16 ms)
+    ΓêÜ no token ΓåÆ 401 (8 ms)
+  PUT /api/patients/subscriptions ΓÇö update
+    ΓêÜ upgrade packageType to PREMIUM ΓåÆ 200 (20 ms)
+    ΓêÜ GET reflects upgraded plan (11 ms)
+    ΓêÜ toggle autoRenew to false ΓåÆ 200 (26 ms)
+    ΓêÜ empty body (no fields) ΓåÆ 422 (15 ms)
+    ΓêÜ invalid packageType ΓåÆ 422 (9 ms)
+    ΓêÜ no token ΓåÆ 401 (8 ms)
+  DELETE /api/patients/subscriptions ΓÇö cancel
+    ΓêÜ missing reason ΓåÆ 422 validation error (11 ms)
+    ΓêÜ invalid reason value ΓåÆ 422 validation error (10 ms)
+    ΓêÜ valid reason ΓåÆ 200 cancels subscription (19 ms)
+    ΓêÜ GET after cancel reflects cancelled status (13 ms)
+    ΓêÜ subscription-status returns hasActiveSubscription: false after cancel 
+(35 ms)
+    ΓêÜ no token ΓåÆ 401 (5 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+  console.error
+    [GLOBAL ERROR] Handling error: NotFoundError Consultation not found
+
+    [0m [90m 180 |[39m [90m */[39m
+     [90m 181 |[39m [36mexport[39m [36mconst[39m errorHandler [33m=[39m (err[33m,[39m req[33m,[39m res[33m,[39m next) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 182 |[39m   console[33m.[39merror([32m'[GLOBAL ERROR] Handling error:'[39m[33m,[39m err[33m.[39mname[33m,[39m err[33m.[39mmessage)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 183 |[39m   [90m// Handle specific error types[39m
+     [90m 184 |[39m   [36mswitch[39m (err[33m.[39mname) {
+     [90m 185 |[39m     [36mcase[39m [33mErrorTypes[39m[33m.[39m[33mVALIDATION_ERROR[39m[33m:[39m[0m
+
+      at error (src/middleware/errorHandler.js:182:11)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:71:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle_error (node_modules/express/lib/router/layer.js:67:12)
+      at trim_prefix (node_modules/express/lib/router/index.js:326:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at next (node_modules/express/lib/router/route.js:141:14)
+      at next (src/controllers/doctorController.js:112:5)
+
+PASS tests/integration/doctor.routes.test.js
+  RBAC ΓÇö patient cannot access doctor routes
+    ΓêÜ GET /api/doctors/profile ΓåÆ 403 (12 ms)
+    ΓêÜ PUT /api/doctors/profile ΓåÆ 403 (8 ms)
+    ΓêÜ GET /api/doctors/consultations ΓåÆ 403 (8 ms)
+    ΓêÜ POST /api/doctors/consultations ΓåÆ 403 (8 ms)
+    ΓêÜ GET /api/doctors/statistics ΓåÆ 403 (10 ms)
+  Auth guards ΓÇö unauthenticated requests
+    ΓêÜ GET /api/doctors/profile without token ΓåÆ 401 (6 ms)
+    ΓêÜ PUT /api/doctors/profile without token ΓåÆ 401 (6 ms)
+    ΓêÜ POST /api/doctors/consultations without token ΓåÆ 401 (6 ms)
+  GET /api/doctors/profile
+    ΓêÜ verified doctor ΓåÆ 200 with profile data (9 ms)
+    ΓêÜ response includes user sub-object with email (16 ms)
+    ΓêÜ response includes specialization (13 ms)
+  PUT /api/doctors/profile
+    ΓêÜ valid update ΓåÆ 200 (21 ms)
+    ΓêÜ empty body (no fields) ΓåÆ 422 validation error (15 ms)
+    ΓêÜ GET after PUT reflects updated specialization (25 ms)
+  GET /api/doctors/consultations
+    ΓêÜ initially returns empty list ΓåÆ 200 (14 ms)
+  POST /api/doctors/consultations
+    ΓêÜ missing required fields ΓåÆ 422 (12 ms)
+    ΓêÜ valid body ΓåÆ 201 consultation created (37 ms)
+    ΓêÜ GET consultations after create ΓåÆ list has one entry (14 ms)
+  GET /api/doctors/consultations/:consultationId
+    ΓêÜ valid ID ΓåÆ 200 with consultation data (1 ms)
+    ΓêÜ non-existent ID ΓåÆ 404 (24 ms)
+  PUT /api/doctors/consultations/:consultationId
+    ΓêÜ update diagnosis ΓåÆ 200
+    ΓêÜ empty update body ΓåÆ 400 (1 ms)
+  GET /api/doctors/statistics
+    ΓêÜ verified doctor ΓåÆ 200 with stats (8 ms)
+  Public doctor routes (no auth required)
+    ΓêÜ GET /api/doctors/search ΓåÆ 200 (11 ms)
+    ΓêÜ GET /api/doctors/specializations ΓåÆ 200 (12 ms)
+    ΓêÜ GET /api/doctors/top-rated ΓåÆ 200 (13 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+PASS tests/integration/rbac.integration.test.js
+  GET /api/doctors/consultations ΓÇö role enforcement
+    ΓêÜ no token ΓåÆ 401 (not 403 ΓÇö unauthenticated before authorised check) 
+(8 ms)
+    ΓêÜ pharmacy token ΓåÆ 403 (authenticated but wrong role) (11 ms)
+    ΓêÜ patient token ΓåÆ 403 (authenticated but wrong role) (7 ms)
+    ΓêÜ malformed token ΓåÆ 401 (6 ms)
+  POST /api/auth/register ΓÇö pharmacy-specific validation
+    ΓêÜ pharmacy without pharmacyName ΓåÆ 400 validation error (9 ms)
+    ΓêÜ pharmacy without licenseNumber ΓåÆ 400 validation error (8 ms)
+
+  console.log
+    INIT.JS STARTED
+
+      at log (src/database/init.js:7:9)
+
+PASS tests/integration/webhook.paystack.test.js
+  POST /api/payments/webhook/paystack ΓÇö signature verification
+    ΓêÜ valid HMAC signature is accepted (2xx response) (77 ms)
+    ΓêÜ tampered body produces 401 (wrong signature) (10 ms)
+    ΓêÜ missing signature header returns 401 (10 ms)
+    ΓêÜ wrong signature value returns 401 (7 ms)
+  POST /api/payments/webhook/paystack ΓÇö idempotency
+    ΓêÜ duplicate delivery with same eventId returns 200 on both deliveries 
+(40 ms)
+
+PASS tests/integration/adapter.contract.test.js
+  1. Placeholder conversion ΓÇö $N ΓåÆ ?
+    ΓêÜ single $1 converts to ? with correct param (4 ms)
+    ΓêÜ $1 used twice ΓåÆ two ?, value duplicated in expanded params (1 ms)
+    ΓêÜ out-of-order ($2 before $1) ΓåÆ values placed in occurrence order (1 
+ms)
+    ΓêÜ $1 $2 $1 ΓåÆ three ?, expanded as [val1, val2, val1] (1 ms)
+    ΓêÜ no placeholders ΓåÆ query and params pass through unchanged (1 ms)
+  2. Boolean type divergence ΓÇö SQLite 0/1 vs PostgreSQL true/false
+    ΓêÜ JS true stored as BOOLEAN ΓåÆ read back as integer 1 (2 ms)
+    ΓêÜ JS false stored as BOOLEAN ΓåÆ read back as integer 0 (2 ms)
+    ΓêÜ DEFAULT 0 column ΓåÆ reads back as integer 0 when omitted from INSERT 
+(2 ms)
+    ΓêÜ application-code safety: SQLite 1 is truthy but fails strict equality 
+to true (1 ms)
+    ΓêÜ emergency_services: 1 coerced with !! equals true (1 ms)
+  3. JSON column divergence ΓÇö SQLite TEXT vs PostgreSQL JSONB
+    ΓêÜ JSON stored as serialized string ΓåÆ returned as plain string (2 ms)
+    ΓêÜ JSON.parse on SQLite output is idempotent ΓÇö safe to always call it 
+(1 ms)
+  4. RETURNING * ΓÇö native on SQLite 3.35+, always native on PG
+    ΓêÜ INSERT ... RETURNING * returns the inserted row (3 ms)
+    ΓêÜ UPDATE ... RETURNING * returns the updated row (1 ms)
+  5. Transaction rollback ΓÇö BEGIN IMMEDIATE (SQLite) vs BEGIN (PG)
+    ΓêÜ error inside transaction ΓåÆ row not committed (1 ms)
+    ΓêÜ successful transaction commits the row (5 ms)
+    ΓêÜ nested ROLLBACK after partial work leaves table clean (1 ms)
+
+Test Suites: 3 failed, 10 passed, 13 total
+Tests:       27 failed, 178 passed, 205 total
+Snapshots:   0 total
+Time:        48.682 s, estimated 51 s
+Ran all test suites matching /tests\\integration/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect 
+async operations that kept running after all tests finished?

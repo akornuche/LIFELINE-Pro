@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
@@ -18,19 +18,19 @@
       <div class="mb-10">
         <h1 class="text-4xl font-black text-gray-900 mb-3">Terms of Service</h1>
         <p class="text-gray-500 text-sm">Last updated: April 2026 &nbsp;·&nbsp; Effective Date: April 16, 2026</p>
-        <p class="text-gray-500 text-sm mt-1">LifeLine Pro Health Management Organisation Limited — RC: <span class="font-semibold">To be registered with CAC</span></p>
+        <p class="text-gray-500 text-sm mt-1">LifeLine Health Management Organisation Limited — RC: <span class="font-semibold">To be registered with CAC</span></p>
       </div>
 
       <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-10 text-sm text-amber-800">
-        <strong>Important Notice:</strong> Please read these Terms carefully before using LifeLine Pro. By registering, clicking "I agree", or using any part of this platform, you confirm that you have read, understood, and agreed to be bound by these Terms and our Privacy Policy. If you do not agree, do not use this platform.
+        <strong>Important Notice:</strong> Please read these Terms carefully before using LifeLine. By registering, clicking "I agree", or using any part of this platform, you confirm that you have read, understood, and agreed to be bound by these Terms and our Privacy Policy. If you do not agree, do not use this platform.
       </div>
 
       <div class="space-y-10 text-gray-700 leading-relaxed">
 
         <!-- 1 -->
         <section>
-          <h2 class="text-xl font-black text-gray-900 mb-4">1. About LifeLine Pro</h2>
-          <p>LifeLine Pro is a digital Health Management Organisation (HMO) platform operated in Nigeria, providing technology-driven access to healthcare services including doctor consultations, pharmacy dispensing, hospital care, laboratory tests, and surgical procedures. LifeLine Pro connects enrolled members with accredited healthcare providers across Nigeria.</p>
+          <h2 class="text-xl font-black text-gray-900 mb-4">1. About LifeLine</h2>
+          <p>LifeLine is a digital Health Management Organisation (HMO) platform operated in Nigeria, providing technology-driven access to healthcare services including doctor consultations, pharmacy dispensing, hospital care, laboratory tests, and surgical procedures. LifeLine connects enrolled members with accredited healthcare providers across Nigeria.</p>
           <p class="mt-3">Our platform is governed by Nigerian law, including the <strong>National Health Insurance Authority (NHIA) Act 2022</strong>, the <strong>Nigeria Data Protection Act 2023 (NDPA)</strong>, the <strong>Consumer Protection Council Act</strong>, and applicable regulations of the <strong>Federal Ministry of Health</strong>.</p>
         </section>
 
@@ -73,7 +73,7 @@
             <li>All payments are processed in <strong>Nigerian Naira (₦)</strong> via Paystack, a PCI-DSS compliant payment gateway licensed by the <strong>Central Bank of Nigeria (CBN)</strong>.</li>
             <li>Subscriptions are billed monthly. Your subscription activates upon successful payment confirmation.</li>
             <li>A <strong>30-day renewal window</strong> is permitted before expiry. Renewals outside this window require a new subscription cycle.</li>
-            <li>LifeLine Pro reserves the right to revise subscription prices with <strong>30 days' prior notice</strong> via email or in-app notification.</li>
+            <li>LifeLine reserves the right to revise subscription prices with <strong>30 days' prior notice</strong> via email or in-app notification.</li>
           </ul>
 
           <h3 class="font-bold text-gray-800 mt-4 mb-2">3.3 Refund Policy</h3>
@@ -88,7 +88,7 @@
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">4. Healthcare Services</h2>
           <ul class="list-disc pl-5 space-y-2">
-            <li>LifeLine Pro is a <strong>technology intermediary</strong> connecting you to independent healthcare providers. We do not directly employ doctors, pharmacists, or hospital staff.</li>
+            <li>LifeLine is a <strong>technology intermediary</strong> connecting you to independent healthcare providers. We do not directly employ doctors, pharmacists, or hospital staff.</li>
             <li>All clinical decisions, diagnoses, and treatments are the sole responsibility of the treating healthcare professional.</li>
             <li>Service availability depends on your enrolled subscription tier. Services not covered under your plan will be cited at point of care.</li>
             <li>Emergency care (life-threatening situations) should be directed to the nearest government hospital with full NHIA facilities regardless of your subscription status. Contact <strong>NEMA Emergency Line: 0800-CALL-NEMA</strong> or go to your nearest Federal Government hospital.</li>
@@ -99,7 +99,7 @@
         <!-- 5 -->
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">5. User Obligations</h2>
-          <p>As a user of LifeLine Pro, you agree to:</p>
+          <p>As a user of LifeLine, you agree to:</p>
           <ul class="list-disc pl-5 space-y-2 mt-3">
             <li>Provide truthful and accurate personal and medical information.</li>
             <li>Keep your login credentials confidential. You are responsible for all activities on your account.</li>
@@ -113,13 +113,13 @@
         <!-- 6 -->
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">6. Platform Availability</h2>
-          <p>We aim for 99.5% uptime but do not guarantee uninterrupted access. Scheduled maintenance will be communicated at least <strong>24 hours in advance</strong>. LifeLine Pro shall not be held liable for service disruptions caused by third-party infrastructure, force majeure events, or acts of God.</p>
+          <p>We aim for 99.5% uptime but do not guarantee uninterrupted access. Scheduled maintenance will be communicated at least <strong>24 hours in advance</strong>. LifeLine shall not be held liable for service disruptions caused by third-party infrastructure, force majeure events, or acts of God.</p>
         </section>
 
         <!-- 7 -->
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">7. Intellectual Property</h2>
-          <p>All content, branding, software, and design elements of LifeLine Pro are the exclusive property of LifeLine Pro Health Management Organisation Limited. You are granted a limited, non-exclusive, non-transferable licence to use the platform for personal health management purposes only. You may not reproduce, distribute, or create derivative works without express written permission.</p>
+          <p>All content, branding, software, and design elements of LifeLine are the exclusive property of LifeLine Health Management Organisation Limited. You are granted a limited, non-exclusive, non-transferable licence to use the platform for personal health management purposes only. You may not reproduce, distribute, or create derivative works without express written permission.</p>
         </section>
 
         <!-- 8 -->
@@ -127,7 +127,7 @@
           <h2 class="text-xl font-black text-gray-900 mb-4">8. Limitation of Liability</h2>
           <p>To the maximum extent permitted by Nigerian law:</p>
           <ul class="list-disc pl-5 space-y-2 mt-3">
-            <li>LifeLine Pro's total liability shall not exceed the <strong>total subscription fees paid by you in the 3 months</strong> preceding the claim.</li>
+            <li>LifeLine's total liability shall not exceed the <strong>total subscription fees paid by you in the 3 months</strong> preceding the claim.</li>
             <li>We are not liable for any indirect, incidental, or consequential damages arising from use of the platform.</li>
             <li>We are not liable for clinical outcomes, adverse medical events, or healthcare provider negligence. Such matters are the responsibility of the relevant healthcare professional and their regulatory body.</li>
           </ul>
@@ -138,7 +138,7 @@
           <h2 class="text-xl font-black text-gray-900 mb-4">9. Termination</h2>
           <ul class="list-disc pl-5 space-y-2">
             <li>You may cancel your subscription at any time from your account settings. Access continues to your plan expiry date.</li>
-            <li>LifeLine Pro may suspend or terminate your account for breach of these Terms, fraudulent activity, or at regulatory direction.</li>
+            <li>LifeLine may suspend or terminate your account for breach of these Terms, fraudulent activity, or at regulatory direction.</li>
             <li>On termination, your medical records remain accessible for download for <strong>90 days</strong> as required by Nigerian health records law.</li>
           </ul>
         </section>
@@ -165,7 +165,7 @@
         <section>
           <h2 class="text-xl font-black text-gray-900 mb-4">12. Contact Us</h2>
           <div class="bg-gray-50 rounded-xl border border-gray-200 p-5 text-sm space-y-1">
-            <p><strong>LifeLine Pro Health Management Organisation Limited</strong></p>
+            <p><strong>LifeLine Health Management Organisation Limited</strong></p>
             <p>Email: <a href="mailto:support@lifelinepro.com" class="text-primary-600 hover:underline">support@lifelinepro.com</a></p>
             <p>Complaints: <a href="mailto:complaints@lifelinepro.com" class="text-primary-600 hover:underline">complaints@lifelinepro.com</a></p>
             <p>Phone: +234 800 000 0000</p>

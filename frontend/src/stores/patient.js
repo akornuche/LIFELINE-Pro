@@ -48,10 +48,53 @@ export const usePatientStore = defineStore('patient', () => {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   });
 
+  // Total subscription duration in days (start → end), used for progress circle
+  const subscriptionTotalDays = computed(() => {
+    if (!subscription.value?.end_date) return 365;
+    const start = subscription.value.start_date
+      ? new Date(subscription.value.start_date)
+      : new Date(new Date(subscription.value.end_date).getTime() - 365 * 24 * 60 * 60 * 1000);
+    const end = new Date(subscription.value.end_date);
+    const diff = end.getTime() - start.getTime();
+    return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+  });
+
+  // 0–1 fraction of subscription remaining (used for SVG circle)
+  const subscriptionProgress = computed(() => {
+    if (!hasActiveSubscription.value) return 0;
+    return Math.min(1, daysRemaining.value / subscriptionTotalDays.value);
+  });
+
   const canRenew = computed(() => {
     // Can renew if no active subscription OR within 30 days of expiry
     return !hasActiveSubscription.value || daysRemaining.value <= 30;
   });
+
+  // Plan tier hierarchy for upgrade/downgrade logic
+  const PLAN_TIERS = { general: 1, basic: 2, standard: 3, premium: 4 };
+
+  const currentPlanTier = computed(() => PLAN_TIERS[packageType.value?.toLowerCase()] || 0);
+
+  /**
+   * Returns the action state for a given plan card.
+   * { disabled, label, isUpgrade, isDowngrade, isCurrent }
+   */
+  const getPlanAction = (plan) => {
+    const tier = PLAN_TIERS[plan?.toLowerCase()] || 0;
+    const current = currentPlanTier.value;
+
+    if (!hasActiveSubscription.value) {
+      return { disabled: false, label: 'Select Plan', isCurrent: false, isUpgrade: false, isDowngrade: false };
+    }
+    if (tier === current) {
+      return { disabled: !canRenew.value, label: canRenew.value ? 'Renew' : 'Currently Active', isCurrent: true, isUpgrade: false, isDowngrade: false };
+    }
+    if (tier > current) {
+      return { disabled: false, label: 'Upgrade', isCurrent: false, isUpgrade: true, isDowngrade: false };
+    }
+    // tier < current → lower plan, locked
+    return { disabled: true, label: 'Lower Plan', isCurrent: false, isUpgrade: false, isDowngrade: true };
+  };
 
   const canAddDependent = computed(() => {
     return dependentCount.value < maxDependents.value;
@@ -355,7 +398,11 @@ export const usePatientStore = defineStore('patient', () => {
     maxDependents,
     canAddDependent,
     daysRemaining,
+    subscriptionTotalDays,
+    subscriptionProgress,
     canRenew,
+    currentPlanTier,
+    getPlanAction,
     // Actions
     fetchProfile,
     updateProfile,

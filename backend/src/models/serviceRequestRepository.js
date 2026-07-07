@@ -52,7 +52,9 @@ export const findById = async (id) => {
       `SELECT sr.*,
               u_patient.first_name || ' ' || u_patient.last_name as patient_name,
               u_patient.email as patient_email,
-              u_patient.phone as patient_phone
+              u_patient.phone as patient_phone,
+              p.current_package as patient_plan,
+              p.subscription_status as patient_subscription_status
        FROM service_requests sr
        JOIN patients p ON sr.patient_id = p.id
        JOIN users u_patient ON p.user_id = u_patient.id
@@ -109,7 +111,9 @@ export const findByProviderId = async (providerId, providerType, status = null) 
     let query = `
       SELECT sr.*,
              u_patient.first_name || ' ' || u_patient.last_name as patient_name,
-             u_patient.phone as patient_phone
+             u_patient.phone as patient_phone,
+             p.current_package as patient_plan,
+             p.subscription_status as patient_subscription_status
       FROM service_requests sr
       JOIN patients p ON sr.patient_id = p.id
       JOIN users u_patient ON p.user_id = u_patient.id
@@ -223,34 +227,40 @@ export const getVerifiedProvidersByCity = async (city, providerType) => {
     let query;
     if (providerType === 'doctor') {
       query = `
-        SELECT d.id as provider_id, d.specialization, 
+        SELECT d.id as provider_id, u.id as user_id,
+               u.email, u.first_name,
+               d.specialization,
                u.first_name || ' ' || u.last_name as provider_name,
                COALESCE(pac.assignment_count, 0) as assignment_count
         FROM doctors d
         JOIN users u ON d.user_id = u.id
-        LEFT JOIN provider_assignment_counters pac 
+        LEFT JOIN provider_assignment_counters pac
           ON pac.provider_id = d.id AND pac.provider_type = 'doctor' AND pac.city = $1
         WHERE u.city = $1 AND d.verification_status = 'verified' AND u.status = 'active'
         ORDER BY COALESCE(pac.assignment_count, 0) ASC, d.created_at ASC
       `;
     } else if (providerType === 'pharmacy') {
       query = `
-        SELECT ph.id as provider_id, ph.pharmacy_name as provider_name,
+        SELECT ph.id as provider_id, u.id as user_id,
+               u.email, u.first_name,
+               ph.pharmacy_name as provider_name,
                COALESCE(pac.assignment_count, 0) as assignment_count
         FROM pharmacies ph
         JOIN users u ON ph.user_id = u.id
-        LEFT JOIN provider_assignment_counters pac 
+        LEFT JOIN provider_assignment_counters pac
           ON pac.provider_id = ph.id AND pac.provider_type = 'pharmacy' AND pac.city = $1
         WHERE u.city = $1 AND ph.verification_status = 'verified' AND u.status = 'active'
         ORDER BY COALESCE(pac.assignment_count, 0) ASC, ph.created_at ASC
       `;
     } else if (providerType === 'hospital') {
       query = `
-        SELECT h.id as provider_id, h.hospital_name as provider_name,
+        SELECT h.id as provider_id, u.id as user_id,
+               u.email, u.first_name,
+               h.hospital_name as provider_name,
                COALESCE(pac.assignment_count, 0) as assignment_count
         FROM hospitals h
         JOIN users u ON h.user_id = u.id
-        LEFT JOIN provider_assignment_counters pac 
+        LEFT JOIN provider_assignment_counters pac
           ON pac.provider_id = h.id AND pac.provider_type = 'hospital' AND pac.city = $1
         WHERE u.city = $1 AND h.verification_status = 'verified' AND u.status = 'active'
         ORDER BY COALESCE(pac.assignment_count, 0) ASC, h.created_at ASC
@@ -283,6 +293,43 @@ export const incrementAssignmentCounter = async (providerId, providerType, city)
   } catch (error) {
     logger.error('Error incrementing assignment counter', { error: error.message, providerId });
     throw error;
+  }
+};
+
+/**
+ * Get the user_id for a provider (for socket notifications).
+ * @deprecated Use getProviderUserInfo for new code.
+ */
+export const getProviderUserId = async (providerId, providerType) => {
+  const info = await getProviderUserInfo(providerId, providerType);
+  return info?.userId || null;
+};
+
+/**
+ * Get user_id, email and first_name for a provider.
+ * Used for socket notifications and email delivery on assignment.
+ */
+export const getProviderUserInfo = async (providerId, providerType) => {
+  const tableMap = { doctor: 'doctors', pharmacy: 'pharmacies', hospital: 'hospitals' };
+  const table = tableMap[providerType];
+  if (!table) return null;
+  try {
+    const result = await database.query(
+      `SELECT p.user_id, u.email, u.first_name
+       FROM ${table} p
+       JOIN users u ON p.user_id = u.id
+       WHERE p.id = $1`,
+      [providerId]
+    );
+    if (!result.rows[0]) return null;
+    return {
+      userId: result.rows[0].user_id,
+      email: result.rows[0].email,
+      firstName: result.rows[0].first_name,
+    };
+  } catch (error) {
+    logger.error('Error getting provider user info', { error: error.message, providerId, providerType });
+    return null;
   }
 };
 
@@ -329,5 +376,7 @@ export default {
   updateStatus,
   getVerifiedProvidersByCity,
   incrementAssignmentCounter,
+  getProviderUserId,
+  getProviderUserInfo,
   getQueueStats,
 };

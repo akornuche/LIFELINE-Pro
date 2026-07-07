@@ -380,10 +380,10 @@ export const hasActiveSubscription = async (patientId) => {
 
     const { subscription_status, subscription_end_date } = result.rows[0];
 
+    // Treat NULL end_date as "no expiry" (consistent with authenticate middleware)
     return (
       subscription_status === 'active' &&
-      subscription_end_date &&
-      new Date(subscription_end_date) > new Date()
+      (!subscription_end_date || new Date(subscription_end_date) > new Date())
     );
   } catch (error) {
     logger.error('Error checking active subscription', {

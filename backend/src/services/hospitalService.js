@@ -72,27 +72,18 @@ export const getHospitalProfile = async (userId) => {
 /**
  * Update hospital profile
  */
+/**
+ * Update hospital profile
+ */
 export const updateHospitalProfile = async (userId, updateData) => {
-  const {
-    hospitalName,
-    hospitalType,
-    address,
-    totalBeds,
-    availableBeds,
-    hasEmergency,
-    hasIcu,
-    departments,
-    description,
-  } = updateData;
-
   try {
     const hospital = await ensureHospitalProfile(userId);
 
-    // Sync to user record if identity fields are present
+    // Sync identity fields to users table if present
     const identityUpdates = {};
-    if (updateData.name || updateData.hospitalName || updateData.hospital_name) {
-      const name = updateData.name || updateData.hospitalName || updateData.hospital_name;
-      const parts = name.trim().split(/\s+/);
+    const nameField = updateData.hospitalName || updateData.name || updateData.hospital_name;
+    if (nameField) {
+      const parts = nameField.trim().split(/\s+/);
       if (parts.length >= 2) {
         identityUpdates.firstName = parts[0];
         identityUpdates.lastName = parts.slice(1).join(' ');
@@ -100,33 +91,13 @@ export const updateHospitalProfile = async (userId, updateData) => {
         identityUpdates.firstName = parts[0];
       }
     }
-    if (updateData.email) identityUpdates.email = updateData.email;
     if (updateData.phone) identityUpdates.phone = updateData.phone;
 
     if (Object.keys(identityUpdates).length > 0) {
       await userRepository.updateProfile(userId, identityUpdates);
     }
 
-    // Validate bed numbers
-    if (totalBeds !== undefined && availableBeds !== undefined) {
-      if (availableBeds > totalBeds) {
-        throw new BusinessLogicError('Available beds cannot exceed total beds');
-      }
-    }
-
-    const updatedHospital = await hospitalRepository.updateProfile(hospital.id, {
-      hospitalName,
-      hospitalType,
-      address,
-      totalBeds,
-      availableBeds,
-      hasEmergency,
-      hasIcu,
-      departments,
-      description,
-      email: updateData.email,
-      phone: updateData.phone,
-    });
+    const updatedHospital = await hospitalRepository.updateProfile(hospital.id, updateData);
 
     logger.info('Hospital profile updated', {
       userId,
@@ -492,10 +463,19 @@ export const getStatistics = async (userId, options = {}) => {
       throw new NotFoundError('Hospital profile');
     }
 
-    const stats = await hospitalRepository.getStatistics(hospital.id, options);
+    const now = new Date();
+    const startDate = options.startDate || new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const endDate = options.endDate || now.toISOString();
+
+    const stats = await hospitalRepository.getStatistics(hospital.id, startDate, endDate);
 
     return {
-      ...stats,
+      totalSurgeries: Number(stats.surgeries) || 0,
+      consultations: Number(stats.consultations) || 0,
+      activePatients: Number(stats.unique_patients) || 0,
+      monthlyRevenue: Number(stats.total_earnings) || 0,
+      availableBeds: Number(hospital.available_beds) || 0,
+      totalBeds: Number(hospital.total_beds) || 0,
       bedUtilization: hospital.total_beds > 0
         ? ((hospital.total_beds - hospital.available_beds) / hospital.total_beds) * 100
         : 0,

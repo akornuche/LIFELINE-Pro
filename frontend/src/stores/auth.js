@@ -4,9 +4,16 @@ import { authService } from '@/services';
 import { toast } from 'vue3-toastify';
 
 export const useAuthStore = defineStore('auth', () => {
+  // On app load: if user logged in without Remember Me and browser session ended, clear persisted tokens
+  const _rememberPref = localStorage.getItem('lifeline_remember');
+  if (_rememberPref === 'false' && !sessionStorage.getItem('lifeline_session')) {
+    localStorage.removeItem('lifeline_token');
+    localStorage.removeItem('lifeline_refresh_token');
+  }
+
   // State
-  const token = ref(localStorage.getItem('lifeline_token') || null);
-  const refreshToken = ref(localStorage.getItem('lifeline_refresh_token') || null);
+  const token = ref(localStorage.getItem('lifeline_token') || sessionStorage.getItem('lifeline_token') || null);
+  const refreshToken = ref(localStorage.getItem('lifeline_refresh_token') || sessionStorage.getItem('lifeline_refresh_token') || null);
   const user = ref(null);
   const loading = ref(false);
   const error = ref(null);
@@ -14,9 +21,23 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isAuthenticated = computed(() => !!token.value);
   const userRole = computed(() => user.value?.role);
+  const isEmailVerified = computed(() => !!(user.value?.email_verified || user.value?.is_email_verified));
   const userName = computed(() => {
     if (!user.value) return '';
-    return `${user.value.first_name} ${user.value.last_name}`;
+    // Hospitals/pharmacies may have full_name or hospital_name instead of first/last
+    if (user.value.full_name) return user.value.full_name;
+    if (user.value.hospital_name) return user.value.hospital_name;
+    if (user.value.pharmacy_name) return user.value.pharmacy_name;
+    const first = user.value.first_name || '';
+    const last = user.value.last_name || '';
+    return `${first} ${last}`.trim() || user.value.email || '';
+  });
+  const profilePictureUrl = computed(() => {
+    const pic = user.value?.profile_picture;
+    if (!pic) return null;
+    if (pic.startsWith('http')) return pic;
+    // Relative path from backend — prefix with API URL
+    return `${import.meta.env.VITE_API_URL || 'http://localhost:5002'}${pic}`;
   });
 
   // Actions
@@ -37,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(credentials) {
+  async function login(credentials, { rememberMe = false } = {}) {
     loading.value = true;
     error.value = null;
 
@@ -45,8 +66,15 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.login(credentials);
       const { accessToken, refreshToken: newRefreshToken, user: userData } = response.data;
 
-      setToken(accessToken);
-      setRefreshToken(newRefreshToken);
+      // Persist the rememberMe preference so we can check it on next app load
+      localStorage.setItem('lifeline_remember', String(rememberMe));
+      if (!rememberMe) {
+        // Mark active browser session so we know when it ends
+        sessionStorage.setItem('lifeline_session', '1');
+      }
+
+      setToken(accessToken, rememberMe);
+      setRefreshToken(newRefreshToken, rememberMe);
       user.value = userData;
 
       toast.success(`Welcome back, ${userData.first_name}!`);
@@ -139,6 +167,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authService.verifyEmail(verificationToken);
+      // Update local user state so the banner disappears immediately
+      if (user.value) {
+        user.value = { ...user.value, email_verified: 1, is_email_verified: 1 };
+      }
       toast.success('Email verified successfully!');
       return response;
     } catch (err) {
@@ -156,7 +188,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authService.resendVerification();
-      toast.success('Verification email sent!');
+      const data = response.data?.data || response.data;
+      if (data?.alreadyVerified) {
+        // DB says already verified — sync local state so banner disappears
+        user.value = { ...user.value, email_verified: 1, is_email_verified: 1 };
+        toast.success('Your email is already verified!');
+      } else {
+        toast.success('Verification email sent! Please check your inbox.');
+      }
       return response;
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to send verification email';
@@ -261,14 +300,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function setToken(newToken) {
+  function setToken(newToken, persist = true) {
     token.value = newToken;
-    localStorage.setItem('lifeline_token', newToken);
+    if (persist) {
+      localStorage.setItem('lifeline_token', newToken);
+      sessionStorage.removeItem('lifeline_token');
+    } else {
+      sessionStorage.setItem('lifeline_token', newToken);
+      localStorage.removeItem('lifeline_token');
+    }
   }
 
-  function setRefreshToken(newRefreshToken) {
+  function setRefreshToken(newRefreshToken, persist = true) {
     refreshToken.value = newRefreshToken;
-    localStorage.setItem('lifeline_refresh_token', newRefreshToken);
+    if (persist) {
+      localStorage.setItem('lifeline_refresh_token', newRefreshToken);
+      sessionStorage.removeItem('lifeline_refresh_token');
+    } else {
+      sessionStorage.setItem('lifeline_refresh_token', newRefreshToken);
+      localStorage.removeItem('lifeline_refresh_token');
+    }
   }
 
   function clearAuth() {
@@ -277,6 +328,10 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     localStorage.removeItem('lifeline_token');
     localStorage.removeItem('lifeline_refresh_token');
+    localStorage.removeItem('lifeline_remember');
+    sessionStorage.removeItem('lifeline_token');
+    sessionStorage.removeItem('lifeline_refresh_token');
+    sessionStorage.removeItem('lifeline_session');
   }
 
   return {
@@ -288,8 +343,10 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     // Getters
     isAuthenticated,
+    isEmailVerified,
     userRole,
     userName,
+    profilePictureUrl,
     // Actions
     register,
     login,

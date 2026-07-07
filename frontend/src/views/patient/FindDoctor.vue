@@ -15,10 +15,10 @@
               type="text"
               placeholder="Search by name, specialization..."
               class="input"
-              @keyup.enter="searchDoctors"
+              @keyup.enter="searchDoctors(1)"
             />
           </div>
-          <button @click="searchDoctors" class="btn btn-primary">
+          <button @click="searchDoctors(1)" class="btn btn-primary">
             <MagnifyingGlassIcon class="h-5 w-5 mr-2" />
             Search
           </button>
@@ -37,7 +37,7 @@
             <!-- Specialization Filter -->
             <div>
               <label class="form-label">Specialization</label>
-              <select v-model="filters.specialization" class="input" @change="searchDoctors">
+              <select v-model="filters.specialization" class="input" @change="searchDoctors(1)">
                 <option value="">All Specializations</option>
                 <option value="general">General Practice</option>
                 <option value="cardiology">Cardiology</option>
@@ -56,7 +56,7 @@
                   v-model="filters.verified"
                   type="checkbox"
                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  @change="searchDoctors"
+                  @change="searchDoctors(1)"
                 />
                 <span class="ml-2 text-sm text-gray-700">Verified Only</span>
               </label>
@@ -70,14 +70,14 @@
                 type="number"
                 min="0"
                 class="input"
-                @change="searchDoctors"
+                @change="searchDoctors(1)"
               />
             </div>
 
             <!-- Rating Filter -->
             <div>
               <label class="form-label">Minimum Rating</label>
-              <select v-model.number="filters.minRating" class="input" @change="searchDoctors">
+              <select v-model.number="filters.minRating" class="input" @change="searchDoctors(1)">
                 <option :value="0">Any Rating</option>
                 <option :value="3">3+ Stars</option>
                 <option :value="4">4+ Stars</option>
@@ -137,6 +137,9 @@
                           v-if="doctor.verification_status === 'verified'"
                           class="h-5 w-5 text-blue-500 inline ml-1"
                         />
+                        <span v-if="doctor.match_score > 40" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                          Near You
+                        </span>
                       </h3>
                       <p class="text-sm text-gray-600 capitalize">{{ doctor.specialization }}</p>
                     </div>
@@ -160,24 +163,15 @@
                       <p class="text-sm text-gray-600">Experience</p>
                       <p class="text-sm font-medium">{{ doctor.years_of_experience || 'N/A' }} years</p>
                     </div>
-                    <div v-if="doctor.hospital">
-                      <p class="text-sm text-gray-600">Hospital</p>
-                      <p class="text-sm font-medium">{{ doctor.hospital }}</p>
-                    </div>
-                    <div v-if="doctor.consultation_fee">
-                      <p class="text-sm text-gray-600">Consultation Fee</p>
-                      <p class="text-sm font-medium text-primary-600">
-                        ₦{{ doctor.consultation_fee.toLocaleString() }}
-                      </p>
+                    <div v-if="doctor.city">
+                      <p class="text-sm text-gray-600">City</p>
+                      <p class="text-sm font-medium">{{ doctor.city }}</p>
                     </div>
                   </div>
 
                   <div class="flex gap-2">
                     <button @click="bookConsultation(doctor)" class="btn btn-primary btn-sm">
                       Book Consultation
-                    </button>
-                    <button @click="viewProfile(doctor)" class="btn btn-secondary btn-sm">
-                      View Profile
                     </button>
                   </div>
                 </div>
@@ -187,12 +181,21 @@
         </div>
 
         <!-- Pagination -->
-        <div v-if="doctors.length" class="mt-6 flex justify-center">
-          <div class="flex gap-2">
-            <button class="btn btn-secondary btn-sm">Previous</button>
-            <span class="px-4 py-2 text-sm text-gray-700">Page 1</span>
-            <button class="btn btn-secondary btn-sm">Next</button>
-          </div>
+        <div v-if="totalResults > 0" class="mt-6 flex items-center justify-center gap-3">
+          <button
+            @click="changePage(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="btn btn-secondary btn-sm disabled:opacity-40"
+          >Previous</button>
+          <span class="px-3 py-1.5 text-sm text-gray-700">
+            Page {{ currentPage }} of {{ totalPages }}
+            <span class="text-gray-400">({{ totalResults }} results)</span>
+          </span>
+          <button
+            @click="changePage(currentPage + 1)"
+            :disabled="currentPage >= totalPages"
+            class="btn btn-secondary btn-sm disabled:opacity-40"
+          >Next</button>
         </div>
       </div>
     </div>
@@ -200,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { doctorService } from '@/services';
 import { useToast } from '@/composables/useToast';
@@ -215,10 +218,13 @@ import {
 const router = useRouter();
 const { success, error: showError } = useToast();
 
+const PAGE_SIZE = 20;
 const loading = ref(true);
 const searchQuery = ref('');
 const doctors = ref([]);
-const selectedDoctor = ref(null);
+const currentPage = ref(1);
+const totalResults = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalResults.value / PAGE_SIZE)));
 
 const filters = ref({
   specialization: '',
@@ -231,21 +237,35 @@ onMounted(async () => {
   await searchDoctors();
 });
 
-const searchDoctors = async () => {
+const searchDoctors = async (page = 1) => {
+  currentPage.value = page;
   loading.value = true;
   try {
     const params = {
       search: searchQuery.value,
-      ...filters.value
+      specialization: filters.value.specialization,
+      verified: filters.value.verified ? 'true' : undefined,
+      minExperience: filters.value.minExperience || undefined,
+      minRating: filters.value.minRating || undefined,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
     };
     const response = await doctorService.searchDoctors(params);
-    doctors.value = response.doctors || [];
+    const data = response.doctors || response.data?.data || response.data || [];
+    doctors.value = data;
+    totalResults.value = response.total || response.data?.total || data.length + (page - 1) * PAGE_SIZE;
   } catch (error) {
     console.error('Failed to search doctors:', error);
     showError('Failed to load doctors. Please try again.');
   } finally {
     loading.value = false;
   }
+};
+
+const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return;
+  searchDoctors(page);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const resetFilters = () => {
@@ -257,14 +277,11 @@ const resetFilters = () => {
   };
   searchQuery.value = '';
   success('Filters reset');
-  searchDoctors();
+  searchDoctors(1);
 };
 
 const bookConsultation = (doctor) => {
-  router.push(`/patient/consultation/book?doctor=${doctor.id}`);
-};
-
-const viewProfile = (doctor) => {
-  selectedDoctor.value = doctor;
+  const name = encodeURIComponent(`Dr. ${doctor.first_name} ${doctor.last_name}`);
+  router.push(`/patient/service-requests?serviceType=consultation&providerId=${doctor.id}&providerName=${name}&providerType=doctor`);
 };
 </script>
