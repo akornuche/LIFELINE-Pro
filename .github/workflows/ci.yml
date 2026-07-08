@@ -7,20 +7,21 @@ on:
     branches: [main, develop]
 
 # Cancel any in-progress run on the same branch when a new push arrives.
-# This is the primary fix for minute consumption — stale runs are killed immediately.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ── Job 1: Unit tests (fast, always runs, no Docker) ─────────────────────────
-  # Target: < 30 seconds. Fails fast on logic regressions.
+  # ── Job 1: Unit tests ─────────────────────────────────────────────────────────
   unit:
     name: Unit tests
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_OPTIONS: --experimental-vm-modules
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
@@ -35,11 +36,9 @@ jobs:
         run: npm ci
 
       - name: Unit tests
-        run: npm run test:unit
+        run: npx jest --testPathPattern=tests/unit --forceExit
 
   # ── Job 2: SQLite integration tests ──────────────────────────────────────────
-  # Runs full integration suite against SQLite (no Docker needed).
-  # Excludes PG-only tests (handled by pg-contract job).
   sqlite-integration:
     name: SQLite integration
     runs-on: ubuntu-latest
@@ -47,6 +46,10 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_OPTIONS: --experimental-vm-modules
+      NODE_ENV: test
+      DB_TYPE: sqlite
 
     steps:
       - uses: actions/checkout@v4
@@ -61,12 +64,9 @@ jobs:
         run: npm ci
 
       - name: SQLite integration tests
-        run: npm run test:sqlite -- --testPathIgnorePatterns=adapter.contract.pg pg.boolean.roundtrip
-        # Skips PG-specific tests that need Docker
+        run: npx jest --testPathPattern=tests/integration --testPathIgnorePatterns="adapter.contract.pg|pg.boolean.roundtrip" --forceExit
 
   # ── Job 3: PostgreSQL adapter contract tests ─────────────────────────────────
-  # Requires Docker. Spins up postgres:16-alpine via testcontainers.
-  # Only runs when unit tests pass (saves minutes on bad commits).
   pg-contract:
     name: PostgreSQL contract
     runs-on: ubuntu-latest
@@ -74,6 +74,9 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_OPTIONS: --experimental-vm-modules
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
@@ -88,11 +91,9 @@ jobs:
         run: npm ci
 
       - name: PostgreSQL contract tests (testcontainers)
-        run: npm run test:contracts:pg
+        run: npx jest --testPathPattern=adapter.contract.pg --forceExit
 
   # ── Job 4: Playwright E2E tests ───────────────────────────────────────────────
-  # Runs browser flows against a live SQLite backend + Vite frontend.
-  # Only runs when unit tests pass.
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
@@ -150,10 +151,7 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
-  # ── Job 5: Security audit (non-blocking, informational) ──────────────────────
-  # Reports vulnerabilities but does NOT fail the pipeline.
-  # Reason: 40 known vulns in transitive deps — fixing them all before launch
-  # is not realistic. Track them here; fix before major releases.
+  # ── Job 5: Security audit (non-blocking) ─────────────────────────────────────
   security-audit:
     name: Security audit
     runs-on: ubuntu-latest
@@ -161,7 +159,7 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    continue-on-error: true  # informational only — never blocks merge
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -177,5 +175,3 @@ jobs:
 
       - name: Security audit (informational)
         run: npm audit --audit-level=high || true
-        # Only report HIGH/CRITICAL to reduce noise.
-        # || true means exit 0 regardless — audit result is visible in logs.
