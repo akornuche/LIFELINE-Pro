@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "lifeline-pro-frontend",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm ci",
