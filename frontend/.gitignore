@@ -1,1 +1,15 @@
+# Vercel CLI
 .vercel
+
+# Vite temp timestamp files (crash Vercel when deployed as .mjs)
+vite.config.js.timestamp-*.mjs
+
+# Local dev artifacts
+node_modules/
+dev-dist/
+logs/
+uploads/
+test-results/
+playwright-report/
+build_output.txt
+dist/

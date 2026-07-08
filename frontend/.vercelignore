@@ -1,0 +1,27 @@
+# Vercel deployment exclusions
+# These files/folders exist locally but must never be deployed
+
+# Vite temp files (Vercel mistakenly treats .mjs as serverless functions)
+vite.config.js.timestamp-*.mjs
+
+# Local dev artifacts
+node_modules/
+dev-dist/
+dist/
+logs/
+uploads/
+test-results/
+playwright-report/
+build_output.txt
+
+# Test files
+e2e/
+playwright.config.js
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vercel/
