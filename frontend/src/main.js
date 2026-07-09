@@ -44,27 +44,22 @@ app.config.errorHandler = (err, instance, info) => {
 // Mount app
 app.mount('#app');
 
-// PWA: Register Service Worker with auto-update
+// PWA: Register Service Worker
+// Update notifications use a toast banner — not confirm() which blocks the UI.
 if ('serviceWorker' in navigator) {
   import('virtual:pwa-register').then(({ registerSW }) => {
-    const updateSW = registerSW({
+    registerSW({
       immediate: true,
       onNeedRefresh() {
-        console.log('New content available, please refresh.');
-        // Show update notification to user
-        if (confirm('New version available! Reload to update?')) {
-          updateSW(true);
-        }
+        // Dispatch a custom event so App.vue can show a non-blocking banner
+        window.dispatchEvent(new CustomEvent('pwa-needs-refresh'));
       },
       onOfflineReady() {
-        console.log('App ready to work offline');
+        window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
       },
       onRegistered(registration) {
-        console.log('Service Worker registered:', registration);
         // Check for updates every hour
-        setInterval(() => {
-          registration.update();
-        }, 60 * 60 * 1000);
+        setInterval(() => registration.update(), 60 * 60 * 1000);
       },
       onRegisterError(error) {
         console.error('SW registration error:', error);
@@ -72,37 +67,3 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
-
-// PWA: Handle app installation
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Show install button/banner to user
-  console.log('App can be installed');
-});
-
-window.addEventListener('appinstalled', () => {
-  console.log('PWA was installed');
-  deferredPrompt = null;
-});
-
-// PWA: Handle app updates
-document.addEventListener('swUpdated', (event) => {
-  const registration = event.detail;
-  if (confirm('New version available! Load new version?')) {
-    if (registration && registration.waiting) {
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
-    }
-  }
-});
-
-// PWA: Monitor online/offline status
-window.addEventListener('online', () => {
-  console.log('App is online');
-});
-
-window.addEventListener('offline', () => {
-  console.log('App is offline');
-});
