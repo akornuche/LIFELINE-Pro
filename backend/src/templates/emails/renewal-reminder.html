@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Renewal Reminder</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#f59e0b;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;letter-spacing:.5px;">LifeLine Pro</h1>
+              <p style="margin:6px 0 0;color:#fef3c7;font-size:13px;">Subscription Renewal Reminder</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="margin:0 0 16px;color:#1e293b;font-size:20px;">Hi {{firstName}}, your subscription expires soon</h2>
+              <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+                Your <strong>{{packageType}}</strong> plan expires on <strong>{{expiryDate}}</strong> — that's in <strong>{{daysRemaining}} day(s)</strong>.
+                Renew now to keep your healthcare coverage uninterrupted.
+              </p>
+
+              <!-- Summary card -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;margin:0 0 28px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 4px;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Your LifeLine ID</p>
+                    <p style="margin:0 0 12px;color:#92400e;font-size:18px;font-weight:bold;">{{lifelineId}}</p>
+                    <p style="margin:0 0 4px;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Renewal Amount</p>
+                    <p style="margin:0;color:#92400e;font-size:18px;font-weight:bold;">₦{{amount}} / month</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA button -->
+              <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+                <tr>
+                  <td style="background:#f59e0b;border-radius:6px;">
+                    <a href="{{renewalLink}}"
+                       style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;border-radius:6px;">
+                      Renew Now
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;">
+                If you have any questions about your plan, reply to this email or contact our support team.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e2e8f0;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">
+                &copy; {{year}} LifeLine Pro &bull; All rights reserved
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

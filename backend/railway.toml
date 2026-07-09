@@ -11,3 +11,16 @@ healthcheckPath = "/ping"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+
+# ── GitHub auto-deploy ────────────────────────────────────────────────────────
+# To enable GitHub auto-deploy (so every push to main redeploys the backend):
+#
+# 1. Go to railway.app → your project → lifeline-pro service → Settings
+# 2. Click "Connect Repo" under Source
+# 3. Select: akornuche/LIFELINE-Pro
+# 4. Branch: main
+# 5. Root Directory: backend
+# 6. Save — Railway will now redeploy on every push to main
+#
+# Until then, redeploy manually via:
+#   railway up ./backend --path-as-root --service 4e383694-ea44-4f4e-a732-30de3fba6232 --detach
