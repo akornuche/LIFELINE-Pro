@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import config from '../config/index.js';
 import logger from './logger.js';
 
@@ -23,6 +24,9 @@ class JWTManager {
           expiresIn: config.jwt.expiresIn,
           issuer: 'lifeline-pro',
           audience: 'lifeline-api',
+          // Unique token ID prevents two tokens signed in the same second
+          // from being byte-identical (which would break per-token blacklisting).
+          jwtid: randomUUID(),
         }
       );
 
@@ -53,6 +57,8 @@ class JWTManager {
           expiresIn: config.jwt.refreshExpiresIn,
           issuer: 'lifeline-pro',
           audience: 'lifeline-api',
+          // Unique token ID — same reason as access token above.
+          jwtid: randomUUID(),
         }
       );
 

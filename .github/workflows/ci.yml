@@ -64,7 +64,9 @@ jobs:
         run: npm ci
 
       - name: SQLite integration tests
-        run: npx jest --testPathPattern=tests/integration --testPathIgnorePatterns="adapter.contract.pg|pg.boolean.roundtrip" --forceExit
+        run: npx jest --testPathPattern=tests/integration --testPathIgnorePatterns="adapter.contract.pg|pg.boolean.roundtrip" --runInBand --forceExit
+        # --runInBand: run serially. CI runners have only 2 cores; running 12
+        # DB-backed suites in parallel causes SQLite contention + timeouts.
 
   # ── Job 3: PostgreSQL adapter contract tests ─────────────────────────────────
   pg-contract:
