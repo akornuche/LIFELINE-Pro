@@ -1,10 +1,21 @@
 name: CI
 
 on:
+  # Only run when actual application code changes — not for docs, config,
+  # markdown, or workflow-only edits. Keeps CI quiet.
   push:
-    branches: [main, develop]
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+  # Allow running the pipeline by hand from the Actions tab whenever needed.
+  workflow_dispatch:
 
 # Cancel any in-progress run on the same branch when a new push arrives.
 concurrency:
