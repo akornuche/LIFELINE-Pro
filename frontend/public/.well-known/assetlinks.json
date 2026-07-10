@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lifelinepro.app",
+      "sha256_cert_fingerprints": [
+        "32:57:78:98:52:1A:19:6C:F3:0C:AC:41:19:06:9D:1D:31:A5:8A:31:8E:CD:48:FA:09:FF:B2:16:6C:CE:26:BD"
+      ]
+    }
+  }
+]

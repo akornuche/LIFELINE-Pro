@@ -1,0 +1,63 @@
+{
+  "packageId": "com.lifelinepro.app",
+  "host": "lifeline-pro-frontend.vercel.app",
+  "name": "LifeLine",
+  "launcherName": "LifeLine",
+  "display": "standalone",
+  "themeColor": "#10b981",
+  "navigationColor": "#10b981",
+  "navigationColorDark": "#059669",
+  "navigationDividerColor": "#10b981",
+  "navigationDividerColorDark": "#059669",
+  "backgroundColor": "#ffffff",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://lifeline-pro-frontend.vercel.app/icons/icon-512x512.png",
+  "maskableIconUrl": "https://lifeline-pro-frontend.vercel.app/icons/icon-maskable-512x512.png",
+  "monochromeIconUrl": "https://lifeline-pro-frontend.vercel.app/icons/icon-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android-signing-key.keystore",
+    "alias": "android"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "shortName": "Dashboard",
+      "url": "/",
+      "icons": [
+        {
+          "src": "https://lifeline-pro-frontend.vercel.app/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Find a Doctor",
+      "shortName": "Doctors",
+      "url": "/patient/find-doctor",
+      "icons": [
+        {
+          "src": "https://lifeline-pro-frontend.vercel.app/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://lifeline-pro-frontend.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://lifeline-pro-frontend.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": []
+}
