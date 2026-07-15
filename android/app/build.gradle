@@ -41,6 +41,8 @@ android {
 dependencies {
     // Trusted Web Activity support
     implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
-    // AppCompat needed for Theme.AppCompat styles
+    // AppCompat — provides Theme.AppCompat and colorPrimary/colorAccent attrs
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    // Material Components — not required for TWA but satisfies transitive deps
+    implementation 'com.google.android.material:material:1.11.0'
 }

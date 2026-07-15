@@ -1,22 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        Launch theme — shown while the splash screen fades in.
-        Uses MaterialComponents so colorPrimary etc. are always available.
+        TWA apps do not need a rich theme — the entire UI is the web page.
+        Using Theme.AppCompat.Light.NoActionBar (provided by appcompat:1.6.1).
     -->
-    <style name="LaunchTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="LaunchTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/backgroundColor</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
         <item name="android:statusBarColor">@color/colorPrimary</item>
         <item name="android:navigationBarColor">@color/colorPrimary</item>
     </style>
 
-    <!-- App theme (fallback) -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/backgroundColor</item>
     </style>
 </resources>
