@@ -26,10 +26,6 @@
             android:exported="true">
 
             <meta-data
-                android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                android:value="https://lifeline-pro-frontend.vercel.app/" />
-
-            <meta-data
                 android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
                 android:value="customtabs" />
 
