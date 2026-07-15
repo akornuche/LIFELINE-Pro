@@ -47,6 +47,7 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
+        shell: bash
 
       # ── Decode signing keystore from GitHub Secret ─────────────────────────
       # Store the keystore as a base64 secret in GitHub:
