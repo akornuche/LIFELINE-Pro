@@ -4,6 +4,21 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!--
+        Android 11+ (API 30) package visibility restriction:
+        without this, PackageManager cannot see installed browsers (e.g. Chrome),
+        causing androidbrowserhelper's TWA provider lookup to fail and the app to
+        crash on launch even when a compatible browser is installed.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <package android:name="com.android.chrome" />
+    </queries>
+
     <application
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
