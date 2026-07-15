@@ -1,14 +1,44 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Sidebar (fixed) -->
-    <aside class="fixed top-0 left-0 h-screen w-64 bg-white shadow-sm z-30 flex flex-col">
+    <!-- Mobile sidebar backdrop -->
+    <transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-300"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        @click="sidebarOpen = false"
+      />
+    </transition>
+
+    <!-- Sidebar -->
+    <aside
+      :class="[
+        'fixed top-0 left-0 h-screen w-64 bg-white shadow-sm z-50 flex flex-col transition-transform duration-300',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      ]"
+    >
       <div class="h-full flex flex-col">
-        <!-- Logo -->
-        <div class="px-6 py-5 border-b">
-          <RouterLink to="/" class="block mb-1">
-            <img src="/logo-bg.svg" alt="LifeLine" class="h-8 w-auto" />
-          </RouterLink>
-          <p class="text-xs text-gray-500 mt-1">Patient Portal</p>
+        <!-- Logo + close button on mobile -->
+        <div class="px-6 py-5 border-b flex items-center justify-between">
+          <div>
+            <RouterLink to="/" class="block mb-1">
+              <img src="/logo-bg.svg" alt="LifeLine" class="h-8 w-auto" />
+            </RouterLink>
+            <p class="text-xs text-gray-500 mt-1">Patient Portal</p>
+          </div>
+          <button
+            @click="sidebarOpen = false"
+            class="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            aria-label="Close menu"
+          >
+            <XMarkIcon class="h-5 w-5" />
+          </button>
         </div>
 
         <!-- Navigation -->
@@ -17,6 +47,7 @@
             v-for="item in navigation"
             :key="item.name"
             :to="item.to"
+            @click="sidebarOpen = false"
             class="flex items-center px-4 py-3 rounded-lg transition-colors"
             :class="[
               isLocked(item) ? 'opacity-40 cursor-not-allowed filter grayscale pointer-events-none' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
@@ -57,18 +88,28 @@
       </div>
     </aside>
 
-    <!-- Main area offset by sidebar width -->
-    <div class="ml-64 flex flex-col min-h-screen">
+    <!-- Main area offset by sidebar width on desktop -->
+    <div class="lg:ml-64 flex flex-col min-h-screen">
       <!-- Top Header (sticky) -->
-      <header class="sticky top-0 bg-white shadow-sm h-16 flex items-center justify-between px-6 z-20 flex-shrink-0">
-        <!-- Public site nav links -->
-        <nav class="flex items-center gap-6 text-sm font-medium text-neutral-500">
+      <header class="sticky top-0 bg-white shadow-sm h-16 flex items-center justify-between px-4 sm:px-6 z-20 flex-shrink-0">
+        <!-- Mobile hamburger -->
+        <button
+          @click="sidebarOpen = true"
+          class="lg:hidden p-2 -ml-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+          aria-label="Open menu"
+        >
+          <Bars3Icon class="h-6 w-6" />
+        </button>
+
+        <!-- Public site nav links (hidden on mobile) -->
+        <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-neutral-500">
           <RouterLink to="/" class="hover:text-primary-500 transition-colors">Home</RouterLink>
           <RouterLink to="/services" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">Services</RouterLink>
           <RouterLink to="/about" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">About</RouterLink>
           <RouterLink to="/pricing" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">Plans</RouterLink>
           <RouterLink to="/contact" class="hover:text-primary-500 transition-colors" active-class="!text-primary-500">Contact</RouterLink>
         </nav>
+
         <!-- Profile Dropdown -->
         <Menu as="div" class="relative">
           <MenuButton class="flex items-center hover:opacity-80 transition-opacity focus:outline-none">
@@ -76,7 +117,7 @@
               <img v-if="authStore.user?.profile_picture || authStore.user?.profile_image_url" :src="authStore.user.profile_picture || authStore.user.profile_image_url" class="h-full w-full object-cover" />
               <span v-else class="text-primary-600 font-semibold text-sm">{{ userInitials }}</span>
             </div>
-            <span class="text-sm font-medium text-gray-700 mr-1">{{ authStore.userName }}</span>
+            <span class="hidden sm:inline text-sm font-medium text-gray-700 mr-1">{{ authStore.userName }}</span>
             <ChevronDownIcon class="h-4 w-4 text-gray-500" />
           </MenuButton>
           
@@ -116,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner.vue';
 import { useRouter } from 'vue-router';
@@ -133,13 +174,16 @@ import {
   CogIcon,
   LockClosedIcon,
   ChevronDownIcon,
-  QueueListIcon
+  QueueListIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const patientStore = usePatientStore();
+const sidebarOpen = ref(false);
 
 const navigation = [
   { name: 'Dashboard', to: '/patient', icon: HomeIcon, always: false },

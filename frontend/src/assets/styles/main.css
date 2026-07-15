@@ -5,14 +5,54 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Prevent pull-to-refresh on mobile (avoids accidental page reload) */
+    overscroll-behavior-y: contain;
+    /* Prevent horizontal bleed/scroll from slightly oversized elements */
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-gray-50 text-gray-900;
+    /* Native-like touch: fast tap, smooth momentum scroll */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-overflow-scrolling: touch;
+    /* Prevent text selection on UI elements (app-like feel) */
+    -webkit-user-select: none;
+    user-select: none;
+    /* Prevent horizontal bleed */
+    overflow-x: hidden;
+  }
+
+  /* Allow text selection in content areas */
+  p, span, h1, h2, h3, h4, h5, h6, li, td, th, label, input, textarea, pre, code, article {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   * {
     @apply border-gray-200;
+    /* Prevent iOS font size adjustments on orientation change */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Smooth momentum scrolling on all scrollable containers */
+  [class*="overflow-y-auto"],
+  [class*="overflow-x-auto"],
+  main {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Ensure touch targets are at least 44px (WCAG/mobile best practice) */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Exception for inline/small elements that shouldn't be forced large */
+  .btn-sm, nav a, nav button, [class*="text-xs"] a {
+    min-height: unset;
+    min-width: unset;
   }
 }
 
