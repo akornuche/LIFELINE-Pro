@@ -28,7 +28,7 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix ".debug"
+            // No applicationIdSuffix — keep package name matching assetlinks.json
             versionNameSuffix "-debug"
         }
         release {
