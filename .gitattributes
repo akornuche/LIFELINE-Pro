@@ -1,0 +1,9 @@
+# Keep shell scripts as LF on all platforms (critical for Linux CI runners)
+android/gradlew text eol=lf
+*.sh             text eol=lf
+
+# Windows batch files stay CRLF
+*.bat            text eol=crlf
+
+# Everything else — auto
+*                text=auto
