@@ -69,11 +69,11 @@ class SchedulerService {
   async resetAssignmentCounters() {
     try {
       const { default: database } = await import('../database/connection.js');
+      // Compute 30-day cutoff in JavaScript (works on both SQLite and PostgreSQL)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const result = await database.query(
-        `DELETE FROM provider_assignment_counters WHERE id IN (
-          SELECT pac.id FROM provider_assignment_counters pac
-          WHERE pac.last_assigned_at < NOW() - INTERVAL '30 days'
-        )`
+        `DELETE FROM provider_assignment_counters WHERE last_assigned_at < $1`,
+        [thirtyDaysAgo]
       );
       logger.info('Assignment counters reset for inactive providers', { affected: result.rowCount || 0 });
     } catch (error) {
