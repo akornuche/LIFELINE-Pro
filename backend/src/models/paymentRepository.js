@@ -158,6 +158,8 @@ export const findRecentPendingPayment = async (patientId, amount, paymentType) =
   try {
     // Compute the cutoff timestamp in JavaScript so the query works on both
     // SQLite (no INTERVAL support) and PostgreSQL.
+    // Date.now() and toISOString() are always UTC, matching the UTC values
+    // stored by CURRENT_TIMESTAMP in both SQLite and PostgreSQL.
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
       .toISOString()
       .replace('T', ' ')
