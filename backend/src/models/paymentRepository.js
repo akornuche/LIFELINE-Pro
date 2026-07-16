@@ -156,16 +156,22 @@ export const findPaymentByIdempotencyKey = async (idempotencyKey) => {
  */
 export const findRecentPendingPayment = async (patientId, amount, paymentType) => {
   try {
+    // Compute the cutoff timestamp in JavaScript so the query works on both
+    // SQLite (no INTERVAL support) and PostgreSQL.
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+      .toISOString()
+      .replace('T', ' ')
+      .slice(0, 19);
     const result = await database.query(
       `SELECT * FROM payment_records
        WHERE patient_id = $1
          AND amount = $2
          AND payment_type = $3
          AND status = 'pending'
-         AND created_at > NOW() - INTERVAL '5 minutes'
+         AND created_at > $4
        ORDER BY created_at DESC
        LIMIT 1`,
-      [patientId, amount, paymentType]
+      [patientId, amount, paymentType, fiveMinutesAgo]
     );
     return result.rows[0] || null;
   } catch (error) {
