@@ -481,9 +481,11 @@ export const hospitalService = {
  * Payment Service
  */
 export const paymentService = {
-  // Initialize payment
-  initializePayment(data) {
-    return apiClient.post('/payments/initialize', data);
+  // Initialize payment (with idempotency key to prevent double-charging)
+  initializePayment(data, idempotencyKey) {
+    return apiClient.post('/payments/initialize', data, {
+      headers: idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {},
+    });
   },
 
   // Verify payment

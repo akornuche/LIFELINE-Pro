@@ -15,8 +15,13 @@ import logger from '../utils/logger.js';
 export const initializePayment = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    // Extract idempotency key from header (client generates a UUID per payment attempt)
+    const idempotencyKey = req.headers['x-idempotency-key'] || null;
 
-    const result = await paymentService.initializePayment(userId, req.body);
+    const result = await paymentService.initializePayment(userId, {
+      ...req.body,
+      idempotencyKey,
+    });
 
     return successResponse(res, result, 'Payment initialized successfully', 201);
   } catch (error) {

@@ -135,6 +135,46 @@ export const findPaymentByReference = async (paymentReference) => {
 };
 
 /**
+ * Find payment by idempotency key (stored in metadata JSON)
+ */
+export const findPaymentByIdempotencyKey = async (idempotencyKey) => {
+  try {
+    const result = await database.query(
+      `SELECT * FROM payment_records WHERE metadata::text LIKE $1 AND status IN ('pending', 'completed') ORDER BY created_at DESC LIMIT 1`,
+      [`%"idempotencyKey":"${idempotencyKey}"%`]
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error finding payment by idempotency key', { error: error.message, idempotencyKey });
+    throw error;
+  }
+};
+
+/**
+ * Find recent pending payment for the same patient + amount + type (within 5 minutes)
+ * Prevents duplicate charges when user retries after a network drop
+ */
+export const findRecentPendingPayment = async (patientId, amount, paymentType) => {
+  try {
+    const result = await database.query(
+      `SELECT * FROM payment_records
+       WHERE patient_id = $1
+         AND amount = $2
+         AND payment_type = $3
+         AND status = 'pending'
+         AND created_at > NOW() - INTERVAL '5 minutes'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [patientId, amount, paymentType]
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error finding recent pending payment', { error: error.message, patientId });
+    throw error;
+  }
+};
+
+/**
  * Update payment status
  */
 export const updatePaymentStatus = async (paymentId, status, gatewayResponse = null) => {

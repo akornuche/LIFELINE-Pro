@@ -38,7 +38,7 @@ const getProviderIdByUserId = async (userId) => {
  * Initialize payment
  */
 export const initializePayment = async (userId, paymentData) => {
-  const { amount, paymentMethod, paymentType, description, metadata = null } = paymentData;
+  const { amount, paymentMethod, paymentType, description, metadata = null, idempotencyKey = null } = paymentData;
 
   try {
     // Get patient
@@ -46,6 +46,58 @@ export const initializePayment = async (userId, paymentData) => {
 
     if (!patient) {
       throw new NotFoundError('Patient profile');
+    }
+
+    // ── Idempotency guard: prevent double-charging ──────────────────────
+    // If client sent an idempotency key, check if we already processed it
+    if (idempotencyKey) {
+      const existingPayment = await paymentRepository.findPaymentByIdempotencyKey(idempotencyKey);
+      if (existingPayment) {
+        logger.info('Idempotent payment request — returning existing record', {
+          userId,
+          idempotencyKey,
+          paymentId: existingPayment.id,
+          status: existingPayment.status,
+        });
+        // Return the existing payment (don't charge again)
+        const user = await userRepository.findById(userId);
+        const gatewayResponse = await paystack.initializeTransaction({
+          email: user.email,
+          amount: existingPayment.amount,
+          reference: existingPayment.payment_reference,
+          metadata: { paymentId: existingPayment.id, patientId: patient.id, paymentType: existingPayment.payment_type },
+        });
+        return {
+          payment: existingPayment,
+          paymentReference: existingPayment.payment_reference,
+          authorizationUrl: gatewayResponse.authorization_url,
+          accessCode: gatewayResponse.access_code,
+        };
+      }
+    }
+
+    // Also check for recent pending payment with same user + amount + type (within 5 min)
+    // to catch cases where idempotency key wasn't sent (e.g. browser refresh)
+    const recentPending = await paymentRepository.findRecentPendingPayment(patient.id, amount, paymentType);
+    if (recentPending) {
+      logger.info('Recent pending payment found — reusing instead of creating duplicate', {
+        userId,
+        paymentId: recentPending.id,
+        paymentReference: recentPending.payment_reference,
+      });
+      const user = await userRepository.findById(userId);
+      const gatewayResponse = await paystack.initializeTransaction({
+        email: user.email,
+        amount: recentPending.amount,
+        reference: recentPending.payment_reference,
+        metadata: { paymentId: recentPending.id, patientId: patient.id, paymentType },
+      });
+      return {
+        payment: recentPending,
+        paymentReference: recentPending.payment_reference,
+        authorizationUrl: gatewayResponse.authorization_url,
+        accessCode: gatewayResponse.access_code,
+      };
     }
 
     // Generate payment reference
@@ -59,7 +111,7 @@ export const initializePayment = async (userId, paymentData) => {
       paymentType,
       paymentReference,
       description,
-      metadata,
+      metadata: { ...(metadata || {}), idempotencyKey },
       status: 'pending',
     });
 
@@ -69,6 +121,7 @@ export const initializePayment = async (userId, paymentData) => {
       paymentId: payment.id,
       amount,
       paymentType,
+      idempotencyKey,
     });
 
     // Initialize with Paystack gateway (returns mock when not enabled)
@@ -90,6 +143,7 @@ export const initializePayment = async (userId, paymentData) => {
     logger.error('Initialize payment error', {
       error: error.message,
       userId,
+      idempotencyKey,
     });
     throw error;
   }

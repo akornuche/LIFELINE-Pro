@@ -337,6 +337,7 @@ const { confirm } = useConfirm();
 
 const resendingVerification = ref(false);
 const verificationResent = ref(false);
+const paymentProcessing = ref(false);
 
 const handleResendVerification = async () => {
   if (resendingVerification.value || verificationResent.value) return;
@@ -413,6 +414,9 @@ const selectPlan = async (packageType) => {
     return;
   }
 
+  // Prevent double-click / re-submission
+  if (paymentProcessing.value) return;
+
   const isRenewal = patientStore.hasActiveSubscription;
   const amount = packagePrices[packageType];
   
@@ -424,8 +428,15 @@ const selectPlan = async (packageType) => {
   });
   
   if (!confirmed) return;
+
+  paymentProcessing.value = true;
   
   try {
+    // Generate a unique idempotency key for this specific payment attempt
+    // This ensures that even if the request is retried (network timeout, user refresh),
+    // only one payment record is created on the backend
+    const idempotencyKey = crypto.randomUUID();
+
     // Initialize Paystack payment
     const response = await paymentService.initializePayment({
       amount,
@@ -433,7 +444,7 @@ const selectPlan = async (packageType) => {
       paymentType: 'subscription',
       description: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} subscription plan`,
       metadata: { packageType, isRenewal },
-    });
+    }, idempotencyKey);
 
     const { authorizationUrl, paymentReference } = response.data || response;
 
@@ -452,6 +463,7 @@ const selectPlan = async (packageType) => {
   } catch (err) {
     console.error('Payment error:', err);
     showError(err.response?.data?.message || 'Payment initialization failed. Please try again.');
+    paymentProcessing.value = false;
   }
 };
 
