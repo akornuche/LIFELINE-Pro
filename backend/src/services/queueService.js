@@ -356,11 +356,25 @@ export const completeRequest = async (requestId, providerId, consultationId = nu
   // Determine the charge based on the service type and patient's package
   // This uses the pricing table - patients don't pay, but providers get compensated
   const { default: pricingRepository } = await import('../models/pricingRepository.js');
-  const pricing = await pricingRepository.getSpecificPricing(request.service_type, patient.current_package);
   
-  // Use the provider_share from pricing as the provider's earning
-  const providerShare = pricing.provider_share;
-  const platformFee = pricing.platform_fee;
+  let providerShare = 0;
+  let platformFee = 0;
+  let pricingDescription = `${request.service_type} service`;
+
+  try {
+    const pricing = await pricingRepository.getSpecificPricing(request.service_type, patient.current_package);
+    providerShare = pricing.provider_share;
+    platformFee = pricing.platform_fee;
+    pricingDescription = pricing.description || pricingDescription;
+  } catch (pricingErr) {
+    // If pricing not configured for this service/package combo, log warning
+    // but still complete the request — admin can reconcile manually
+    logger.warn('No pricing configured for service — payment record will have zero amount', {
+      serviceType: request.service_type,
+      packageType: patient.current_package,
+      error: pricingErr.message,
+    });
+  }
 
   // Create a payment record for this completed service
   const paymentReference = `SVC_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`;
@@ -373,7 +387,7 @@ export const completeRequest = async (requestId, providerId, consultationId = nu
     paymentMethod: 'subscription',
     paymentType: request.service_type,
     paymentReference,
-    description: `${request.service_type} service for ${patient.lifeline_id} - ${pricing.description}`,
+    description: `${request.service_type} service for ${patient.lifeline_id} - ${pricingDescription}`,
     status: 'completed',
     metadata: {
       serviceRequestId: request.id,

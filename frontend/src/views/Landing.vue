@@ -262,7 +262,7 @@
           <!-- Left: Doctor Image -->
           <div class="flex justify-center lg:justify-start">
             <div class="rounded-3xl overflow-hidden max-w-md">
-              <img src="/doctor-consult.png" alt="Doctor consultation" class="w-full h-auto object-cover" />
+              <img src="/doctor-consult.jpg" alt="Doctor consultation" class="w-full h-auto object-cover" />
             </div>
           </div>
 

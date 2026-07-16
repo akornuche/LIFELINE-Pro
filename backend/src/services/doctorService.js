@@ -2,6 +2,9 @@ import * as doctorRepository from '../models/doctorRepository.js';
 import * as userRepository from '../models/userRepository.js';
 import * as medicalRecordsRepository from '../models/medicalRecordsRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import * as pricingRepository from '../models/pricingRepository.js';
+import * as paymentRepository from '../models/paymentRepository.js';
+import database from '../database/connection.js';
 import entitlementChecker from '../utils/entitlementChecker.js';
 import { SERVICE_TYPES } from '../constants/packages.js';
 import * as paymentService from './paymentService.js';
@@ -319,6 +322,7 @@ export const createConsultation = async (userId, consultationData) => {
 
 /**
  * Update consultation
+ * Creates payment record when consultation is completed with total_cost
  */
 export const updateConsultation = async (userId, consultationId, updateData) => {
   try {
@@ -329,6 +333,44 @@ export const updateConsultation = async (userId, consultationId, updateData) => 
 
     if (consultation.doctor_id !== doctor.id) {
       throw new BusinessLogicError('Unauthorized to update this consultation');
+    }
+
+    // Check if total_cost is being set and create payment record
+    if (updateData.total_cost && !isNaN(parseFloat(updateData.total_cost)) && parseFloat(updateData.total_cost) > 0) {
+      // Get patient info
+      const patient = await patientRepository.findById(consultation.patient_id);
+      if (!patient) {
+        throw new NotFoundError('Patient');
+      }
+
+      // Create payment record
+      const paymentReference = `CONS_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`;
+      
+      await paymentRepository.createPayment({
+        patientId: consultation.patient_id,
+        providerId: doctor.id,
+        providerType: 'doctor',
+        amount: parseFloat(updateData.total_cost),
+        paymentMethod: 'cash',
+        paymentType: 'consultation',
+        paymentReference,
+        description: `Consultation for ${patient.lifeline_id}`,
+        status: 'completed',
+        metadata: {
+          consultationId: consultation.id,
+          patientPackage: patient.current_package,
+          platformFee: 0, // Cash payment - no platform fee
+          providerShare: parseFloat(updateData.total_cost),
+        },
+      });
+
+      logger.info('Consultation payment record created', {
+        consultationId: consultation.id,
+        paymentReference,
+        patientId: consultation.patient_id,
+        doctorId: doctor.id,
+        amount: parseFloat(updateData.total_cost),
+      });
     }
 
     const updated = await medicalRecordsRepository.updateConsultation(consultationId, updateData);

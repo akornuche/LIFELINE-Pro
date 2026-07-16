@@ -636,12 +636,10 @@ export const generateStatement = async (providerId, providerType, month, year) =
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
     // Calculate totals from payment_records (completed services with provider_charge)
-    // and also include service_requests that were completed
     const result = await database.query(
       `SELECT 
         COUNT(DISTINCT pr.id) as transaction_count,
-        COALESCE(SUM(pr.amount), 0) as total_amount,
-        COALESCE(SUM(pr.metadata->>'platformFee')::DECIMAL, 0) as total_platform_fee
+        COALESCE(SUM(pr.amount), 0) as total_amount
        FROM payment_records pr
        WHERE pr.provider_id = $1
          AND pr.status = 'completed'
@@ -649,11 +647,31 @@ export const generateStatement = async (providerId, providerType, month, year) =
       [providerId, startDate, endDate]
     );
 
-    const { transaction_count, total_amount, total_platform_fee } = result.rows[0];
+    const { transaction_count, total_amount } = result.rows[0];
 
-    // Platform fee is now stored per-service in payment_records.metadata
-    // No hardcoded 10% formula — use the actual platform_fee from pricing table
-    const netAmount = parseFloat(total_amount) - parseFloat(total_platform_fee);
+    // Get individual records to extract platform fees from metadata (stored as JSON text)
+    const detailResult = await database.query(
+      `SELECT pr.metadata
+       FROM payment_records pr
+       WHERE pr.provider_id = $1
+         AND pr.status = 'completed'
+         AND pr.created_at BETWEEN $2 AND $3
+         AND pr.metadata IS NOT NULL`,
+      [providerId, startDate, endDate]
+    );
+
+    // Sum platform fees from metadata JSON
+    let totalPlatformFee = 0;
+    for (const row of detailResult.rows) {
+      try {
+        const meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+        if (meta && meta.platformFee) {
+          totalPlatformFee += parseFloat(meta.platformFee) || 0;
+        }
+      } catch { /* skip unparseable metadata */ }
+    }
+
+    const netAmount = parseFloat(total_amount) - totalPlatformFee;
 
     // Create statement
     return await createMonthlyStatement({
@@ -663,7 +681,7 @@ export const generateStatement = async (providerId, providerType, month, year) =
       year,
       totalAmount: parseFloat(total_amount),
       transactionCount: parseInt(transaction_count, 10),
-      platformFee: parseFloat(total_platform_fee),
+      platformFee: totalPlatformFee,
       netAmount,
     });
   } catch (error) {

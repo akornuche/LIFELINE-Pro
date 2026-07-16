@@ -10,6 +10,7 @@ import database from './database/connection.js';
 import DatabaseInitializer from './database/init.js';
 import { initializeSocketIO } from './services/socketService.js';
 import paymentReminderService from './services/paymentReminderService.js';
+import schedulerService from './services/schedulerService.js';
 
 const PORT = process.env.PORT || 5000;
 

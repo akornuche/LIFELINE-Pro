@@ -537,7 +537,7 @@ export const resendEmailVerification = async (userId) => {
       '24h'
     );
 
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${verificationToken}`;
 
     // Attempt to send verification email
     const emailResult = await sendEmail({

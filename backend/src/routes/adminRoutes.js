@@ -1167,4 +1167,38 @@ router.put('/settings', auditAdmin('config_change'), async (req, res, next) => {
     }
 });
 
+/**
+ * @route   GET /api/admin/reconciliation
+ * @desc    Get financial reconciliation (subscriptions vs payouts vs platform fees)
+ * @access  Private (Admin)
+ */
+router.get('/reconciliation', authenticate, checkRole('admin'), async (req, res, next) => {
+  try {
+    const { month, year } = req.query;
+    const { getReconciliation } = await import('../services/paymentService.js');
+    const reconciliation = await getReconciliation(parseInt(month) || null, parseInt(year) || null);
+    return successResponse(res, reconciliation, 'Reconciliation data retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/admin/patient-monthly-report/:patientId
+ * @desc    Get patient's monthly service consumption report
+ * @access  Private (Admin)
+ */
+router.get('/patient-monthly-report/:patientId', authenticate, checkRole('admin'), async (req, res, next) => {
+  try {
+    const { patientId } = req.params;
+    const { month, year } = req.query;
+    const { getPatientMonthlyReport } = await import('../services/paymentService.js');
+    const report = await getPatientMonthlyReport(patientId, parseInt(month) || null, parseInt(year) || null);
+    return successResponse(res, report, 'Patient monthly report retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+

@@ -220,3 +220,4 @@ router.post(
 router.get('/:doctorId', doctorController.getDoctorById);
 
 export default router;
+
