@@ -85,6 +85,9 @@ const startServer = async () => {
       if (process.env.ENABLE_CRON_JOBS === 'true') {
         paymentReminderService.initialize();
         logger.info('Payment reminder service started');
+        
+        schedulerService.initialize();
+        logger.info('Scheduler service started');
       }
 
       if (process.env.NODE_ENV === 'development') {

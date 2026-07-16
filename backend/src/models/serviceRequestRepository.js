@@ -221,14 +221,16 @@ export const updateStatus = async (id, status, additionalData = {}) => {
 
 /**
  * Get verified providers in a city (for round-robin assignment)
+ * Falls back to same state if no providers in exact city
  */
 export const getVerifiedProvidersByCity = async (city, providerType) => {
   try {
+    // First try exact city match
     let query;
     if (providerType === 'doctor') {
       query = `
         SELECT d.id as provider_id, u.id as user_id,
-               u.email, u.first_name,
+               u.email, u.first_name, u.city, u.state,
                d.specialization,
                u.first_name || ' ' || u.last_name as provider_name,
                COALESCE(pac.assignment_count, 0) as assignment_count
@@ -242,7 +244,7 @@ export const getVerifiedProvidersByCity = async (city, providerType) => {
     } else if (providerType === 'pharmacy') {
       query = `
         SELECT ph.id as provider_id, u.id as user_id,
-               u.email, u.first_name,
+               u.email, u.first_name, u.city, u.state,
                ph.pharmacy_name as provider_name,
                COALESCE(pac.assignment_count, 0) as assignment_count
         FROM pharmacies ph
@@ -255,7 +257,7 @@ export const getVerifiedProvidersByCity = async (city, providerType) => {
     } else if (providerType === 'hospital') {
       query = `
         SELECT h.id as provider_id, u.id as user_id,
-               u.email, u.first_name,
+               u.email, u.first_name, u.city, u.state,
                h.hospital_name as provider_name,
                COALESCE(pac.assignment_count, 0) as assignment_count
         FROM hospitals h
@@ -268,9 +270,79 @@ export const getVerifiedProvidersByCity = async (city, providerType) => {
     }
 
     const result = await database.query(query, [city]);
+    
+    // If no providers found in exact city, try state-level fallback
+    if (result.rows.length === 0) {
+      logger.info('No providers found in city, falling back to state-level search', { city, providerType });
+      
+      // Get the state from the city (if we have it)
+      const cityInfo = await database.query(
+        `SELECT DISTINCT state FROM users WHERE city = $1 AND state IS NOT NULL LIMIT 1`,
+        [city]
+      );
+      
+      if (cityInfo.rows[0]) {
+        const state = cityInfo.rows[0].state;
+        logger.info('Falling back to state-level search', { state });
+        
+        // Use the same query but change WHERE u.city = $1 to WHERE u.state = $1
+        // Rebuild queries with state filter
+        const stateQuery = query.replace('u.city = $1', 'u.state = $1');
+        const stateResult = await database.query(stateQuery, [state]);
+        
+        if (stateResult.rows.length > 0) {
+          logger.info('Found providers in state', { state, count: stateResult.rows.length });
+          return stateResult.rows;
+        }
+      }
+    }
+
     return result.rows;
   } catch (error) {
     logger.error('Error getting verified providers', { error: error.message, city, providerType });
+    throw error;
+  }
+};
+
+/**
+ * Find requests stuck in 'assigned' status for > cutoff time
+ */
+export const findStaleAssignedRequests = async (cutoffDate) => {
+  try {
+    const result = await database.query(
+      `SELECT sr.*, u.first_name || ' ' || u.last_name as patient_name
+       FROM service_requests sr
+       JOIN patients p ON sr.patient_id = p.id
+       JOIN users u ON p.user_id = u.id
+       WHERE sr.status = 'assigned'
+         AND sr.assigned_at < $1
+       ORDER BY sr.assigned_at ASC`,
+      [cutoffDate]
+    );
+    return result.rows;
+  } catch (error) {
+    logger.error('Error finding stale assigned requests', { error: error.message, cutoffDate });
+    throw error;
+  }
+};
+
+/**
+ * Get active (pending/assigned) requests for a provider
+ * Used to check if provider has capacity before assigning new requests
+ */
+export const getProviderActiveRequests = async (providerId, providerType) => {
+  try {
+    const result = await database.query(
+      `SELECT COUNT(*) as count
+       FROM service_requests
+       WHERE assigned_provider_id = $1
+         AND provider_type = $2
+         AND status IN ('assigned', 'accepted', 'in_progress')`,
+      [providerId, providerType]
+    );
+    return parseInt(result.rows[0].count, 10) || 0;
+  } catch (error) {
+    logger.error('Error getting provider active requests', { error: error.message, providerId });
     throw error;
   }
 };

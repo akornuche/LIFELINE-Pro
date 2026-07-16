@@ -632,26 +632,28 @@ export const getPendingStatements = async (options = {}) => {
  */
 export const generateStatement = async (providerId, providerType, month, year) => {
   try {
-    // Calculate totals for the period
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
+    // Calculate totals from payment_records (completed services with provider_charge)
+    // and also include service_requests that were completed
     const result = await database.query(
       `SELECT 
-        COUNT(*) as transaction_count,
-        COALESCE(SUM(amount), 0) as total_amount
-       FROM payment_records
-       WHERE provider_id = $1
-         AND status = 'completed'
-         AND created_at BETWEEN $2 AND $3`,
+        COUNT(DISTINCT pr.id) as transaction_count,
+        COALESCE(SUM(pr.amount), 0) as total_amount,
+        COALESCE(SUM(pr.metadata->>'platformFee')::DECIMAL, 0) as total_platform_fee
+       FROM payment_records pr
+       WHERE pr.provider_id = $1
+         AND pr.status = 'completed'
+         AND pr.created_at BETWEEN $2 AND $3`,
       [providerId, startDate, endDate]
     );
 
-    const { transaction_count, total_amount } = result.rows[0];
+    const { transaction_count, total_amount, total_platform_fee } = result.rows[0];
 
-    // Calculate platform fee (assume 10%)
-    const platformFee = parseFloat(total_amount) * 0.10;
-    const netAmount = parseFloat(total_amount) - platformFee;
+    // Platform fee is now stored per-service in payment_records.metadata
+    // No hardcoded 10% formula — use the actual platform_fee from pricing table
+    const netAmount = parseFloat(total_amount) - parseFloat(total_platform_fee);
 
     // Create statement
     return await createMonthlyStatement({
@@ -661,7 +663,7 @@ export const generateStatement = async (providerId, providerType, month, year) =
       year,
       totalAmount: parseFloat(total_amount),
       transactionCount: parseInt(transaction_count, 10),
-      platformFee,
+      platformFee: parseFloat(total_platform_fee),
       netAmount,
     });
   } catch (error) {

@@ -37,7 +37,13 @@ class PaymentReminderService {
     });
     this.jobs.push(gracePeriodJob);
 
-    logger.info('Payment Reminder Service initialized with 3 jobs');
+    // Generate monthly statements on the 1st of each month at midnight
+    const monthlyStatementJob = cron.schedule('0 0 1 * *', () => {
+      this.generateMonthlyStatements();
+    });
+    this.jobs.push(monthlyStatementJob);
+
+    logger.info('Payment Reminder Service initialized with 4 jobs');
   }
 
   /**
@@ -386,6 +392,103 @@ class PaymentReminderService {
   stopAll() {
     this.jobs.forEach(job => job.stop());
     logger.info('Payment Reminder Service stopped');
+  }
+
+  /**
+   * Generate monthly statements for all providers with activity
+   * Runs on the 1st of each month at midnight
+   */
+  async generateMonthlyStatements() {
+    try {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // 1-12
+      const currentYear = now.getFullYear();
+
+      // Calculate last month
+      let lastMonth = currentMonth - 1;
+      let lastYear = currentYear;
+      if (lastMonth < 1) {
+        lastMonth = 12;
+        lastYear = currentYear - 1;
+      }
+
+      logger.info('Generating monthly statements...', {
+        month: lastMonth,
+        year: lastYear,
+      });
+
+      // Get all providers (doctors, pharmacies, hospitals) with completed payments last month
+      const result = await database.query(
+        `SELECT DISTINCT provider_id, provider_type
+         FROM payment_records
+         WHERE status = 'completed'
+           AND created_at >= $1
+           AND created_at <= $2`,
+        [
+          new Date(lastYear, lastMonth - 1, 1),
+          new Date(lastYear, lastMonth, 0, 23, 59, 59),
+        ]
+      );
+
+      const providers = result.rows;
+      logger.info(`Found ${providers.length} providers with activity last month`);
+
+      for (const provider of providers) {
+        try {
+          const { provider_id, provider_type } = provider;
+          
+          // Check if statement already exists for this period
+          const existing = await database.query(
+            `SELECT id FROM monthly_statements
+             WHERE provider_id = $1
+               AND provider_type = $2
+               AND month = $3
+               AND year = $4`,
+            [provider_id, provider_type, lastMonth, lastYear]
+          );
+
+          if (existing.rows.length > 0) {
+            logger.info('Statement already exists, skipping', {
+              providerId: provider_id,
+              month: lastMonth,
+              year: lastYear,
+            });
+            continue;
+          }
+
+          // Generate the statement
+          const { default: paymentRepository } = await import('../models/paymentRepository.js');
+          const statement = await paymentRepository.generateStatement(
+            provider_id,
+            provider_type,
+            lastMonth,
+            lastYear
+          );
+
+          logger.info('Monthly statement generated', {
+            providerId: provider_id,
+            month: lastMonth,
+            year: lastYear,
+            statementId: statement.id,
+          });
+        } catch (providerErr) {
+          logger.error('Failed to generate statement for provider', {
+            provider_id: provider.provider_id,
+            error: providerErr.message,
+          });
+        }
+      }
+
+      logger.info('Monthly statement generation completed', {
+        month: lastMonth,
+        year: lastYear,
+      });
+    } catch (error) {
+      logger.error('Error generating monthly statements', {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
   }
 }
 

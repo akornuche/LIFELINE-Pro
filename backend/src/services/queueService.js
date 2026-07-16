@@ -1,5 +1,6 @@
 import * as serviceRequestRepository from '../models/serviceRequestRepository.js';
 import * as patientRepository from '../models/patientRepository.js';
+import * as paymentRepository from '../models/paymentRepository.js';
 import database from '../database/connection.js';
 import { notifyUser } from './socketService.js';
 import { sendEmail } from './emailService.js';
@@ -198,8 +199,33 @@ const assignProviderRoundRobin = async (requestId, city, providerType) => {
       return null;
     }
 
-    // First provider has the lowest assignment count (already sorted by query)
-    const selectedProvider = providers[0];
+    // Find the first provider with assignments below the max concurrent limit
+    // Max concurrent assignments per provider (configurable, default 10)
+    const maxConcurrentAssignments = parseInt(process.env.MAX_CONCURRENT_ASSIGNMENTS) || 10;
+
+    let selectedProvider = null;
+    for (const provider of providers) {
+      // Get current pending/assigned requests for this provider
+      const currentCount = await serviceRequestRepository.getProviderActiveRequests(
+        provider.provider_id,
+        providerType
+      );
+
+      if (currentCount < maxConcurrentAssignments) {
+        selectedProvider = provider;
+        break;
+      }
+    }
+
+    if (!selectedProvider) {
+      logger.warn('No available providers with capacity for assignment', {
+        requestId,
+        city,
+        providerType,
+        maxConcurrent: maxConcurrentAssignments,
+      });
+      return null;
+    }
 
     await serviceRequestRepository.updateStatus(requestId, 'assigned', {
       assignedProviderId: selectedProvider.provider_id,
@@ -305,6 +331,7 @@ export const startRequest = async (requestId, providerId) => {
 
 /**
  * Complete a service request
+ * Creates a payment record with the provider's charge (fee) when completed
  */
 export const completeRequest = async (requestId, providerId, consultationId = null) => {
   const request = await serviceRequestRepository.findById(requestId);
@@ -319,6 +346,51 @@ export const completeRequest = async (requestId, providerId, consultationId = nu
   if (!['accepted', 'in_progress'].includes(request.status)) {
     throw new BusinessLogicError(`Cannot complete a request with status: ${request.status}`);
   }
+
+  // Get the patient's subscription info for pricing
+  const patient = await patientRepository.findById(request.patient_id);
+  if (!patient) {
+    throw new NotFoundError('Patient');
+  }
+
+  // Determine the charge based on the service type and patient's package
+  // This uses the pricing table - patients don't pay, but providers get compensated
+  const { default: pricingRepository } = await import('../models/pricingRepository.js');
+  const pricing = await pricingRepository.getSpecificPricing(request.service_type, patient.current_package);
+  
+  // Use the provider_share from pricing as the provider's earning
+  const providerShare = pricing.provider_share;
+  const platformFee = pricing.platform_fee;
+
+  // Create a payment record for this completed service
+  const paymentReference = `SVC_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`;
+  
+  await paymentRepository.createPayment({
+    patientId: request.patient_id,
+    providerId: request.assigned_provider_id,
+    providerType: request.provider_type,
+    amount: providerShare,
+    paymentMethod: 'subscription',
+    paymentType: request.service_type,
+    paymentReference,
+    description: `${request.service_type} service for ${patient.lifeline_id} - ${pricing.description}`,
+    status: 'completed',
+    metadata: {
+      serviceRequestId: request.id,
+      consultationId,
+      patientPackage: patient.current_package,
+      platformFee,
+      providerShare,
+    },
+  });
+
+  logger.info('Service completed and payment record created', {
+    requestId: request.id,
+    paymentReference,
+    providerId: request.assigned_provider_id,
+    patientId: request.patient_id,
+    amount: providerShare,
+  });
 
   return await serviceRequestRepository.updateStatus(requestId, 'completed', { consultationId });
 };
@@ -366,6 +438,56 @@ export const getQueueStats = async () => {
   return await serviceRequestRepository.getQueueStats();
 };
 
+/**
+ * Reassign stale requests (requests stuck in 'assigned' status for >24 hours)
+ * Should be called periodically by cron job
+ */
+export const reassignStaleRequests = async () => {
+  try {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+
+    const staleRequests = await serviceRequestRepository.findStaleAssignedRequests(cutoff);
+    logger.info(`Found ${staleRequests.length} stale requests to reassign`);
+
+    for (const request of staleRequests) {
+      try {
+        logger.info('Reassigning stale request', { requestId: request.id, assignedAt: request.assigned_at });
+
+        // Mark as pending
+        await serviceRequestRepository.updateStatus(request.id, 'pending', {
+          assignedProviderId: null,
+        });
+
+        // Try to reassign to another provider
+        const reassigned = await assignProviderRoundRobin(request.id, request.city, request.provider_type);
+
+        if (reassigned) {
+          logger.info('Stale request reassigned', {
+            requestId: request.id,
+            newProviderId: reassigned.provider_id,
+          });
+        } else {
+          logger.warn('No providers available for stale request reassignment', {
+            requestId: request.id,
+            city: request.city,
+            providerType: request.provider_type,
+          });
+        }
+      } catch (err) {
+        logger.error('Failed to reassign stale request', {
+          requestId: request.id,
+          error: err.message,
+        });
+      }
+    }
+
+    logger.info('Stale request reassignment completed');
+  } catch (error) {
+    logger.error('Error reassigning stale requests', { error: error.message });
+  }
+};
+
 export default {
   createRequest,
   acceptRequest,
@@ -376,4 +498,5 @@ export default {
   getPatientRequests,
   getProviderRequests,
   getQueueStats,
+  reassignStaleRequests,
 };
