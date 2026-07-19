@@ -44,9 +44,14 @@ export const authService = {
     return apiClient.get(`/auth/verify-email/${token}`);
   },
 
-  // Resend verification email
+  // Resend verification email (authenticated)
   resendVerification() {
     return apiClient.post('/auth/resend-verification');
+  },
+
+  // Resend verification email using an expired/invalid token (public — no login needed)
+  resendVerificationByToken(token) {
+    return apiClient.post('/auth/resend-verification-by-token', { token });
   },
 
   // Get current user

@@ -206,6 +206,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Resend verification using an expired token from the URL (public — no login needed).
+   * The backend decodes the token without verifying expiry to find the user.
+   */
+  async function resendVerificationByToken(expiredToken) {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const response = await authService.resendVerificationByToken(expiredToken);
+      const data = response.data?.data || response.data;
+      if (data?.alreadyVerified) {
+        if (user.value) {
+          user.value = { ...user.value, email_verified: 1, is_email_verified: 1 };
+        }
+        toast.success('Your email is already verified!');
+      } else {
+        toast.success('Verification email sent! Please check your inbox.');
+      }
+      return response;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Failed to resend verification email';
+      toast.error(error.value);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   async function getCurrentUser() {
     loading.value = true;
     error.value = null;
@@ -356,6 +385,7 @@ export const useAuthStore = defineStore('auth', () => {
     changePassword,
     verifyEmail,
     resendVerification,
+    resendVerificationByToken,
     getCurrentUser,
     updateProfile,
     patchUser,

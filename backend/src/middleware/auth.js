@@ -82,6 +82,7 @@ export const authenticate = async (req, res, next) => {
         '/api/auth/profile',
         '/api/auth/logout',
         '/api/auth/change-password',
+        '/api/auth/resend-verification',
         '/api/payments/initialize',
         '/api/payments/verify',
         '/api/payments/webhook',

@@ -10,7 +10,7 @@ class JWTManager {
   /**
    * Generate access token
    */
-  generateAccessToken(payload) {
+  generateAccessToken(payload, expiresIn) {
     try {
       const token = jwt.sign(
         {
@@ -18,10 +18,11 @@ class JWTManager {
           email: payload.email,
           role: payload.role,
           lifelineId: payload.lifelineId,
+          ...(payload.purpose ? { purpose: payload.purpose } : {}),
         },
         config.jwt.secret,
         {
-          expiresIn: config.jwt.expiresIn,
+          expiresIn: expiresIn || config.jwt.expiresIn,
           issuer: 'lifeline-pro',
           audience: 'lifeline-api',
           // Unique token ID prevents two tokens signed in the same second
@@ -291,7 +292,7 @@ export const verifyAccessToken = (token) => jwtManager.verifyAccessToken(token);
 export const verifyToken = (token) => jwtManager.verifyAccessToken(token);
 export const verifyRefreshToken = (token) => jwtManager.verifyRefreshToken(token);
 export const generateTokenPair = (payload) => jwtManager.generateTokenPair(payload);
-export const generateAccessToken = (payload) => jwtManager.generateAccessToken(payload);
+export const generateAccessToken = (payload, expiresIn) => jwtManager.generateAccessToken(payload, expiresIn);
 export const generateRefreshToken = (payload) => jwtManager.generateRefreshToken(payload);
 export const refreshAccessToken = (refreshToken) => jwtManager.refreshAccessToken(refreshToken);
 export const decodeToken = (token) => jwtManager.decodeToken(token);

@@ -466,7 +466,13 @@ router.beforeEach(async (to, from, next) => {
     }
 
     const hasNoActiveSub = !patientStore.hasActiveSubscription;
-    const subscriptionExemptRoutes = ['patient-subscription', 'patient-profile', 'patient-settings', 'payment-callback'];
+    const subscriptionExemptRoutes = [
+      'patient-subscription',
+      'patient-profile',
+      'patient-settings',
+      'payment-callback',
+      'verify-email',   // must be able to verify email before subscribing
+    ];
     const isNotOnExemptPage = !subscriptionExemptRoutes.includes(to.name);
 
     if (hasNoActiveSub && isNotOnExemptPage) {

@@ -4,7 +4,7 @@ import * as doctorRepository from '../models/doctorRepository.js';
 import * as pharmacyRepository from '../models/pharmacyRepository.js';
 import * as hospitalRepository from '../models/hospitalRepository.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, blacklistToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, blacklistToken, decodeToken } from '../utils/jwt.js';
 import { generateLifelineId } from '../utils/idGenerator.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, UnauthorizedError, NotFoundError } from '../middleware/errorHandler.js';
@@ -516,11 +516,41 @@ export const verifyEmail = async (verificationToken) => {
 };
 
 /**
- * Resend email verification
+ * Resend email verification (for authenticated users)
  */
 export const resendEmailVerification = async (userId) => {
+  return _sendVerificationEmail(userId);
+};
+
+/**
+ * Resend email verification using an expired/invalid token (public endpoint).
+ * Decodes the token without signature verification to extract userId — no
+ * re-entry of email needed.
+ */
+export const resendVerificationByToken = async (expiredToken) => {
+  let decoded;
   try {
-    // Get user
+    // decodeToken does NOT verify the signature or expiry — intentional here
+    const result = decodeToken(expiredToken);
+    decoded = result?.payload || result;
+  } catch {
+    decoded = null;
+  }
+
+  // Accept tokens whose purpose was email-verification OR plain auth tokens
+  // (the initial registration returns an auth token; user may paste that in)
+  if (!decoded || !decoded.userId) {
+    throw new BusinessLogicError('Invalid or unreadable token. Please log in and use the resend option from your dashboard.');
+  }
+
+  return _sendVerificationEmail(decoded.userId);
+};
+
+/**
+ * Internal helper — builds and sends the verification email for a userId.
+ */
+async function _sendVerificationEmail(userId) {
+  try {
     const user = await userRepository.findById(userId);
 
     if (!user) {
@@ -531,7 +561,7 @@ export const resendEmailVerification = async (userId) => {
       return { alreadyVerified: true, message: 'Email address is already verified' };
     }
 
-    // Generate verification token (valid for 24 hours)
+    // Generate a fresh verification token (valid for 24 hours)
     const verificationToken = generateAccessToken(
       { userId: user.id, purpose: 'email-verification' },
       '24h'
@@ -559,17 +589,14 @@ export const resendEmailVerification = async (userId) => {
 
     return {
       message: 'Verification email sent',
-      // Remove this in production - only for testing
-      verificationToken,
+      // Remove in production — only for local dev/testing
+      ...(process.env.NODE_ENV !== 'production' && { verificationToken }),
     };
   } catch (error) {
-    logger.error('Resend verification error', {
-      error: error.message,
-      userId,
-    });
+    logger.error('Send verification email error', { error: error.message, userId });
     throw error;
   }
-};
+}
 
 /**
  * Get current user profile
@@ -726,6 +753,7 @@ export default {
   changePassword,
   verifyEmail,
   resendEmailVerification,
+  resendVerificationByToken,
   getCurrentUser,
   updateProfile,
   deactivateAccount,
