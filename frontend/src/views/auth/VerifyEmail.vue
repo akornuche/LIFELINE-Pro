@@ -132,8 +132,11 @@ onMounted(async () => {
     success.value = true;
   } catch (err) {
     const msg = err.response?.data?.message || '';
-    if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('invalid')) {
-      errorMessage.value = 'This verification link has expired or is no longer valid. Use the button below to get a new one.';
+    const lc = msg.toLowerCase();
+    if (lc.includes('expired')) {
+      errorMessage.value = 'This verification link has expired. Use the button below to get a fresh one — your email address is already on file.';
+    } else if (lc.includes('invalid') || lc.includes('purpose') || lc.includes('token')) {
+      errorMessage.value = 'This verification link is no longer valid (it may be an old link). Use the button below to get a new one.';
     } else {
       errorMessage.value = msg || 'Verification failed. Please request a new link below.';
     }

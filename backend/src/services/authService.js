@@ -477,7 +477,11 @@ export const verifyEmail = async (verificationToken) => {
     // Verify token
     const decoded = verifyToken(verificationToken, 'access');
 
-    if (!decoded || decoded.purpose !== 'email-verification') {
+    // Accept tokens with explicit purpose OR legacy tokens (no purpose field)
+    // that contain only userId — those were issued before the purpose field was added.
+    // We still reject tokens that have a DIFFERENT purpose (e.g. password-reset).
+    const hasWrongPurpose = decoded.purpose && decoded.purpose !== 'email-verification';
+    if (!decoded || !decoded.userId || hasWrongPurpose) {
       throw new UnauthorizedError('Invalid or expired verification token');
     }
 
