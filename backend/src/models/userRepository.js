@@ -350,9 +350,9 @@ export const verifyEmail = async (userId) => {
   try {
     const result = await database.query(
       `UPDATE users
-       SET email_verified = 1, updated_at = datetime('now')
+       SET email_verified = 1, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
-       RETURNING id, email_verified as is_email_verified`,
+       RETURNING id, email_verified AS is_email_verified`,
       [userId]
     );
 
