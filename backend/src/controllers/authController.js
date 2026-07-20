@@ -137,6 +137,12 @@ export const verifyEmail = async (req, res, next) => {
 
     return successResponse(res, result, 'Email verified successfully');
   } catch (error) {
+    // Convert short codes to human-readable messages for the frontend
+    if (error.message === 'expired') {
+      error.message = 'Verification link has expired. Please use the resend button to get a new one.';
+    } else if (error.message === 'invalid') {
+      error.message = 'Verification link is invalid. Please use the resend button to get a new one.';
+    }
     next(error);
   }
 };

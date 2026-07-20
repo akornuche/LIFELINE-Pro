@@ -131,19 +131,30 @@ onMounted(async () => {
     await authStore.verifyEmail(urlToken.value);
     success.value = true;
   } catch (err) {
-    const msg = err.response?.data?.message || '';
-    const lc = msg.toLowerCase();
-    if (lc.includes('expired')) {
-      errorMessage.value = 'This verification link has expired. Use the button below to get a fresh one — your email address is already on file.';
-    } else if (lc.includes('invalid') || lc.includes('purpose') || lc.includes('token')) {
-      errorMessage.value = 'This verification link is no longer valid (it may be an old link). Use the button below to get a new one.';
+    const msg = (err.response?.data?.message || err.message || '').toLowerCase();
+    if (msg.includes('expired')) {
+      errorMessage.value = 'This verification link has expired.';
     } else {
-      errorMessage.value = msg || 'Verification failed. Please request a new link below.';
+      errorMessage.value = 'This verification link is no longer valid.';
     }
+    // Automatically send a fresh link — user doesn't need to click anything
+    autoResend();
   } finally {
     loading.value = false;
   }
 });
+
+// Fire resend automatically when verification fails
+async function autoResend() {
+  if (!urlToken.value) return;
+  try {
+    await authStore.resendVerificationByToken(urlToken.value);
+    // Update error message to tell user an email is already on its way
+    errorMessage.value = errorMessage.value + ' A new verification link has been sent to your email automatically.';
+  } catch {
+    // Silent — user can still click the manual resend button below
+  }
+}
 
 onUnmounted(() => {
   if (cooldownTimer) clearInterval(cooldownTimer);
