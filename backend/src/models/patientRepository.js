@@ -234,7 +234,7 @@ export const updateProfile = async (patientId, updates) => {
     throw new Error('No valid fields to update');
   }
 
-  fields.push(`updated_at = datetime('now')`);
+  fields.push(`updated_at = CURRENT_TIMESTAMP`);
   values.push(patientId);
 
   try {
@@ -288,7 +288,7 @@ export const updateSubscription = async (patientId, subscriptionData) => {
            subscription_end_date = $3,
            subscription_status = $4,
            auto_renew = $5,
-           updated_at = datetime('now')
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $6
        RETURNING *`,
       [
@@ -437,7 +437,7 @@ export const cancelSubscription = async (patientId, cancellationDate = null) => 
        SET subscription_status = 'cancelled',
            subscription_end_date = $1,
            auto_renew = false,
-           updated_at = datetime('now')
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $2
        RETURNING *`,
       [endDate, patientId]
@@ -732,9 +732,9 @@ export const expireSubscriptions = async () => {
     const result = await database.query(
       `UPDATE patients
        SET subscription_status = 'expired',
-           updated_at = datetime('now')
+           updated_at = CURRENT_TIMESTAMP
        WHERE subscription_status = 'active'
-         AND subscription_end_date < datetime('now')
+         AND subscription_end_date < CURRENT_TIMESTAMP
        RETURNING id, user_id, subscription_end_date`
     );
 
