@@ -153,20 +153,16 @@ async function handleResend() {
   resendLoading.value = true;
 
   try {
-    // If user is authenticated, use the authenticated resend endpoint
-    // Otherwise pass the URL token so the backend can decode the userId from it
-    if (authStore.isAuthenticated) {
-      await authStore.resendVerification();
-    } else {
-      await authStore.resendVerificationByToken(urlToken.value);
-    }
+    // Always use the public token-based endpoint — the token is in the URL
+    // and this avoids the subscription gate on the authenticated endpoint.
+    // Works whether the user is logged in or not.
+    await authStore.resendVerificationByToken(urlToken.value);
     resendSuccess.value = true;
   } catch (err) {
     // Error toast already shown by the store — start cooldown so user doesn't spam
     startCooldown(30);
   } finally {
     resendLoading.value = false;
-    // Start cooldown on success too so the "sent" state can't be triggered repeatedly
     if (resendSuccess.value) startCooldown(60);
   }
 }

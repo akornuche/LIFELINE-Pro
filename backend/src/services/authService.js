@@ -474,15 +474,23 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
  */
 export const verifyEmail = async (verificationToken) => {
   try {
-    // Verify token
-    const decoded = verifyToken(verificationToken, 'access');
+    let decoded;
+    try {
+      decoded = verifyToken(verificationToken, 'access');
+    } catch (tokenErr) {
+      // Re-throw with a clear message so the frontend can show the right copy
+      if (tokenErr.message === 'Token has expired') {
+        throw new UnauthorizedError('Verification link has expired. Please request a new one.');
+      }
+      throw new UnauthorizedError('Invalid verification link. Please request a new one.');
+    }
 
     // Accept tokens with explicit purpose OR legacy tokens (no purpose field)
-    // that contain only userId — those were issued before the purpose field was added.
-    // We still reject tokens that have a DIFFERENT purpose (e.g. password-reset).
+    // issued before the purpose field was added.
+    // Still reject tokens with a DIFFERENT purpose (e.g. password-reset).
     const hasWrongPurpose = decoded.purpose && decoded.purpose !== 'email-verification';
-    if (!decoded || !decoded.userId || hasWrongPurpose) {
-      throw new UnauthorizedError('Invalid or expired verification token');
+    if (!decoded.userId || hasWrongPurpose) {
+      throw new UnauthorizedError('Invalid verification link. Please request a new one.');
     }
 
     // Get user

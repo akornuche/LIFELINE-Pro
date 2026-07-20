@@ -343,7 +343,8 @@ const handleResendVerification = async () => {
   if (resendingVerification.value || verificationResent.value) return;
   resendingVerification.value = true;
   try {
-    await authStore.resendVerification();
+    // Use the public endpoint — avoids the subscription gate
+    await authStore.resendVerificationByToken(authStore.token);
     verificationResent.value = true;
   } catch (e) {
     showError('Failed to resend verification email. Please try again.');
