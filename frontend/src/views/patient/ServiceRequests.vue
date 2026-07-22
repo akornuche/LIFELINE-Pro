@@ -215,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { queueService } from '@/services';
 import { useToast } from '@/composables/useToast';
@@ -344,15 +344,17 @@ const filteredRequests = computed(() => {
   return requests.value.filter(r => r.status === activeFilter.value);
 });
 
-const fetchRequests = async () => {
-  loading.value = true;
+const fetchRequests = async ({ silent = false } = {}) => {
+  if (!silent) loading.value = true;
   try {
+    // apiClient's response interceptor already unwraps Axios's response object,
+    // so the queue API body is { success, data: requests } here.
     const response = await queueService.getMyRequests();
-    requests.value = response.data.data || [];
+    requests.value = Array.isArray(response.data) ? response.data : [];
   } catch (err) {
-    showError('Failed to load service requests');
+    if (!silent) showError('Failed to load service requests');
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 };
 
@@ -459,6 +461,8 @@ const formatDate = (dateStr) => {
   }
 };
 
+let requestRefreshInterval = null;
+
 onMounted(async () => {
   if (!patientStore.subscription) {
     await patientStore.fetchSubscription().catch(() => {});
@@ -481,5 +485,15 @@ onMounted(async () => {
   }
 
   await fetchRequests();
+
+  // Provider decisions happen in a different session; refresh silently while
+  // this tracking page remains open so accepted/in-progress states appear.
+  requestRefreshInterval = window.setInterval(() => fetchRequests({ silent: true }), 30_000);
+});
+
+onUnmounted(() => {
+  if (requestRefreshInterval) {
+    window.clearInterval(requestRefreshInterval);
+  }
 });
 </script>
