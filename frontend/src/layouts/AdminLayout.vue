@@ -112,7 +112,8 @@ import {
   ChartBarIcon,
   CogIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
@@ -121,6 +122,7 @@ const sidebarOpen = ref(false);
 
 const navigation = [
   { name: 'Dashboard', to: '/admin', icon: HomeIcon },
+  { name: 'Bookings', to: '/admin/bookings', icon: ClipboardDocumentListIcon },
   { name: 'Users', to: '/admin/users', icon: UsersIcon },
   { name: 'Patients', to: '/admin/patients', icon: UsersIcon },
   { name: 'Doctors', to: '/admin/doctors', icon: UsersIcon },

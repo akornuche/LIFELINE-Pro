@@ -1168,6 +1168,104 @@ router.put('/settings', auditAdmin('config_change'), async (req, res, next) => {
 });
 
 /**
+ * @route   GET /api/admin/bookings
+ * @desc    Get ALL service requests (bookings) with provider/patient details, filterable
+ * @access  Private (Admin)
+ */
+router.get('/bookings', async (req, res, next) => {
+  try {
+    const { limit = 50, page = 1, status, search, serviceType, priority } = req.query;
+    const perPage = Math.min(parseInt(limit) || 50, 200);
+    const offset = (Math.max(parseInt(page) || 1, 1) - 1) * perPage;
+
+    // Build dynamic query with LEFT JOINs to resolve names
+    let baseQuery = `
+      SELECT
+        sr.id, sr.patient_id, sr.service_type, sr.status, sr.priority,
+        sr.description, sr.preferred_date, sr.provider_id, sr.provider_type,
+        sr.assigned_at, sr.accepted_at, sr.completed_at, sr.cancelled_at,
+        sr.created_at, sr.updated_at,
+        pu.first_name AS patient_first_name, pu.last_name AS patient_last_name,
+        pu.email AS patient_email, pu.lifeline_id AS patient_lifeline_id,
+        CASE
+          WHEN sr.provider_type = 'doctor' THEN du.first_name || ' ' || du.last_name
+          WHEN sr.provider_type = 'pharmacy' THEN ph.pharmacy_name
+          WHEN sr.provider_type = 'hospital' THEN ho.hospital_name
+          ELSE NULL
+        END AS provider_name
+      FROM service_requests sr
+      LEFT JOIN patients pat ON sr.patient_id = pat.id
+      LEFT JOIN users pu ON pat.user_id = pu.id
+      LEFT JOIN doctors doc ON sr.provider_id = doc.id AND sr.provider_type = 'doctor'
+      LEFT JOIN users du ON doc.user_id = du.id
+      LEFT JOIN pharmacies ph ON sr.provider_id = ph.id AND sr.provider_type = 'pharmacy'
+      LEFT JOIN hospitals ho ON sr.provider_id = ho.id AND sr.provider_type = 'hospital'
+    `;
+
+    let countQuery = `
+      SELECT COUNT(*) as count
+      FROM service_requests sr
+      LEFT JOIN patients pat ON sr.patient_id = pat.id
+      LEFT JOIN users pu ON pat.user_id = pu.id
+      LEFT JOIN doctors doc ON sr.provider_id = doc.id AND sr.provider_type = 'doctor'
+      LEFT JOIN users du ON doc.user_id = du.id
+      LEFT JOIN pharmacies ph ON sr.provider_id = ph.id AND sr.provider_type = 'pharmacy'
+      LEFT JOIN hospitals ho ON sr.provider_id = ho.id AND sr.provider_type = 'hospital'
+    `;
+
+    const conditions = [];
+    const params = [];
+
+    if (status) {
+      params.push(status);
+      conditions.push(`sr.status = $${params.length}`);
+    }
+    if (serviceType) {
+      params.push(serviceType);
+      conditions.push(`sr.service_type = $${params.length}`);
+    }
+    if (priority) {
+      params.push(priority);
+      conditions.push(`sr.priority = $${params.length}`);
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      const idx = params.length;
+      conditions.push(`(
+        pu.first_name ILIKE $${idx} OR pu.last_name ILIKE $${idx} OR pu.email ILIKE $${idx}
+        OR du.first_name ILIKE $${idx} OR du.last_name ILIKE $${idx}
+        OR ph.pharmacy_name ILIKE $${idx}
+        OR ho.hospital_name ILIKE $${idx}
+        OR pu.lifeline_id ILIKE $${idx}
+      )`);
+    }
+
+    if (conditions.length > 0) {
+      const where = ' WHERE ' + conditions.join(' AND ');
+      baseQuery += where;
+      countQuery += where;
+    }
+
+    baseQuery += ` ORDER BY sr.created_at DESC LIMIT ${perPage} OFFSET ${offset}`;
+
+    const result = await database.query(baseQuery, params);
+    const countResult = await database.query(countQuery, params);
+    const total = parseInt(countResult.rows[0]?.count || 0);
+
+    return successResponse(res, {
+      bookings: result.rows,
+      total,
+      page: Math.max(parseInt(page) || 1, 1),
+      limit: perPage,
+      totalPages: Math.ceil(total / perPage),
+    }, 'Bookings retrieved successfully');
+  } catch (error) {
+    logger.error('Get admin bookings error', { error: error.message });
+    next(error);
+  }
+});
+
+/**
  * @route   GET /api/admin/reconciliation
  * @desc    Get financial reconciliation (subscriptions vs payouts vs platform fees)
  * @access  Private (Admin)

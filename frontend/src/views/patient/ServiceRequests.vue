@@ -14,15 +14,21 @@
         <form @submit.prevent="submitRequest" class="space-y-4">
           <!-- Service Catalog -->
           <div class="form-group">
-            <label class="form-label">Select a Service</label>
+            <label class="form-label">Select Services (toggle to add/remove)</label>
 
-            <!-- Preferred provider banner (from Find pages) -->
-            <div v-if="preferredProvider" class="rounded-lg bg-green-50 border border-green-200 p-3 mb-3 flex items-center justify-between gap-2 text-sm text-green-700">
+            <!-- Preferred provider banner — only visible when at least one service is selected -->
+            <div v-if="preferredProvider && selectedServices.length > 0" class="rounded-lg bg-green-50 border border-green-200 p-3 mb-3 flex items-center justify-between gap-2 text-sm text-green-700">
               <div class="flex items-center gap-2">
                 <CheckCircleIcon class="h-5 w-5 flex-shrink-0" />
                 <span>Booking directly with <strong>{{ preferredProvider.name }}</strong></span>
               </div>
-              <button @click="preferredProvider = null" class="text-green-500 hover:text-green-700 text-xs underline flex-shrink-0">Clear</button>
+              <button @click="preferredProvider = null" type="button" class="text-green-500 hover:text-green-700 text-xs underline flex-shrink-0">Clear</button>
+            </div>
+
+            <!-- Selected services summary -->
+            <div v-if="selectedServices.length > 0" class="rounded-lg bg-primary-50 border border-primary-200 p-3 mb-3 flex items-center justify-between gap-2 text-sm text-primary-700">
+              <span><strong>{{ selectedServices.length }}</strong> service{{ selectedServices.length > 1 ? 's' : '' }} selected</span>
+              <button @click="selectedServices = []" type="button" class="text-primary-500 hover:text-primary-700 text-xs underline flex-shrink-0">Clear all</button>
             </div>
 
             <!-- No active subscription warning -->
@@ -51,10 +57,10 @@
                   <div
                     v-for="svc in group.services"
                     :key="svc.value"
-                    @click="selectService(svc)"
+                    @click="toggleService(svc)"
                     :class="[
                       'relative rounded-xl border-2 p-3 transition-all select-none',
-                      newRequest.serviceType === svc.value
+                      isServiceSelected(svc.value)
                         ? 'border-primary-500 bg-primary-50 shadow-sm'
                         : canSelectService(svc)
                           ? 'border-gray-200 bg-white cursor-pointer hover:border-primary-300 hover:shadow-sm'
@@ -62,7 +68,7 @@
                     ]"
                   >
                     <LockClosedIcon v-if="!canSelectService(svc)" class="absolute top-2 right-2 h-3.5 w-3.5 text-gray-400" />
-                    <CheckCircleIcon v-else-if="newRequest.serviceType === svc.value" class="absolute top-2 right-2 h-3.5 w-3.5 text-primary-500" />
+                    <CheckCircleIcon v-else-if="isServiceSelected(svc.value)" class="absolute top-2 right-2 h-3.5 w-3.5 text-primary-500" />
                     <div class="text-xl mb-1">{{ svc.icon }}</div>
                     <p class="text-xs font-semibold text-gray-900 leading-tight">{{ svc.label }}</p>
                     <p class="text-xs text-gray-400 mt-0.5 leading-tight">{{ svc.description }}</p>
@@ -103,10 +109,10 @@
           </div>
           <button
             type="submit"
-            :disabled="submitting || !newRequest.serviceType"
+            :disabled="submitting || selectedServices.length === 0"
             class="btn btn-primary"
           >
-            <span v-if="!submitting">Submit Request</span>
+            <span v-if="!submitting">Submit {{ selectedServices.length > 1 ? `${selectedServices.length} Requests` : 'Request' }}</span>
             <span v-else class="flex items-center">
               <span class="spinner spinner-sm mr-2"></span>
               Submitting...
@@ -131,7 +137,7 @@
             </li>
             <li class="flex gap-2">
               <span class="font-semibold text-primary-600 flex-shrink-0">3.</span>
-              Status updates: <span class="font-medium">Pending → Provider Assigned → Accepted → In Progress → Completed</span>
+              Status updates: <span class="font-medium">Pending -> Provider Assigned -> Accepted -> In Progress -> Completed</span>
             </li>
             <li class="flex gap-2">
               <span class="font-semibold text-primary-600 flex-shrink-0">4.</span>
@@ -238,24 +244,22 @@ const submitting = ref(false);
 const requests = ref([]);
 const activeFilter = ref('all');
 
+// Multi-select services
+const selectedServices = ref([]);
+
 // Preferred provider (set when arriving from Find pages)
 const preferredProvider = ref(null); // { id, name, type }
 
-// Comprehensive service catalog — ordered by tier then clinical category
+// Comprehensive service catalog
 const SERVICE_CATALOG = [
-  // ── Tier 1 · General Plan & above ─────────────────────────────────────
   { value: 'consultation',               label: 'GP Consultation',           description: 'General practitioner visit & diagnosis',                   icon: '🩺', requiredTier: 1 },
   { value: 'prescription',               label: 'Prescription',              description: 'Medications prescribed by a doctor',                       icon: '💊', requiredTier: 1 },
   { value: 'laboratory_test',            label: 'Basic Lab Test',            description: 'Malaria, blood count, urinalysis, blood sugar & pregnancy test', icon: '🧪', requiredTier: 1 },
   { value: 'vaccination',                label: 'Vaccination',               description: 'Immunization, childhood vaccines & flu shots',             icon: '💉', requiredTier: 1 },
   { value: 'emergency',                  label: 'Emergency Care',            description: 'Urgent & life-threatening medical conditions',             icon: '🚨', requiredTier: 1 },
-
-  // ── Tier 2 · Basic Insurance & above ──────────────────────────────────
   { value: 'drug_dispensing',            label: 'Drug Dispensing',           description: 'Collect medications directly from a pharmacy',             icon: '🏪', requiredTier: 2 },
   { value: 'admission',                  label: 'Hospital Admission',        description: 'Inpatient care & hospital stay (up to 3 days)',            icon: '🏥', requiredTier: 2 },
   { value: 'antenatal_care',             label: 'Antenatal Care',            description: 'Prenatal check-ups, scans & maternal health support',      icon: '🤰', requiredTier: 2 },
-
-  // ── Tier 3 · Standard Insurance & above ───────────────────────────────
   { value: 'specialist_consultation',    label: 'Specialist Consultation',   description: 'Orthopaedics, ENT, Dermatology, Paediatrics & Gynaecology', icon: '🩻', requiredTier: 3 },
   { value: 'advanced_lab_test',          label: 'Advanced Lab Test',         description: 'Lipid profile, liver & kidney function, HIV, Hepatitis panel', icon: '⚗️', requiredTier: 3 },
   { value: 'imaging',                    label: 'Basic Imaging',             description: 'X-ray & Ultrasound scans',                                icon: '📡', requiredTier: 3 },
@@ -264,8 +268,6 @@ const SERVICE_CATALOG = [
   { value: 'mental_health',              label: 'Mental Health',             description: 'Counselling, psychiatry & psychological support',          icon: '🧠', requiredTier: 3 },
   { value: 'dental_care',                label: 'Dental Care',               description: 'Tooth extraction, fillings & oral health treatment',       icon: '🦷', requiredTier: 3 },
   { value: 'chronic_disease_management', label: 'Chronic Disease Mgmt',      description: 'Diabetes, hypertension & ongoing condition monitoring',    icon: '🫀', requiredTier: 3 },
-
-  // ── Tier 4 · Premium Insurance only ───────────────────────────────────
   { value: 'advanced_imaging',           label: 'Advanced Imaging',          description: 'CT Scan, MRI, Mammography, ECG & Echocardiography',       icon: '🔭', requiredTier: 4 },
   { value: 'major_surgery',              label: 'Major Surgery',             description: 'Cardiac, neurosurgery, abdominal & cancer surgery',        icon: '🏨', requiredTier: 4 },
   { value: 'maternity_care',             label: 'Maternity & Childbirth',    description: 'Delivery, C-section, postnatal care & newborn care',      icon: '👶', requiredTier: 4 },
@@ -284,20 +286,12 @@ const TIER_META = {
   4: { label: 'Premium Insurance Only',     headerBg: 'bg-purple-50 border-purple-200',color: 'text-purple-700', dot: 'bg-purple-500' },
 };
 
-const planBadgeClass = (tier) => {
-  const classes = {
-    1: 'bg-gray-100 text-gray-600',
-    2: 'bg-blue-100 text-blue-700',
-    3: 'bg-indigo-100 text-indigo-700',
-    4: 'bg-purple-100 text-purple-700',
-  };
-  return classes[tier] || 'bg-gray-100 text-gray-600';
-};
-
 const canSelectService = (svc) =>
   patientStore.hasActiveSubscription && patientStore.currentPlanTier >= svc.requiredTier;
 
-const selectService = (svc) => {
+const isServiceSelected = (value) => selectedServices.value.includes(value);
+
+const toggleService = (svc) => {
   if (!patientStore.hasActiveSubscription) {
     showError('You need an active subscription to request services.');
     return;
@@ -306,7 +300,12 @@ const selectService = (svc) => {
     showError(`"${svc.label}" requires the ${planName(svc.requiredTier)} plan or higher. Upgrade your subscription to unlock this service.`);
     return;
   }
-  newRequest.serviceType = svc.value;
+  const idx = selectedServices.value.indexOf(svc.value);
+  if (idx >= 0) {
+    selectedServices.value.splice(idx, 1);
+  } else {
+    selectedServices.value.push(svc.value);
+  }
 };
 
 const filterTabs = [
@@ -317,7 +316,6 @@ const filterTabs = [
 ];
 
 const newRequest = reactive({
-  serviceType: '',
   priority: 'normal',
   preferredDate: '',
   description: '',
@@ -327,7 +325,6 @@ const minDateTime = computed(() => {
   return new Date().toISOString().slice(0, 16);
 });
 
-// Group catalog by tier for the sectioned UI
 const catalogByTier = computed(() => {
   return [1, 2, 3, 4].map(tier => ({
     tier,
@@ -347,8 +344,6 @@ const filteredRequests = computed(() => {
 const fetchRequests = async ({ silent = false } = {}) => {
   if (!silent) loading.value = true;
   try {
-    // apiClient's response interceptor already unwraps Axios's response object,
-    // so the queue API body is { success, data: requests } here.
     const response = await queueService.getMyRequests();
     requests.value = Array.isArray(response.data) ? response.data : [];
   } catch (err) {
@@ -359,33 +354,49 @@ const fetchRequests = async ({ silent = false } = {}) => {
 };
 
 const submitRequest = async () => {
-  // Client-side entitlement guard
-  const svcMeta = SERVICE_CATALOG.find(s => s.value === newRequest.serviceType);
   if (!patientStore.hasActiveSubscription) {
     showError('You need an active subscription to request services.');
     return;
   }
-  if (svcMeta && patientStore.currentPlanTier < svcMeta.requiredTier) {
-    showError(`"${svcMeta.label}" requires the ${planName(svcMeta.requiredTier)} plan or higher. Please upgrade your subscription.`);
+  if (selectedServices.value.length === 0) {
+    showError('Please select at least one service.');
     return;
   }
 
   submitting.value = true;
   try {
-    const response = await queueService.createRequest({
-      serviceType: newRequest.serviceType,
-      priority: newRequest.priority,
-      preferredDate: newRequest.preferredDate || null,
-      description: newRequest.description || null,
-      preferredProviderId: preferredProvider.value?.id || null,
-      preferredProviderType: preferredProvider.value?.type || null,
-    });
-    success(response.data.message || 'Service request submitted');
-    newRequest.serviceType = '';
+    // Submit one request per selected service
+    const results = [];
+    for (const serviceType of selectedServices.value) {
+      const svcMeta = SERVICE_CATALOG.find(s => s.value === serviceType);
+      if (svcMeta && patientStore.currentPlanTier < svcMeta.requiredTier) {
+        continue; // Skip services user can't access
+      }
+      const response = await queueService.createRequest({
+        serviceType,
+        priority: newRequest.priority,
+        preferredDate: newRequest.preferredDate || null,
+        description: newRequest.description || null,
+        preferredProviderId: preferredProvider.value?.id || null,
+        preferredProviderType: preferredProvider.value?.type || null,
+      });
+      results.push(response);
+    }
+
+    if (results.length === 1) {
+      success(results[0].data?.message || 'Service request submitted');
+    } else {
+      success(`${results.length} service requests submitted`);
+    }
+
+    // Reset form
+    selectedServices.value = [];
     newRequest.priority = 'normal';
     newRequest.preferredDate = '';
     newRequest.description = '';
     preferredProvider.value = null;
+
+    // Refresh list immediately
     await fetchRequests();
   } catch (err) {
     showError(err.response?.data?.message || 'Failed to submit request');
@@ -473,7 +484,7 @@ onMounted(async () => {
   if (serviceType) {
     const svc = SERVICE_CATALOG.find(s => s.value === serviceType);
     if (svc && canSelectService(svc)) {
-      newRequest.serviceType = serviceType;
+      selectedServices.value = [serviceType];
     }
   }
   if (providerId && providerName) {
@@ -486,9 +497,8 @@ onMounted(async () => {
 
   await fetchRequests();
 
-  // Provider decisions happen in a different session; refresh silently while
-  // this tracking page remains open so accepted/in-progress states appear.
-  requestRefreshInterval = window.setInterval(() => fetchRequests({ silent: true }), 30_000);
+  // Poll every 15s for status changes from providers
+  requestRefreshInterval = window.setInterval(() => fetchRequests({ silent: true }), 15_000);
 });
 
 onUnmounted(() => {
