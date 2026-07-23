@@ -1275,6 +1275,115 @@ router.get('/bookings', async (req, res, next) => {
 });
 
 /**
+ * @route   GET /api/admin/transactions
+ * @desc    All completed payment_records grouped by year/month for financial statements.
+ *          Returns { months: [ { year, month, label, transactions: [...], totals: {...} } ] }
+ *          ordered newest-month first.  Individual rows join patient name and provider name.
+ *          Supports optional ?year=&month=&search=&providerType= query filters.
+ * @access  Private (Admin)
+ */
+router.get('/transactions', async (req, res, next) => {
+  try {
+    const { year, month, search, providerType } = req.query;
+
+    // Build filtering conditions
+    const conditions = ["(pr.status = 'completed' OR pr.status = 'success')"];
+    const params = [];
+
+    if (year) {
+      // SQLite: strftime('%Y', pr.created_at)   PostgreSQL: EXTRACT(YEAR FROM pr.created_at)
+      // Use a cross-db substring approach: first 4 chars of ISO timestamp
+      params.push(String(year));
+      conditions.push(`SUBSTR(pr.created_at, 1, 4) = $${params.length}`);
+    }
+    if (month) {
+      // Zero-padded month, chars 6-7 of ISO timestamp
+      params.push(String(month).padStart(2, '0'));
+      conditions.push(`SUBSTR(pr.created_at, 6, 2) = $${params.length}`);
+    }
+    if (providerType) {
+      params.push(providerType);
+      conditions.push(`pr.provider_type = $${params.length}`);
+    }
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      const idx = params.length;
+      conditions.push(`(
+        LOWER(COALESCE(pu.first_name, '')) LIKE $${idx}
+        OR LOWER(COALESCE(pu.last_name, '')) LIKE $${idx}
+        OR LOWER(COALESCE(pu.email, '')) LIKE $${idx}
+        OR LOWER(COALESCE(pu.lifeline_id, '')) LIKE $${idx}
+        OR LOWER(COALESCE(pr.payment_reference, '')) LIKE $${idx}
+        OR LOWER(COALESCE(pr.payment_type, '')) LIKE $${idx}
+      )`);
+    }
+
+    const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+
+    const query = `
+      SELECT
+        pr.id,
+        pr.amount,
+        pr.payment_method,
+        pr.payment_type,
+        pr.payment_reference,
+        pr.status,
+        pr.provider_type,
+        pr.provider_id,
+        pr.description,
+        pr.processed_at,
+        pr.created_at,
+        SUBSTR(pr.created_at, 1, 7) AS month_key,
+        pu.first_name  AS patient_first_name,
+        pu.last_name   AS patient_last_name,
+        pu.email       AS patient_email,
+        pu.lifeline_id AS patient_lifeline_id,
+        CASE
+          WHEN pr.provider_type = 'doctor'   THEN du.first_name || ' ' || du.last_name
+          WHEN pr.provider_type = 'pharmacy' THEN ph.pharmacy_name
+          WHEN pr.provider_type = 'hospital' THEN ho.hospital_name
+          ELSE NULL
+        END AS provider_name
+      FROM payment_records pr
+      LEFT JOIN patients  pat ON pr.patient_id   = pat.id
+      LEFT JOIN users     pu  ON pat.user_id      = pu.id
+      LEFT JOIN doctors   doc ON pr.provider_id   = doc.id AND pr.provider_type = 'doctor'
+      LEFT JOIN users     du  ON doc.user_id       = du.id
+      LEFT JOIN pharmacies ph ON pr.provider_id   = ph.id  AND pr.provider_type = 'pharmacy'
+      LEFT JOIN hospitals  ho ON pr.provider_id   = ho.id  AND pr.provider_type = 'hospital'
+      ${where}
+      ORDER BY pr.created_at DESC
+    `;
+
+    const result = await database.query(query, params);
+
+    // Group into monthly buckets
+    const bucketMap = new Map();
+    for (const row of result.rows) {
+      const key = row.month_key || 'unknown';
+      if (!bucketMap.has(key)) {
+        const [y, m] = key.split('-');
+        const label = y && m
+          ? new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleString('en-NG', { month: 'long', year: 'numeric' })
+          : key;
+        bucketMap.set(key, { year: y, month: m, label, monthKey: key, transactions: [], totals: { count: 0, total: 0 } });
+      }
+      const bucket = bucketMap.get(key);
+      bucket.transactions.push(row);
+      bucket.totals.count += 1;
+      bucket.totals.total += parseFloat(row.amount || 0);
+    }
+
+    const months = Array.from(bucketMap.values());
+
+    return successResponse(res, { months, totalTransactions: result.rows.length }, 'Transactions retrieved successfully');
+  } catch (error) {
+    logger.error('Get admin transactions error', { error: error.message });
+    next(error);
+  }
+});
+
+/**
  * @route   GET /api/admin/reconciliation
  * @desc    Get financial reconciliation (subscriptions vs payouts vs platform fees)
  * @access  Private (Admin)
