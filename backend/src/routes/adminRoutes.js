@@ -1182,7 +1182,7 @@ router.get('/bookings', async (req, res, next) => {
     let baseQuery = `
       SELECT
         sr.id, sr.patient_id, sr.service_type, sr.status, sr.priority,
-        sr.description, sr.preferred_date, sr.provider_id, sr.provider_type,
+        sr.description, sr.preferred_date, sr.assigned_provider_id, sr.provider_type,
         sr.assigned_at, sr.accepted_at, sr.completed_at, sr.cancelled_at,
         sr.created_at, sr.updated_at,
         pu.first_name AS patient_first_name, pu.last_name AS patient_last_name,
@@ -1196,10 +1196,10 @@ router.get('/bookings', async (req, res, next) => {
       FROM service_requests sr
       LEFT JOIN patients pat ON sr.patient_id = pat.id
       LEFT JOIN users pu ON pat.user_id = pu.id
-      LEFT JOIN doctors doc ON sr.provider_id = doc.id AND sr.provider_type = 'doctor'
+      LEFT JOIN doctors doc ON sr.assigned_provider_id = doc.id AND sr.provider_type = 'doctor'
       LEFT JOIN users du ON doc.user_id = du.id
-      LEFT JOIN pharmacies ph ON sr.provider_id = ph.id AND sr.provider_type = 'pharmacy'
-      LEFT JOIN hospitals ho ON sr.provider_id = ho.id AND sr.provider_type = 'hospital'
+      LEFT JOIN pharmacies ph ON sr.assigned_provider_id = ph.id AND sr.provider_type = 'pharmacy'
+      LEFT JOIN hospitals ho ON sr.assigned_provider_id = ho.id AND sr.provider_type = 'hospital'
     `;
 
     let countQuery = `
@@ -1207,10 +1207,10 @@ router.get('/bookings', async (req, res, next) => {
       FROM service_requests sr
       LEFT JOIN patients pat ON sr.patient_id = pat.id
       LEFT JOIN users pu ON pat.user_id = pu.id
-      LEFT JOIN doctors doc ON sr.provider_id = doc.id AND sr.provider_type = 'doctor'
+      LEFT JOIN doctors doc ON sr.assigned_provider_id = doc.id AND sr.provider_type = 'doctor'
       LEFT JOIN users du ON doc.user_id = du.id
-      LEFT JOIN pharmacies ph ON sr.provider_id = ph.id AND sr.provider_type = 'pharmacy'
-      LEFT JOIN hospitals ho ON sr.provider_id = ho.id AND sr.provider_type = 'hospital'
+      LEFT JOIN pharmacies ph ON sr.assigned_provider_id = ph.id AND sr.provider_type = 'pharmacy'
+      LEFT JOIN hospitals ho ON sr.assigned_provider_id = ho.id AND sr.provider_type = 'hospital'
     `;
 
     const conditions = [];

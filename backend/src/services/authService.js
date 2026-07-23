@@ -4,7 +4,7 @@ import * as doctorRepository from '../models/doctorRepository.js';
 import * as pharmacyRepository from '../models/pharmacyRepository.js';
 import * as hospitalRepository from '../models/hospitalRepository.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, blacklistToken, decodeToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, blacklistToken } from '../utils/jwt.js';
 import { generateLifelineId } from '../utils/idGenerator.js';
 import logger from '../utils/logger.js';
 import { BusinessLogicError, UnauthorizedError, NotFoundError } from '../middleware/errorHandler.js';
@@ -472,7 +472,7 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
 /**
  * Verify email with token
  */
-export const verifyEmail = async (verificationToken) => {
+export const verifyEmail = async (verificationToken, authenticatedUserId) => {
   try {
     let decoded;
     try {
@@ -489,6 +489,9 @@ export const verifyEmail = async (verificationToken) => {
     // Reject tokens that explicitly carry a DIFFERENT purpose.
     const hasWrongPurpose = decoded.purpose && decoded.purpose !== 'email-verification';
     if (!decoded.userId || hasWrongPurpose) {
+      throw new UnauthorizedError('invalid');
+    }
+    if (decoded.userId !== authenticatedUserId) {
       throw new UnauthorizedError('invalid');
     }
 
@@ -531,30 +534,6 @@ export const verifyEmail = async (verificationToken) => {
  */
 export const resendEmailVerification = async (userId) => {
   return _sendVerificationEmail(userId);
-};
-
-/**
- * Resend email verification using an expired/invalid token (public endpoint).
- * Decodes the token without signature verification to extract userId — no
- * re-entry of email needed.
- */
-export const resendVerificationByToken = async (expiredToken) => {
-  let decoded;
-  try {
-    // decodeToken does NOT verify the signature or expiry — intentional here
-    const result = decodeToken(expiredToken);
-    decoded = result?.payload || result;
-  } catch {
-    decoded = null;
-  }
-
-  // Accept tokens whose purpose was email-verification OR plain auth tokens
-  // (the initial registration returns an auth token; user may paste that in)
-  if (!decoded || !decoded.userId) {
-    throw new BusinessLogicError('Invalid or unreadable token. Please log in and use the resend option from your dashboard.');
-  }
-
-  return _sendVerificationEmail(decoded.userId);
 };
 
 /**
@@ -764,7 +743,6 @@ export default {
   changePassword,
   verifyEmail,
   resendEmailVerification,
-  resendVerificationByToken,
   getCurrentUser,
   updateProfile,
   deactivateAccount,

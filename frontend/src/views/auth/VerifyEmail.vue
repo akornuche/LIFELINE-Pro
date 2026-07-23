@@ -127,6 +127,12 @@ onMounted(async () => {
     return;
   }
 
+  if (!authStore.isAuthenticated) {
+    loading.value = false;
+    errorMessage.value = 'Please sign in to verify your email address. We will use your registered email address.';
+    return;
+  }
+
   try {
     await authStore.verifyEmail(urlToken.value);
     success.value = true;
@@ -137,24 +143,11 @@ onMounted(async () => {
     } else {
       errorMessage.value = 'This verification link is no longer valid.';
     }
-    // Automatically send a fresh link — user doesn't need to click anything
-    autoResend();
+    errorMessage.value = `${errorMessage.value} You can request a new link below.`;
   } finally {
     loading.value = false;
   }
 });
-
-// Fire resend automatically when verification fails
-async function autoResend() {
-  if (!urlToken.value) return;
-  try {
-    await authStore.resendVerificationByToken(urlToken.value);
-    // Update error message to tell user an email is already on its way
-    errorMessage.value = errorMessage.value + ' A new verification link has been sent to your email automatically.';
-  } catch {
-    // Silent — user can still click the manual resend button below
-  }
-}
 
 onUnmounted(() => {
   if (cooldownTimer) clearInterval(cooldownTimer);
@@ -164,10 +157,8 @@ async function handleResend() {
   resendLoading.value = true;
 
   try {
-    // Always use the public token-based endpoint — the token is in the URL
-    // and this avoids the subscription gate on the authenticated endpoint.
-    // Works whether the user is logged in or not.
-    await authStore.resendVerificationByToken(urlToken.value);
+    // The server uses the signed-in account's registered email address.
+    await authStore.resendVerification();
     resendSuccess.value = true;
   } catch (err) {
     // Error toast already shown by the store — start cooldown so user doesn't spam

@@ -79,25 +79,17 @@ router.post(
 
 /**
  * @route   GET /api/auth/verify-email/:token
- * @desc    Verify email address
- * @access  Public
+ * @desc    Verify the signed-in user's email address
+ * @access  Private
  */
-router.get('/verify-email/:token', authController.verifyEmail);
+router.get('/verify-email/:token', authenticate, authController.verifyEmail);
 
 /**
  * @route   POST /api/auth/resend-verification
- * @desc    Resend email verification (requires auth)
+ * @desc    Resend email verification to the signed-in user's registered email
  * @access  Private
  */
 router.post('/resend-verification', authenticate, authController.resendVerification);
-
-/**
- * @route   POST /api/auth/resend-verification-by-token
- * @desc    Resend email verification using an expired token (no auth needed).
- *          Extracts userId from the token payload without verifying expiry.
- * @access  Public
- */
-router.post('/resend-verification-by-token', authLimiter, authController.resendVerificationByToken);
 
 /**
  * @route   GET /api/auth/me

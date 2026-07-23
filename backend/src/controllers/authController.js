@@ -133,7 +133,7 @@ export const verifyEmail = async (req, res, next) => {
   try {
     const { token } = req.params;
 
-    const result = await authService.verifyEmail(token);
+    const result = await authService.verifyEmail(token, req.user.userId);
 
     return successResponse(res, result, 'Email verified successfully');
   } catch (error) {
@@ -156,27 +156,6 @@ export const resendVerification = async (req, res, next) => {
     const userId = req.user.userId;
 
     const result = await authService.resendEmailVerification(userId);
-
-    return successResponse(res, result, 'Verification email sent');
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Resend email verification using an expired token (public — no auth needed)
- * POST /api/auth/resend-verification-by-token
- * Body: { token: "<expired-or-valid-jwt>" }
- */
-export const resendVerificationByToken = async (req, res, next) => {
-  try {
-    const { token } = req.body;
-
-    if (!token || typeof token !== 'string') {
-      return res.status(400).json({ success: false, message: 'Token is required' });
-    }
-
-    const result = await authService.resendVerificationByToken(token);
 
     return successResponse(res, result, 'Verification email sent');
   } catch (error) {
@@ -260,7 +239,6 @@ export default {
   changePassword,
   verifyEmail,
   resendVerification,
-  resendVerificationByToken,
   getCurrentUser,
   updateProfile,
   deactivateAccount,
