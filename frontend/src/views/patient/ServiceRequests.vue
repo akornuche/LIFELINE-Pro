@@ -54,12 +54,15 @@
                 </div>
                 <!-- Services grid -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div
+                  <button
                     v-for="svc in group.services"
                     :key="svc.value"
+                    type="button"
+                    :aria-pressed="isServiceSelected(svc.value)"
+                    :disabled="!canSelectService(svc)"
                     @click="toggleService(svc)"
                     :class="[
-                      'relative rounded-xl border-2 p-3 transition-all select-none',
+                      'relative w-full rounded-xl border-2 p-3 text-left transition-all select-none',
                       isServiceSelected(svc.value)
                         ? 'border-primary-500 bg-primary-50 shadow-sm'
                         : canSelectService(svc)
@@ -72,7 +75,7 @@
                     <div class="text-xl mb-1">{{ svc.icon }}</div>
                     <p class="text-xs font-semibold text-gray-900 leading-tight">{{ svc.label }}</p>
                     <p class="text-xs text-gray-400 mt-0.5 leading-tight">{{ svc.description }}</p>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
