@@ -1174,7 +1174,7 @@ router.put('/settings', auditAdmin('config_change'), async (req, res, next) => {
  */
 router.get('/bookings', async (req, res, next) => {
   try {
-    const { limit = 50, page = 1, status, search, serviceType, priority } = req.query;
+    const { limit = 50, page = 1, status, search, serviceType, priority, startDate, endDate } = req.query;
     const perPage = Math.min(parseInt(limit) || 50, 200);
     const offset = (Math.max(parseInt(page) || 1, 1) - 1) * perPage;
 
@@ -1228,15 +1228,24 @@ router.get('/bookings', async (req, res, next) => {
       params.push(priority);
       conditions.push(`sr.priority = $${params.length}`);
     }
+    if (startDate) {
+      params.push(startDate);
+      conditions.push(`sr.created_at >= $${params.length}`);
+    }
+    if (endDate) {
+      params.push(`${endDate}T23:59:59.999Z`);
+      conditions.push(`sr.created_at <= $${params.length}`);
+    }
     if (search) {
-      params.push(`%${search}%`);
+      params.push(`%${search.toLowerCase()}%`);
       const idx = params.length;
+      // LOWER(... LIKE ...) is supported by both PostgreSQL and SQLite.
       conditions.push(`(
-        pu.first_name ILIKE $${idx} OR pu.last_name ILIKE $${idx} OR pu.email ILIKE $${idx}
-        OR du.first_name ILIKE $${idx} OR du.last_name ILIKE $${idx}
-        OR ph.pharmacy_name ILIKE $${idx}
-        OR ho.hospital_name ILIKE $${idx}
-        OR pu.lifeline_id ILIKE $${idx}
+        LOWER(COALESCE(pu.first_name, '')) LIKE $${idx} OR LOWER(COALESCE(pu.last_name, '')) LIKE $${idx} OR LOWER(COALESCE(pu.email, '')) LIKE $${idx}
+        OR LOWER(COALESCE(du.first_name, '')) LIKE $${idx} OR LOWER(COALESCE(du.last_name, '')) LIKE $${idx}
+        OR LOWER(COALESCE(ph.pharmacy_name, '')) LIKE $${idx}
+        OR LOWER(COALESCE(ho.hospital_name, '')) LIKE $${idx}
+        OR LOWER(COALESCE(pu.lifeline_id, '')) LIKE $${idx}
       )`);
     }
 

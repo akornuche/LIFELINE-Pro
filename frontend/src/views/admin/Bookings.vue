@@ -66,6 +66,15 @@
               <option value="emergency">Emergency</option>
             </select>
           </div>
+          <!-- Date range -->
+          <div class="form-group">
+            <label class="form-label text-xs">From date</label>
+            <input v-model="filters.startDate" type="date" class="input" @change="fetchBookings()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label text-xs">To date</label>
+            <input v-model="filters.endDate" type="date" class="input" @change="fetchBookings()" />
+          </div>
         </div>
       </div>
     </div>
@@ -179,6 +188,8 @@ const filters = reactive({
   status: '',
   serviceType: '',
   priority: '',
+  startDate: '',
+  endDate: '',
 });
 
 // Status counts derived from the current filtered total (we track from server metadata)
@@ -203,6 +214,8 @@ const fetchBookings = async ({ silent = false } = {}) => {
     if (filters.status) params.status = filters.status;
     if (filters.serviceType) params.serviceType = filters.serviceType;
     if (filters.priority) params.priority = filters.priority;
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
 
     const response = await apiClient.get('/admin/bookings', { params });
     const data = response.data || response;
