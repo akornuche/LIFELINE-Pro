@@ -28,7 +28,7 @@
             <!-- Selected services summary -->
             <div v-if="selectedServices.length > 0" class="rounded-lg bg-primary-50 border border-primary-200 p-3 mb-3 flex items-center justify-between gap-2 text-sm text-primary-700">
               <span><strong>{{ selectedServices.length }}</strong> service{{ selectedServices.length > 1 ? 's' : '' }} selected</span>
-              <button @click="selectedServices = []" type="button" class="text-primary-500 hover:text-primary-700 text-xs underline flex-shrink-0">Clear all</button>
+              <button @click="selectedServices.value = []" type="button" class="text-primary-500 hover:text-primary-700 text-xs underline flex-shrink-0">Clear all</button>
             </div>
 
             <!-- No active subscription warning -->
@@ -303,11 +303,13 @@ const toggleService = (svc) => {
     showError(`"${svc.label}" requires the ${planName(svc.requiredTier)} plan or higher. Upgrade your subscription to unlock this service.`);
     return;
   }
-  const idx = selectedServices.value.indexOf(svc.value);
+  const current = selectedServices.value;
+  const idx = current.indexOf(svc.value);
   if (idx >= 0) {
-    selectedServices.value.splice(idx, 1);
+    // Reassign to new array so Vue 3 detects the change
+    selectedServices.value = current.filter(v => v !== svc.value);
   } else {
-    selectedServices.value.push(svc.value);
+    selectedServices.value = [...current, svc.value];
   }
 };
 

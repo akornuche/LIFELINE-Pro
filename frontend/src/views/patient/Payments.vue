@@ -1,181 +1,109 @@
 <template>
   <div class="page-container">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 animate-fade-in">Provider Charges &amp; Claims</h1>
-      <p class="text-gray-600 mt-2">Track healthcare costs covered by LifeLine Pro on your behalf</p>
+    <div class="page-header flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">My Treatment History</h1>
+        <p class="text-gray-600">Services consumed each month — covered by your LifeLine Pro subscription</p>
+      </div>
+      <button @click="printAll" class="btn btn-secondary flex items-center gap-2">
+        <PrinterIcon class="h-4 w-4" /> Print / PDF
+      </button>
     </div>
 
-    <!-- Info Banner -->
-    <div class="rounded-lg bg-blue-50 border border-blue-200 p-4 flex gap-3 mb-8">
-      <ShieldCheckIcon class="h-6 w-6 text-blue-500 flex-shrink-0 mt-0.5" />
+    <!-- Info banner -->
+    <div class="rounded-lg bg-blue-50 border border-blue-200 p-4 flex gap-3 mb-6">
+      <ShieldCheckIcon class="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
       <p class="text-sm text-blue-700">
         These charges are automatically covered by your LifeLine Pro subscription.
         <strong>No payment action is required from you.</strong>
       </p>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid md:grid-cols-4 gap-6 mb-8">
-      <div class="card">
-        <div class="card-body text-center">
-          <UserGroupIcon class="h-10 w-10 text-primary-600 mx-auto mb-2" />
-          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Consultations</p>
-          <p class="text-xl font-bold text-gray-900">₦{{ consultationTotal.toLocaleString() }}</p>
-        </div>
+    <!-- Summary totals -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div class="card p-4 text-center">
+        <p class="text-2xl font-bold text-primary-700">₦{{ fmt(grandTotal) }}</p>
+        <p class="text-xs text-gray-500">Total Covered by LifeLine</p>
       </div>
-      <div class="card">
-        <div class="card-body text-center">
-          <BeakerIcon class="h-10 w-10 text-green-600 mx-auto mb-2" />
-          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pharmacy</p>
-          <p class="text-xl font-bold text-gray-900">₦{{ pharmacyTotal.toLocaleString() }}</p>
-        </div>
+      <div class="card p-4 text-center">
+        <p class="text-2xl font-bold text-gray-900">{{ grandCount }}</p>
+        <p class="text-xs text-gray-500">Services Received</p>
       </div>
-      <div class="card">
-        <div class="card-body text-center">
-          <ScissorsIcon class="h-10 w-10 text-purple-600 mx-auto mb-2" />
-          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Surgeries &amp; Labs</p>
-          <p class="text-xl font-bold text-gray-900">₦{{ procedureTotal.toLocaleString() }}</p>
-        </div>
+      <div class="card p-4 text-center">
+        <p class="text-2xl font-bold text-primary-600">₦{{ fmt(currentMonthTotal) }}</p>
+        <p class="text-xs text-gray-500">This Month</p>
       </div>
-      <div class="card bg-primary-50 border border-primary-200">
-        <div class="card-body text-center">
-          <ShieldCheckIcon class="h-10 w-10 text-primary-600 mx-auto mb-2" />
-          <p class="text-xs text-primary-600 uppercase tracking-wide mb-1">Total Covered by LifeLine</p>
-          <p class="text-xl font-bold text-primary-700">₦{{ totalCovered.toLocaleString() }}</p>
-        </div>
+      <div class="card p-4 text-center">
+        <p class="text-2xl font-bold text-gray-900">{{ months.length }}</p>
+        <p class="text-xs text-gray-500">Active Months</p>
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-6">
-      <div class="card-body">
-        <div class="grid md:grid-cols-3 gap-4">
-          <div>
-            <label class="form-label">Status</label>
-            <select v-model="filters.status" class="input" @change="fetchPayments">
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="refunded">Refunded</option>
-            </select>
+    <div v-if="loading" class="flex flex-col items-center py-16">
+      <div class="spinner spinner-lg mb-4"></div>
+      <p class="text-gray-500">Loading treatment history...</p>
+    </div>
+
+    <div v-else-if="months.length === 0" class="card p-12 text-center text-gray-500">
+      <ShieldCheckIcon class="h-12 w-12 mx-auto mb-3 text-gray-300" />
+      <p class="font-medium text-gray-700">No treatments yet</p>
+      <p class="text-sm mt-1">Completed service requests will appear here by month.</p>
+    </div>
+
+    <div v-else id="print-area">
+      <div v-for="bucket in months" :key="bucket.monthKey" class="card mb-4 overflow-hidden">
+        <!-- Month toggle header -->
+        <button type="button"
+          class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+          @click="toggle(bucket.monthKey)">
+          <div class="flex items-center gap-4">
+            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 transition-transform', open.has(bucket.monthKey) ? 'rotate-180' : '']" />
+            <span class="font-semibold text-gray-900 text-lg">{{ bucket.label }}</span>
+            <span class="badge badge-primary">{{ bucket.totals.count }} service{{ bucket.totals.count !== 1 ? 's' : '' }}</span>
           </div>
-          <div>
-            <label class="form-label">Type</label>
-            <select v-model="filters.type" class="input" @change="fetchPayments">
-              <option value="">All Types</option>
-              <option value="consultation">Consultation</option>
-              <option value="prescription">Prescription</option>
-              <option value="surgery">Surgery</option>
-              <option value="lab_test">Lab Test</option>
-            </select>
+          <span class="font-bold text-primary-700 text-lg">₦{{ fmt(bucket.totals.total) }}</span>
+        </button>
+
+        <div v-show="open.has(bucket.monthKey)">
+          <div class="px-6 pb-3 flex items-center justify-between border-b border-gray-100">
+            <p class="text-xs text-gray-500">{{ bucket.services.length }} treatments in {{ bucket.label }}</p>
+            <button @click="printMonth(bucket)" class="btn btn-sm btn-secondary flex items-center gap-1">
+              <PrinterIcon class="h-3.5 w-3.5" /> Print month
+            </button>
           </div>
-          <div>
-            <label class="form-label">Date Range</label>
-            <select v-model="filters.dateRange" class="input" @change="fetchPayments">
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-            </select>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                <tr>
+                  <th class="px-4 py-3 text-left">Date</th>
+                  <th class="px-4 py-3 text-left">Service</th>
+                  <th class="px-4 py-3 text-left">Provider</th>
+                  <th class="px-4 py-3 text-left">Reference</th>
+                  <th class="px-4 py-3 text-right">Value Covered (₦)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="s in bucket.services" :key="s.id" class="hover:bg-gray-50">
+                  <td class="px-4 py-3 whitespace-nowrap text-gray-700">{{ fmtDate(s.created_at) }}</td>
+                  <td class="px-4 py-3 capitalize text-gray-800">{{ (s.payment_type || '').replace(/_/g, ' ') }}</td>
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-gray-900">{{ s.provider_name || '—' }}</p>
+                    <p class="text-xs text-gray-400 capitalize">{{ s.provider_type || '' }}</p>
+                  </td>
+                  <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ s.payment_reference || '—' }}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-primary-700">{{ fmt(s.amount) }}</td>
+                </tr>
+              </tbody>
+              <tfoot class="bg-primary-50 font-semibold">
+                <tr>
+                  <td colspan="4" class="px-4 py-3 text-right text-gray-700">Month Total (covered by LifeLine)</td>
+                  <td class="px-4 py-3 text-right text-primary-700">₦{{ fmt(bucket.totals.total) }}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading">
-      <SkeletonLoader type="table" :rows="8" :cols="6" />
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="!payments.length" class="card">
-      <div class="card-body text-center py-12">
-        <DocumentTextIcon class="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Provider Charges Yet</h3>
-        <p class="text-gray-600">No provider charges have been recorded for your account yet</p>
-      </div>
-    </div>
-
-    <!-- Charges Table -->
-    <div v-else class="card">
-      <div class="card-body">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4">
-                  <div class="text-sm font-medium text-gray-900">{{ payment.description || payment.reference || '—' }}</div>
-                  <div v-if="payment.provider_type" class="text-xs text-gray-500 capitalize">via {{ payment.provider_type }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
-                    :class="{
-                      'bg-blue-100 text-blue-800': payment.payment_type === 'consultation',
-                      'bg-green-100 text-green-800': payment.payment_type === 'prescription',
-                      'bg-purple-100 text-purple-800': payment.payment_type === 'surgery',
-                      'bg-yellow-100 text-yellow-800': payment.payment_type === 'lab_test',
-                      'bg-gray-100 text-gray-800': !['consultation','prescription','surgery','lab_test'].includes(payment.payment_type)
-                    }"
-                  >
-                    {{ (payment.payment_type || 'other').replace('_', ' ') }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ formatDate(payment.created_at) }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-semibold text-gray-900">₦{{ (payment.amount || 0).toLocaleString() }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="badge"
-                    :class="{
-                      'badge-success': payment.status === 'completed',
-                      'badge-warning': payment.status === 'pending',
-                      'badge-danger': payment.status === 'failed',
-                      'badge-info': payment.status === 'refunded'
-                    }"
-                  >
-                    {{ payment.status }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    v-if="payment.status === 'completed'"
-                    @click="downloadReceipt(payment)"
-                    class="text-blue-600 hover:text-blue-900"
-                  >
-                    Download
-                  </button>
-                  <span v-else class="text-gray-400">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Pagination -->
-    <div v-if="payments.length" class="mt-6 flex justify-between items-center">
-      <div class="text-sm text-gray-700">
-        Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
-        {{ Math.min(currentPage * itemsPerPage, totalPayments) }} of {{ totalPayments }} results
-      </div>
-      <div class="flex gap-2">
-        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="btn btn-secondary btn-sm">Previous</button>
-        <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="btn btn-secondary btn-sm">Next</button>
       </div>
     </div>
   </div>
@@ -183,104 +111,71 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { paymentService } from '@/services';
-import { useToast } from '@/composables/useToast';
-import SkeletonLoader from '@/components/SkeletonLoader.vue';
-import {
-  ShieldCheckIcon,
-  DocumentTextIcon,
-  UserGroupIcon,
-  BeakerIcon,
-  WrenchScrewdriverIcon as ScissorsIcon
-} from '@heroicons/vue/24/outline';
 import { format } from 'date-fns';
+import apiClient from '@/services/api';
+import { useToast } from '@/composables/useToast';
+import { PrinterIcon, ChevronDownIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline';
 
-const { success, error: showError, info } = useToast();
-
+const { error: showError } = useToast();
 const loading = ref(true);
-const payments = ref([]);
-const currentPage = ref(1);
-const itemsPerPage = 10;
-const totalPayments = ref(0);
+const months  = ref([]);
+const open    = ref(new Set());
 
-const filters = ref({
-  status: '',
-  type: '',
-  dateRange: 'all'
-});
+const grandTotal        = computed(() => months.value.reduce((s, b) => s + b.totals.total, 0));
+const grandCount        = computed(() => months.value.reduce((s, b) => s + b.totals.count, 0));
+const currentMonthTotal = computed(() => months.value[0]?.totals.total ?? 0);
 
-const consultationTotal = computed(() =>
-  payments.value.filter(p => p.payment_type === 'consultation' && p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
-);
-const pharmacyTotal = computed(() =>
-  payments.value.filter(p => p.payment_type === 'prescription' && p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
-);
-const procedureTotal = computed(() =>
-  payments.value.filter(p => ['surgery', 'lab_test'].includes(p.payment_type) && p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
-);
-const totalCovered = computed(() =>
-  payments.value.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0)
-);
+onMounted(load);
 
-const totalPages = computed(() => Math.ceil(totalPayments.value / itemsPerPage));
-
-onMounted(async () => {
-  await fetchPayments();
-});
-
-const fetchPayments = async () => {
+async function load() {
   loading.value = true;
   try {
-    const response = await paymentService.getPaymentHistory({
-      ...filters.value,
-      page: currentPage.value,
-      limit: itemsPerPage
-    });
-    payments.value = (response.payments || response.data?.payments || []).filter(
-      p => p.payment_type !== 'subscription'
-    );
-    totalPayments.value = response.total || response.data?.total || payments.value.length;
-  } catch (error) {
-    console.error('Failed to fetch payments:', error);
-    showError('Failed to load provider charges. Please try again.');
+    const res  = await apiClient.get('/payments/patient/monthly');
+    const data = res.data || res;
+    months.value = data.months || [];
+    // Auto-open the current (most recent) month
+    if (months.value.length) open.value = new Set([months.value[0].monthKey]);
+  } catch {
+    showError('Failed to load treatment history');
   } finally {
     loading.value = false;
   }
-};
+}
 
-const formatDate = (date) => {
-  try { return format(new Date(date), 'MMM dd, yyyy HH:mm'); } catch { return '—'; }
-};
+function toggle(key) {
+  const s = new Set(open.value);
+  s.has(key) ? s.delete(key) : s.add(key);
+  open.value = s;
+}
 
-const goToPage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page;
-    fetchPayments();
-  }
-};
+const fmt     = n => new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2 }).format(Number(n) || 0);
+const fmtDate = d => { try { return format(new Date(d), 'dd MMM yyyy'); } catch { return d || '—'; } };
 
-const downloadReceipt = (payment) => {
-  info('Generating receipt...');
-  const receiptContent = [
-    'LifeLine Pro — Provider Charge Receipt',
-    '======================================',
-    `Reference: ${payment.payment_reference || payment.id}`,
-    `Date: ${formatDate(payment.created_at)}`,
-    `Amount Covered: ₦${(payment.amount || 0).toLocaleString()}`,
-    `Type: ${(payment.payment_type || '').replace('_', ' ')}`,
-    `Provider: ${payment.provider_type || 'N/A'}`,
-    `Description: ${payment.description || 'N/A'}`,
-    '======================================',
-    'Covered by your LifeLine Pro subscription.',
-  ].join('\n');
+function printHtml(title, buckets) {
+  const rows = buckets.flatMap(b => b.services.map(s => `
+    <tr>
+      <td>${fmtDate(s.created_at)}</td>
+      <td style="text-transform:capitalize">${(s.payment_type||'').replace(/_/g,' ')}</td>
+      <td>${s.provider_name||'—'}<br>
+          <small style="color:#888;text-transform:capitalize">${s.provider_type||''}</small></td>
+      <td style="font-family:monospace;font-size:11px">${s.payment_reference||'—'}</td>
+      <td style="text-align:right">₦${fmt(s.amount)}</td>
+    </tr>`));
+  const total = buckets.reduce((s, b) => s + b.totals.total, 0);
+  return `<html><head><title>${title}</title>
+    <style>body{font-family:Arial,sans-serif;font-size:12px}h1{font-size:18px}p{color:#555;margin:0 0 10px}
+    table{width:100%;border-collapse:collapse}th{background:#f3f4f6;text-align:left;padding:6px 8px;font-size:11px;text-transform:uppercase}
+    td{padding:5px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}tfoot td{font-weight:bold;background:#f9fafb}
+    @media print{button{display:none}}</style></head><body>
+    <h1>LifeLine Pro — ${title}</h1>
+    <p>All charges covered by LifeLine Pro subscription. Generated: ${format(new Date(),'dd MMM yyyy HH:mm')}</p>
+    <table>
+      <thead><tr><th>Date</th><th>Service</th><th>Provider</th><th>Reference</th><th>Value Covered (₦)</th></tr></thead>
+      <tbody>${rows.join('')}</tbody>
+      <tfoot><tr><td colspan="4" style="text-align:right">Grand Total</td><td>₦${fmt(total)}</td></tr></tfoot>
+    </table></body></html>`;
+}
 
-  const blob = new Blob([receiptContent], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `receipt-${payment.payment_reference || payment.id}.txt`;
-  link.click();
-  URL.revokeObjectURL(url);
-  success('Receipt downloaded successfully!');
-};
+const printMonth = b  => { const w = window.open('','_blank'); w.document.write(printHtml(`Treatment History — ${b.label}`, [b])); w.document.close(); w.focus(); setTimeout(() => w.print(), 400); };
+const printAll   = () => { if (!months.value.length) return; const w = window.open('','_blank'); w.document.write(printHtml('Full Treatment History', months.value)); w.document.close(); w.focus(); setTimeout(() => w.print(), 400); };
 </script>

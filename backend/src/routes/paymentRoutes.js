@@ -184,6 +184,20 @@ router.post(
 router.get('/overdue', authenticate, isAdmin, paymentController.getOverduePayments);
 
 /**
+ * @route   GET /api/payments/provider/monthly
+ * @desc    Provider's completed services grouped by month — used for the provider Payments page
+ * @access  Private (Doctor, Pharmacy, Hospital)
+ */
+router.get('/provider/monthly', authenticate, isProvider, paymentController.getProviderMonthly);
+
+/**
+ * @route   GET /api/payments/patient/monthly
+ * @desc    Patient's consumed services grouped by month — used for the patient Payments page
+ * @access  Private (Patient)
+ */
+router.get('/patient/monthly', authenticate, isPatient, paymentController.getPatientMonthly);
+
+/**
  * @route   POST /api/payments/:paymentId/refund
  * @desc    Process refund
  * @access  Private (Admin)

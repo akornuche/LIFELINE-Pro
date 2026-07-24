@@ -99,15 +99,36 @@ export const getPaymentHistory = async (req, res, next) => {
 };
 
 /**
- * Get provider payments
+ * Get provider payments — resolves the caller's user_id to their profile id
+ * (doctors.id / pharmacies.id / hospitals.id) which is what payment_records.provider_id stores.
  * GET /api/payments/provider
  */
 export const getProviderPayments = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const role   = req.user.role;
     const { limit, offset, status, startDate, endDate } = req.query;
 
-    const payments = await paymentService.getProviderPayments(userId, {
+    const { default: database } = await import('../database/connection.js');
+
+    // Resolve profile id
+    let profileId = null;
+    if (role === 'doctor') {
+      const r = await database.query('SELECT id FROM doctors WHERE user_id = $1', [userId]);
+      profileId = r.rows[0]?.id;
+    } else if (role === 'pharmacy') {
+      const r = await database.query('SELECT id FROM pharmacies WHERE user_id = $1', [userId]);
+      profileId = r.rows[0]?.id;
+    } else if (role === 'hospital') {
+      const r = await database.query('SELECT id FROM hospitals WHERE user_id = $1', [userId]);
+      profileId = r.rows[0]?.id;
+    }
+
+    if (!profileId) {
+      return successResponse(res, [], 'No provider profile found');
+    }
+
+    const payments = await paymentService.getProviderPayments(profileId, {
       limit: parseInt(limit) || 50,
       offset: parseInt(offset) || 0,
       status,
@@ -233,6 +254,134 @@ export const rejectStatement = async (req, res, next) => {
     const statement = await paymentService.rejectStatement(statementId, rejectedBy, notes);
 
     return successResponse(res, statement, 'Statement rejected');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Provider monthly payments — groups completed payment_records by YYYY-MM
+ * GET /api/payments/provider/monthly
+ */
+export const getProviderMonthly = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const role   = req.user.role;
+    const { default: database } = await import('../database/connection.js');
+
+    // Resolve profile id
+    let profileId = null;
+    if (role === 'doctor') {
+      const r = await database.query('SELECT id FROM doctors WHERE user_id = $1', [userId]);
+      profileId = r.rows[0]?.id;
+    } else if (role === 'pharmacy') {
+      const r = await database.query('SELECT id FROM pharmacies WHERE user_id = $1', [userId]);
+      profileId = r.rows[0]?.id;
+    } else if (role === 'hospital') {
+      const r = await database.query('SELECT id FROM hospitals WHERE user_id = $1', [userId]);
+      profileId = r.rows[0]?.id;
+    }
+
+    if (!profileId) return successResponse(res, { months: [] }, 'No provider profile');
+
+    const result = await database.query(
+      `SELECT
+         pr.id, pr.amount, pr.payment_type, pr.payment_reference,
+         pr.status, pr.description, pr.created_at,
+         SUBSTR(pr.created_at, 1, 7) AS month_key,
+         pu.first_name AS patient_first_name,
+         pu.last_name  AS patient_last_name,
+         pu.lifeline_id AS patient_lifeline_id
+       FROM payment_records pr
+       LEFT JOIN patients  pat ON pr.patient_id = pat.id
+       LEFT JOIN users     pu  ON pat.user_id   = pu.id
+       WHERE pr.provider_id = $1
+         AND (pr.status = 'completed' OR pr.status = 'success')
+       ORDER BY pr.created_at DESC`,
+      [profileId]
+    );
+
+    const bucketMap = new Map();
+    for (const row of result.rows) {
+      const key = row.month_key || 'unknown';
+      if (!bucketMap.has(key)) {
+        const [y, m] = key.split('-');
+        const label = y && m
+          ? new Date(parseInt(y), parseInt(m) - 1, 1)
+              .toLocaleString('en-NG', { month: 'long', year: 'numeric' })
+          : key;
+        bucketMap.set(key, { monthKey: key, label, services: [], totals: { count: 0, total: 0 } });
+      }
+      const b = bucketMap.get(key);
+      b.services.push(row);
+      b.totals.count += 1;
+      b.totals.total += parseFloat(row.amount || 0);
+    }
+
+    const months = Array.from(bucketMap.values());
+    return successResponse(res, { months, totalServices: result.rows.length }, 'Provider monthly services retrieved');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Patient monthly consumption — groups their completed service charges by YYYY-MM
+ * GET /api/payments/patient/monthly
+ */
+export const getPatientMonthly = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { default: database } = await import('../database/connection.js');
+
+    const patResult = await database.query(
+      'SELECT id FROM patients WHERE user_id = $1', [userId]
+    );
+    const patientId = patResult.rows[0]?.id;
+    if (!patientId) return successResponse(res, { months: [] }, 'No patient profile');
+
+    const result = await database.query(
+      `SELECT
+         pr.id, pr.amount, pr.payment_type, pr.payment_reference,
+         pr.status, pr.provider_type, pr.description, pr.created_at,
+         SUBSTR(pr.created_at, 1, 7) AS month_key,
+         CASE
+           WHEN pr.provider_type = 'doctor'   THEN du.first_name || ' ' || du.last_name
+           WHEN pr.provider_type = 'pharmacy' THEN ph.pharmacy_name
+           WHEN pr.provider_type = 'hospital' THEN ho.hospital_name
+           ELSE NULL
+         END AS provider_name
+       FROM payment_records pr
+       LEFT JOIN doctors   doc ON pr.provider_id = doc.id AND pr.provider_type = 'doctor'
+       LEFT JOIN users     du  ON doc.user_id = du.id
+       LEFT JOIN pharmacies ph ON pr.provider_id = ph.id  AND pr.provider_type = 'pharmacy'
+       LEFT JOIN hospitals  ho ON pr.provider_id = ho.id  AND pr.provider_type = 'hospital'
+       WHERE pr.patient_id = $1
+         AND pr.payment_type != 'subscription'
+         AND (pr.status = 'completed' OR pr.status = 'success')
+       ORDER BY pr.created_at DESC`,
+      [patientId]
+    );
+
+    const bucketMap = new Map();
+    for (const row of result.rows) {
+      const key = row.month_key || 'unknown';
+      if (!bucketMap.has(key)) {
+        const [y, m] = key.split('-');
+        const label = y && m
+          ? new Date(parseInt(y), parseInt(m) - 1, 1)
+              .toLocaleString('en-NG', { month: 'long', year: 'numeric' })
+          : key;
+        bucketMap.set(key, { monthKey: key, label, services: [], totals: { count: 0, total: 0 } });
+      }
+      const b = bucketMap.get(key);
+      b.services.push(row);
+      b.totals.count += 1;
+      b.totals.total += parseFloat(row.amount || 0);
+    }
+
+    const months = Array.from(bucketMap.values());
+    return successResponse(res, { months, totalServices: result.rows.length }, 'Patient monthly consumption retrieved');
   } catch (error) {
     next(error);
   }
